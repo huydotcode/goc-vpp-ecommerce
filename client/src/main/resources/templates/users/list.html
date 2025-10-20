@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách Users</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,.1);
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f1f3f5;
+        }
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        .info-value {
+            font-size: 1rem;
+            color: #212529;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-users"></i> User Management
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" th:href="@{/logout}">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="mb-0"><i class="fas fa-list"></i> Danh sách Users</h4>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                            <i class="fas fa-plus"></i> Thêm User
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Filter và Search Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-filter"></i> Bộ lọc và Tìm kiếm</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="get" th:action="@{/users}">
+                            <div class="row g-3">
+                                <!-- Search -->
+                                <div class="col-md-3">
+                                    <label for="search" class="form-label">Tìm kiếm</label>
+                                    <input type="text" class="form-control" id="search" name="search" 
+                                           th:value="${search}" placeholder="Username, Email hoặc ID">
+                                </div>
+                                
+                                <!-- Role Filter -->
+                                <div class="col-md-2">
+                                    <label for="role" class="form-label">Role</label>
+                                    <select class="form-select" id="role" name="role">
+                                        <option value="">Tất cả</option>
+                                        <option value="ADMIN" th:selected="${role == 'ADMIN'}">ADMIN</option>
+                                        <option value="EMPLOYEE" th:selected="${role == 'EMPLOYEE'}">EMPLOYEE</option>
+                                        <option value="USER" th:selected="${role == 'USER'}">USER</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Status Filter -->
+                                <div class="col-md-2">
+                                    <label for="isActive" class="form-label">Trạng thái</label>
+                                    <select class="form-select" id="isActive" name="isActive">
+                                        <option value="">Tất cả</option>
+                                        <option value="true" th:selected="${isActive == true}">Active</option>
+                                        <option value="false" th:selected="${isActive == false}">Inactive</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Sort -->
+                                <div class="col-md-2">
+                                    <label for="sort" class="form-label">Sắp xếp theo</label>
+                                    <select class="form-select" id="sort" name="sort">
+                                        <option value="id" th:selected="${sort == 'id'}">ID</option>
+                                        <option value="username" th:selected="${sort == 'username'}">Username</option>
+                                        <option value="email" th:selected="${sort == 'email'}">Email</option>
+                                        <option value="role" th:selected="${sort == 'role'}">Role</option>
+                                        <option value="createdat" th:selected="${sort == 'createdat'}">Ngày tạo</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Direction -->
+                                <div class="col-md-2">
+                                    <label for="direction" class="form-label">Thứ tự</label>
+                                    <select class="form-select" id="direction" name="direction">
+                                        <option value="asc" th:selected="${direction == 'asc'}">Tăng dần</option>
+                                        <option value="desc" th:selected="${direction == 'desc'}">Giảm dần</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Size -->
+                                <div class="col-md-1">
+                                    <label for="size" class="form-label">Hiển thị</label>
+                                    <select class="form-select" id="size" name="size">
+                                        <option value="5" th:selected="${size == 5}">5</option>
+                                        <option value="10" th:selected="${size == 10}">10</option>
+                                        <option value="20" th:selected="${size == 20}">20</option>
+                                        <option value="50" th:selected="${size == 50}">50</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Lọc
+                                    </button>
+                                    <a th:href="@{/users}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Xóa bộ lọc
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Thông tin kết quả -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="text-muted mb-0">
+                            Hiển thị <strong th:text="${users.size()}"></strong> trong tổng số 
+                            <strong th:text="${totalElements}"></strong> users
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <p class="text-muted mb-0">
+                            Trang <strong th:text="${currentPage}"></strong> / 
+                            <strong th:text="${totalPages}"></strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <a th:href="@{/users(sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                       class="text-decoration-none">
+                                        ID
+                                        <i th:if="${sort == 'id'}" 
+                                           th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a th:href="@{/users(sort='username', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                       class="text-decoration-none">
+                                        Username
+                                        <i th:if="${sort == 'username'}" 
+                                           th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a th:href="@{/users(sort='email', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                       class="text-decoration-none">
+                                        Email
+                                        <i th:if="${sort == 'email'}" 
+                                           th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a th:href="@{/users(sort='role', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                       class="text-decoration-none">
+                                        Role
+                                        <i th:if="${sort == 'role'}" 
+                                           th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                    </a>
+                                </th>
+                                <th>Avatar</th>
+                                <th>
+                                    <a th:href="@{/users(sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                       class="text-decoration-none">
+                                        Trạng thái
+                                        <i th:if="${sort == 'isActive'}" 
+                                           th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a th:href="@{/users(sort='createdat', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                       class="text-decoration-none">
+                                        Ngày tạo
+                                        <i th:if="${sort == 'createdat'}" 
+                                           th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                    </a>
+                                </th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="user : ${users}">
+                                <td th:text="${user.id}"></td>
+                                <td th:text="${user.username}"></td>
+                                <td th:text="${user.email}"></td>
+                                <td>
+                                    <span th:if="${user.role == 'ADMIN'}" class="badge bg-danger">ADMIN</span>
+                                    <span th:if="${user.role == 'EMPLOYEE'}" class="badge bg-warning">EMPLOYEE</span>
+                                    <span th:if="${user.role == 'USER'}" class="badge bg-info">USER</span>
+                                </td>
+                                <td>
+                                    <img th:if="${user.avatarUrl != null and user.avatarUrl != ''}" 
+                                         th:src="${user.avatarUrl}" 
+                                         alt="Avatar" 
+                                         class="rounded-circle" 
+                                         width="40" 
+                                         height="40">
+                                    <span th:unless="${user.avatarUrl != null and user.avatarUrl != ''}">
+                                        <i class="fas fa-user-circle fa-2x text-secondary"></i>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span th:if="${user.isActive}" class="badge bg-success">Active</span>
+                                    <span th:unless="${user.isActive}" class="badge bg-danger">Inactive</span>
+                                </td>
+                                <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-info btn-action" title="Xem" 
+                                            th:onclick="'viewUser(' + ${user.id} + ')'">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-action" title="Sửa" 
+                                            th:onclick="'editUser(' + ${user.id} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <a th:href="@{/users/delete/{id}(id=${user.id})}" 
+                                       class="btn btn-danger btn-action" 
+                                       title="Xóa"
+                                       onclick="return confirm('Bạn có chắc chắn muốn xóa user này?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <nav th:if="${totalPages > 1}" aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous -->
+                        <li class="page-item" th:classappend="${!hasPrev} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/users(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
+                               th:if="${hasPrev}">
+                                <i class="fas fa-chevron-left"></i> Trước
+                            </a>
+                            <span class="page-link" th:unless="${hasPrev}">
+                                <i class="fas fa-chevron-left"></i> Trước
+                            </span>
+                        </li>
+                        
+                        <!-- Page Numbers -->
+                        <li th:each="pageNum : ${#numbers.sequence(1, totalPages)}" 
+                            class="page-item" 
+                            th:classappend="${pageNum == currentPage} ? 'active'">
+                            <a class="page-link" 
+                               th:href="@{/users(page=${pageNum}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
+                               th:text="${pageNum}"></a>
+                        </li>
+                        
+                        <!-- Next -->
+                        <li class="page-item" th:classappend="${!hasNext} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/users(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
+                               th:if="${hasNext}">
+                                Sau <i class="fas fa-chevron-right"></i>
+                            </a>
+                            <span class="page-link" th:unless="${hasNext}">
+                                Sau <i class="fas fa-chevron-right"></i>
+                            </span>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- View User Modal -->
+    <div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewUserModalLabel">
+                        <i class="fas fa-eye"></i> Chi tiết User
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="viewUserModalBody">
+                    <!-- Content will be loaded via AJAX -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">
+                        <i class="fas fa-edit"></i> Chỉnh sửa User
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editUserForm">
+                    <div class="modal-body" id="editUserModalBody">
+                        <!-- Content will be loaded via AJAX -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Hủy
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Cập nhật
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createUserModalLabel">
+                        <i class="fas fa-user-plus"></i> Tạo User Mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/users}" method="post">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Chọn role</option>
+                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="EMPLOYEE">EMPLOYEE</option>
+                                    <option value="USER">USER</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="avatarUrl" class="form-label">Avatar URL</label>
+                                <input type="url" class="form-control" id="avatarUrl" name="avatarUrl">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="isActive" class="form-label">Trạng thái</label>
+                                <select class="form-select" id="isActive" name="isActive">
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Hủy
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Tạo User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sync token từ localStorage vào cookie khi load trang
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                document.cookie = `access_token=${token}; path=/; max-age=86400`;
+            } else {
+                // Nếu không có token, redirect về login
+                window.location.href = '/login';
+            }
+        });
+
+        // View User Modal
+        function viewUser(userId) {
+            console.log('Fetching user with ID:', userId);
+            fetch(`/users/api/${userId}`)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received data:', data);
+                    const modalBody = document.getElementById('viewUserModalBody');
+                    modalBody.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">ID</p>
+                                <p class="info-value">${data.id || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Username</p>
+                                <p class="info-value">${data.username || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Email</p>
+                                <p class="info-value">${data.email || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Role</p>
+                                <p class="info-value">
+                                    <span class="badge ${data.role === 'ADMIN' ? 'bg-danger' : data.role === 'EMPLOYEE' ? 'bg-warning' : 'bg-info'}">${data.role || 'N/A'}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Avatar</p>
+                                <p class="info-value">
+                                    ${data.avatarUrl ? `<img src="${data.avatarUrl}" alt="Avatar" class="rounded-circle" width="50" height="50">` : '<i class="fas fa-user-circle fa-2x text-secondary"></i>'}
+                                </p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Trạng thái</p>
+                                <p class="info-value">
+                                    <span class="badge ${data.isActive ? 'bg-success' : 'bg-danger'}">${data.isActive ? 'Active' : 'Inactive'}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Ngày tạo</p>
+                                <p class="info-value">${data.createdAt ? new Date(data.createdAt).toLocaleString('vi-VN') : 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Ngày cập nhật</p>
+                                <p class="info-value">${data.updatedAt ? new Date(data.updatedAt).toLocaleString('vi-VN') : 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Tạo bởi</p>
+                                <p class="info-value">${data.createdBy || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <p class="info-label mb-1">Cập nhật bởi</p>
+                                <p class="info-value">${data.updatedBy || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+                    new bootstrap.Modal(document.getElementById('viewUserModal')).show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi tải thông tin user!');
+                });
+        }
+
+        // Edit User Modal
+        function editUser(userId) {
+            console.log('Fetching user for edit with ID:', userId);
+            fetch(`/users/api/${userId}`)
+                .then(response => {
+                    console.log('Edit response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Edit received data:', data);
+                    const modalBody = document.getElementById('editUserModalBody');
+                    modalBody.innerHTML = `
+                        <input type="hidden" name="id" value="${data.id || ''}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editUsername" class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editUsername" name="username" value="${data.username || ''}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="editEmail" name="email" value="${data.email || ''}" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="editPassword" name="password" placeholder="Nhập password mới" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editConfirmPassword" class="form-label">Xác nhận Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="editConfirmPassword" name="confirmPassword" placeholder="Nhập lại password" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editRole" class="form-label">Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editRole" name="role" required>
+                                    <option value="ADMIN" ${data.role === 'ADMIN' ? 'selected' : ''}>ADMIN</option>
+                                    <option value="EMPLOYEE" ${data.role === 'EMPLOYEE' ? 'selected' : ''}>EMPLOYEE</option>
+                                    <option value="USER" ${data.role === 'USER' ? 'selected' : ''}>USER</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editIsActive" class="form-label">Trạng thái</label>
+                                <select class="form-select" id="editIsActive" name="isActive">
+                                    <option value="true" ${data.isActive ? 'selected' : ''}>Active</option>
+                                    <option value="false" ${!data.isActive ? 'selected' : ''}>Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="editAvatarUrl" class="form-label">Avatar URL</label>
+                                <input type="url" class="form-control" id="editAvatarUrl" name="avatarUrl" value="${data.avatarUrl || ''}">
+                            </div>
+                        </div>
+                    `;
+                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi tải thông tin user!');
+                });
+        }
+
+        // Handle Edit Form Submit
+        document.getElementById('editUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const userId = formData.get('id');
+            
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+            
+            if (password !== confirmPassword) {
+                alert('Password và xác nhận password không khớp!');
+                return;
+            }
+            
+            const userData = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: password,
+                role: formData.get('role'),
+                isActive: formData.get('isActive') === 'true',
+                avatarUrl: formData.get('avatarUrl')
+            };
+
+            fetch(`/users/api/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    location.reload();
+                } else {
+                    throw new Error('Cập nhật thất bại');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi cập nhật user!');
+            });
+        });
+    </script>
+</body>
+</html>

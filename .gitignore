@@ -1,0 +1,53 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+*.tmp
+hs_err_pid*
+
+# Java / Build
+*.class
+*.jar
+*.war
+*.ear
+/target/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Module build outputs
+spring-jwt-base/build/
+client/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# VS Code
+.vscode/
+
+# Coverage / Reports
+.jacoco/
+coverage/
+
+# Environment / Secrets
+*.env
+.env*
+
+# Temporary files
+*.swp
+*.swo
+~$*
+
