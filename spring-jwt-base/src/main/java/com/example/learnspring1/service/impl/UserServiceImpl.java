@@ -112,6 +112,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Optional<User> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    @Override
     public User changePassword(Long id, String newPassword, PasswordEncoder encoder) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found with id " + id));

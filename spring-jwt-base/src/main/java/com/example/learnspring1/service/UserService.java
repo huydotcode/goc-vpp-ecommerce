@@ -27,6 +27,8 @@ public interface UserService {
 
     User getUserByEmail(String email);
 
+    Optional<User> getUserByUsername(String username);
+
     List<User> getUsersByName(String name);
 
     User updateUser(Long id, User user);
