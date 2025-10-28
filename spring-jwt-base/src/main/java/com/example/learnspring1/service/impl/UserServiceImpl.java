@@ -39,15 +39,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
-    @Override
-    public List<User> getAllUsers() {
-        return userRepository.findByIsActiveTrue();
-    }
-    
-    @Override
-    public List<User> getAllUsers(Specification<User> spec) {
-        return userRepository.findAll(spec);
-    }
 
     @Override
     public Page<User> getUsersPage(Pageable pageable, Specification<User> spec) {
@@ -93,10 +84,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(id);
     }
 
-    @Override
-    public List<User> getUsersByName(String name) {
-        return userRepository.findByUsernameContainingIgnoreCase(name);
-    }
 
     @Override
     public User updateUser(Long id, User user) {
@@ -140,12 +127,5 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByUsername(username);
     }
 
-    @Override
-    public User changePassword(Long id, String newPassword, PasswordEncoder encoder) {
-        User user = userRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("User not found with id " + id));
-        user.setPassword(encoder.encode(newPassword));
-        return userRepository.save(user);
-    }
 
 }

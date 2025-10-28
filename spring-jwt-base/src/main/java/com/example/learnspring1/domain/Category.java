@@ -1,8 +1,8 @@
-   
 package com.example.learnspring1.domain;
 import java.time.Instant;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Entity
@@ -13,12 +13,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "name is required")
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -53,6 +53,7 @@ public class Category {
     public void prePersist() {
         String user = com.example.learnspring1.utils.SecurityUtil.getCurrentUserLogin().orElse("system");
         this.createdBy = user;
+        this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 

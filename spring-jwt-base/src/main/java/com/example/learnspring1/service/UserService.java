@@ -13,9 +13,6 @@ import com.example.learnspring1.domain.User;
 public interface UserService {
     User createUser(User user, PasswordEncoder encoder);
 
-    List<User> getAllUsers();
-    
-    List<User> getAllUsers(Specification<User> spec);
 
     Page<User> getUsersPage(Pageable pageable, Specification<User> spec);
     
@@ -31,11 +28,9 @@ public interface UserService {
 
     Optional<User> getUserByUsername(String username);
 
-    List<User> getUsersByName(String name);
 
     User updateUser(Long id, User user);
 
     void deleteUser(Long id);
     
-    User changePassword(Long id, String newPassword, PasswordEncoder encoder);
 }

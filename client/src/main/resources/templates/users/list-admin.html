@@ -5,1032 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* Admin Layout Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-        }
-
-        :root {
-            --bg-color: #f5f5f5;
-            --text-color: #333;
-            --sidebar-bg: #001529;
-            --sidebar-text: #fff;
-            --card-bg: #fff;
-            --border-color: #d9d9d9;
-            --primary-color: #1890ff;
-            --hover-color: #40a9ff;
-            --success-color: #52c41a;
-            --warning-color: #faad14;
-            --error-color: #f5222d;
-        }
-
-        /* Prevent flash of unstyled content */
-        html {
-            color-scheme: dark;
-        }
-
-        /* Default dark theme to prevent flash */
-        [data-theme="dark"] {
-            --bg-color: #141414;
-            --text-color: #fff;
-            --sidebar-bg: #000;
-            --sidebar-text: #fff;
-            --card-bg: #1f1f1f;
-            --border-color: #303030;
-            --primary-color: #177ddc;
-            --hover-color: #3c9be8;
-        }
-
-        .admin-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .admin-sidebar {
-            width: 250px;
-            background: var(--sidebar-bg);
-            color: var(--sidebar-text);
-            position: fixed;
-            height: 100vh;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 60px;
-        }
-
-        .sidebar-logo {
-            font-size: 18px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-menu li {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            color: var(--sidebar-text);
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-        }
-
-        .sidebar-menu a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar-menu a.active {
-            background-color: var(--primary-color);
-        }
-
-        .sidebar-menu i {
-            width: 20px;
-            margin-right: 12px;
-            text-align: center;
-        }
-
-        .admin-main {
-            flex: 1;
-            margin-left: 250px;
-        }
-
-        .admin-header {
-            background: var(--card-bg);
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .admin-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .theme-toggle {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .theme-toggle:hover {
-            background-color: var(--hover-color);
-            color: white;
-        }
-
-        .admin-content {
-            padding: 24px;
-        }
-
-        .admin-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .admin-card-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--card-bg);
-        }
-
-        .admin-card-body {
-            padding: 24px;
-        }
-
-        /* Table Styles */
-        .table-container {
-            position: relative;
-            overflow-x: auto;
-        }
-
-        .table-loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-
-        [data-theme="dark"] .table-loading-overlay {
-            background: rgba(0, 0, 0, 0.8);
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Container Loading Overlay */
-        .container-loading-overlay {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(2px);
-        }
-
-        .container-loading-overlay.show {
-            display: flex;
-        }
-
-        .container-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.2);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .container-loading-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            margin-top: 80px;
-            color: var(--text-color);
-            font-size: 16px;
-            font-weight: 500;
-            text-align: center;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--card-bg);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        th, td {
-            padding: 16px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            background: var(--card-bg);
-            font-weight: 600;
-            color: var(--text-color);
-            font-size: 14px;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        th a {
-            color: var(--text-color);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-
-        th a:hover {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-
-        td {
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        tr:hover {
-            background: rgba(24, 144, 255, 0.03);
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            margin: 2px;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--hover-color);
-        }
-
-        .btn-secondary {
-            background: var(--border-color);
-            color: var(--text-color);
-        }
-
-        .btn-secondary:hover {
-            background: #d9d9d9;
-        }
-
-        .btn-danger {
-            background: var(--error-color);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #ff4d4f;
-        }
-
-        .btn-success {
-            background: var(--success-color);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #73d13d;
-        }
-
-        .btn-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .btn-info:hover {
-            background: #138496;
-        }
-
-        .btn-warning {
-            background: var(--warning-color);
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #d4a106;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 4px;
-            font-weight: 500;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: var(--card-bg);
-            color: var(--text-color);
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            margin-top: 20px;
-        }
-
-        .page-size-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 20px 0;
-            justify-content: center;
-        }
-
-        .page-size-selector label {
-            font-weight: 500;
-            color: var(--text-color);
-        }
-
-        .page-size-selector select {
-            padding: 8px 16px;
-            border: 2px solid var(--border-color, #d1d5db);
-            border-radius: 8px;
-            background: var(--card-bg, #1f2937);
-            color: var(--text-color, #f9fafb);
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 12px center;
-            background-repeat: no-repeat;
-            background-size: 16px;
-            padding-right: 40px;
-            appearance: none;
-            cursor: pointer;
-        }
-
-        .page-size-selector select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            transform: translateY(-1px);
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231890ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-        }
-
-        .page-size-selector select:hover {
-            border-color: var(--primary-color);
-        }
-
-        .page-size-selector span {
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        /* Filter Form */
-        #filterForm {
-            margin-bottom: 32px;
-            padding: 24px;
-            background: var(--card-bg);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-
-        #filterForm .form-group {
-            margin-bottom: 16px;
-        }
-
-        #filterForm label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        .pagination a {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            text-decoration: none;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            background: var(--card-bg);
-            min-width: 36px;
-            text-align: center;
-            font-weight: 500;
-            font-size: 13px;
-        }
-
-        .pagination a:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-            transform: translateY(-1px);
-        }
-
-        .pagination .current {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .pagination .disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: var(--bg-color);
-        }
-
-        .pagination .disabled:hover {
-            transform: none;
-        }
-
-        /* Bootstrap pagination overrides */
-        .pagination .page-item {
-            list-style: none;
-            margin: 0;
-        }
-
-        .pagination .page-link {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            text-decoration: none;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            background: var(--card-bg);
-            min-width: 36px;
-            text-align: center;
-            font-weight: 500;
-            font-size: 13px;
-            display: block;
-        }
-
-        .pagination .page-link:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-            transform: translateY(-1px);
-        }
-
-        .pagination .page-item.active .page-link {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .pagination .page-item.disabled .page-link {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: var(--bg-color);
-        }
-
-        .pagination .page-item.disabled .page-link:hover {
-            transform: none;
-        }
-
-        /* Notification */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--success-color);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            z-index: 1001;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.error {
-            background: var(--error-color);
-        }
-
-        .notification.warning {
-            background: var(--warning-color);
-        }
-
-        /* Badge Styles */
-        .badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .bg-danger {
-            background-color: var(--error-color) !important;
-        }
-
-        .bg-warning {
-            background-color: var(--warning-color) !important;
-        }
-
-        .bg-info {
-            background-color: #17a2b8 !important;
-        }
-
-        .bg-success {
-            background-color: var(--success-color) !important;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            width: 95%;
-            max-width: 900px;
-            max-height: 95vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 24px 32px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: var(--text-color);
-            padding: 6px;
-        }
-
-        .modal-close:hover {
-            color: var(--error-color);
-        }
-
-        .modal-body {
-            padding: 32px;
-        }
-
-        .modal-footer {
-            padding: 20px 32px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 16px;
-        }
-
-        /* Form Styles */
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid var(--border-color, #d1d5db);
-            border-radius: 8px;
-            background: var(--card-bg, #1f2937);
-            color: var(--text-color, #f9fafb);
-            font-size: 14px;
-            font-weight: 400;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            transform: translateY(-1px);
-        }
-
-        .form-control:hover {
-            border-color: var(--primary-color);
-        }
-
-        .form-control::placeholder {
-            color: var(--text-muted);
-            font-style: italic;
-        }
-
-        /* Select dropdown styling */
-        select.form-control {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 12px center;
-            background-repeat: no-repeat;
-            background-size: 16px;
-            padding-right: 40px;
-            appearance: none;
-            cursor: pointer;
-        }
-
-        select.form-control:focus {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231890ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-        }
-
-        .form-control.error {
-            border-color: var(--error-color);
-        }
-
-        .error-message {
-            color: var(--error-color);
-            font-size: 12px;
-            margin-top: 6px;
-        }
-
-        /* User Detail Styles */
-        .user-detail {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-        }
-
-        .user-info {
-            background: var(--bg-color);
-            padding: 24px;
-            border-radius: 8px;
-        }
-
-        .user-info h4 {
-            margin: 0 0 16px 0;
-            color: var(--text-color);
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            font-weight: 500;
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        .info-value {
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        /* Table Actions */
-        .table-actions {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .btn-sm {
-            padding: 6px 10px;
-            font-size: 12px;
-            border-radius: 4px;
-            min-width: 32px;
-            height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-sm i {
-            font-size: 11px;
-        }
-
-        /* Tooltip */
-        .btn[title] {
-            position: relative;
-        }
-
-        .btn[title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            white-space: nowrap;
-            z-index: 1000;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .admin-sidebar {
-                transform: translateX(-100%);
-            }
-
-            .admin-sidebar.mobile-open {
-                transform: translateX(0);
-            }
-
-            .admin-main {
-                margin-left: 0;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            /* Table responsive */
-            .table-container {
-                overflow-x: auto;
-            }
-
-            table {
-                min-width: 600px;
-            }
-
-            th, td {
-                padding: 12px 8px;
-                font-size: 13px;
-            }
-
-            .btn-sm {
-                padding: 4px 6px;
-                font-size: 11px;
-                min-width: 28px;
-                height: 28px;
-            }
-
-            /* Pagination responsive */
-            .pagination {
-                flex-wrap: wrap;
-                gap: 4px;
-            }
-
-            .pagination a,
-            .pagination .page-link {
-                padding: 6px 8px;
-                font-size: 12px;
-                min-width: 28px;
-            }
-
-            /* Filter form responsive */
-            #filterForm {
-                padding: 16px;
-                margin-bottom: 24px;
-            }
-
-            #filterForm .form-group {
-                margin-bottom: 12px;
-            }
-
-            /* Modal responsive */
-            .modal-content {
-                width: 95%;
-                max-width: 500px;
-                margin: 10px;
-            }
-        }
-
-        /* Skeleton Loading */
-        .skeleton {
-            background: linear-gradient(90deg, var(--border-color) 25%, rgba(255,255,255,0.1) 50%, var(--border-color) 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-
-        .skeleton-text {
-            height: 16px;
-            border-radius: 4px;
-            margin: 8px 0;
-        }
-
-        .skeleton-text.short {
-            width: 60%;
-        }
-
-        .skeleton-text.medium {
-            width: 80%;
-        }
-
-        .skeleton-text.long {
-            width: 100%;
-        }
-
-        .skeleton-button {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px;
-        }
-
-        @keyframes loading {
-            0% {
-                background-position: 200% 0;
-            }
-            100% {
-                background-position: -200% 0;
-            }
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        /* Accessibility */
-        .btn:focus,
-        .form-control:focus,
-        select:focus {
-            outline: 2px solid var(--primary-color);
-            outline-offset: 2px;
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-            .btn {
-                border: 2px solid currentColor;
-            }
-            
-            .form-control {
-                border: 2px solid currentColor;
-            }
-        }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-    <div class="admin-container">
-        <!-- Sidebar -->
-        <div class="admin-sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">Admin Panel</div>
-            </div>
-            <ul class="sidebar-menu">
-                <li>
-                    <a href="/users" class="active">
-                        <i class="fas fa-users"></i>
-                        <span>Quản lý Users</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Đăng xuất</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Main Content -->
-        <div class="admin-main" id="mainContent">
-            <div class="admin-header">
-                <h1 class="admin-title">Quản lý Users</h1>
-                <div class="admin-actions">
-                    <button class="theme-toggle" onclick="toggleTheme()">
-                        <i class="fas fa-moon" id="themeIcon"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="admin-content">
-                <!-- Container Loading Overlay -->
-                <div class="container-loading-overlay" id="containerLoadingOverlay">
-                    <div class="container-spinner"></div>
-                    <div class="container-loading-text">Đang tải...</div>
-                </div>
-
-                <!-- Users Management Content -->
+    <div th:replace="~{layouts/admin :: adminLayout(~{::section}, 'Quản lý Users', 'users')}">
+        <section>
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1045,7 +24,7 @@
                         <form id="filterForm" class="mb-4">
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
                                 <div class="form-group">
-                                    <label for="role">Role:</label>
+                                    <label for="role"><i class="fas fa-user-shield" style="margin-right:6px;"></i>Role:</label>
                                     <select id="role" name="role" class="form-control">
                                         <option value="">Tất cả</option>
                                         <option value="ADMIN" th:selected="${role == 'ADMIN'}">ADMIN</option>
@@ -1054,17 +33,17 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="username">Username:</label>
+                                    <label for="username"><i class="fas fa-user" style="margin-right:6px;"></i>Username:</label>
                                     <input type="text" id="username" name="username" class="form-control" 
                                            th:value="${username}" placeholder="Tìm theo username...">
                                 </div>
                                 <div class="form-group">
-                                    <label for="email">Email:</label>
+                                    <label for="email"><i class="fas fa-envelope" style="margin-right:6px;"></i>Email:</label>
                                     <input type="text" id="email" name="email" class="form-control" 
                                            th:value="${email}" placeholder="Tìm theo email...">
                                 </div>
                                 <div class="form-group">
-                                    <label for="isActive">Trạng thái:</label>
+                                    <label for="isActive"><i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái:</label>
                                     <select id="isActive" name="isActive" class="form-control">
                                         <option value="">Tất cả</option>
                                         <option value="true" th:selected="${isActive == true}">Active</option>
@@ -1072,9 +51,9 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="search">Tìm kiếm:</label>
+                                    <label for="search"><i class="fas fa-search" style="margin-right:6px;"></i>Tìm kiếm:</label>
                                     <input type="text" id="search" name="search" class="form-control" 
-                                           th:value="${search}" placeholder="Tìm kiếm chung...">
+                                           th:value="${search}" placeholder="Nhập username, email hoặc id.">
                                 </div>
                             </div>
                             <div style="display: flex; gap: 8px;">
@@ -1100,7 +79,7 @@
                                         <th>
                                             <a th:href="@{/users(sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
-                                                ID
+                                                <i class="fas fa-hashtag" style="margin-right:6px;"></i>ID
                                                 <i th:if="${sort == 'id'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
@@ -1108,7 +87,7 @@
                                         <th>
                                             <a th:href="@{/users(sort='username', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
-                                                Username
+                                                <i class="fas fa-user" style="margin-right:6px;"></i>Username
                                                 <i th:if="${sort == 'username'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
@@ -1116,7 +95,7 @@
                                         <th>
                                             <a th:href="@{/users(sort='email', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
-                                                Email
+                                                <i class="fas fa-envelope" style="margin-right:6px;"></i>Email
                                                 <i th:if="${sort == 'email'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
@@ -1124,7 +103,7 @@
                                         <th>
                                             <a th:href="@{/users(sort='role', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
-                                                Role
+                                                <i class="fas fa-user-shield" style="margin-right:6px;"></i>Role
                                                 <i th:if="${sort == 'role'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
@@ -1132,7 +111,7 @@
                                         <th>
                                             <a th:href="@{/users(sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
-                                                Trạng thái
+                                                <i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái
                                                 <i th:if="${sort == 'isActive'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
@@ -1140,42 +119,66 @@
                                         <th>
                                             <a th:href="@{/users(sort='createdAt', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
-                                                Ngày tạo
+                                                <i class="fas fa-clock" style="margin-right:6px;"></i>Ngày tạo
                                                 <i th:if="${sort == 'createdAt'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
                                         </th>
-                                        <th class="text-center">Thao tác</th>
+                                        <th class="text-center"><i class="fas fa-ellipsis-h" style="margin-right:6px;"></i>Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="user : ${users}">
+                                    <tr th:each="user : ${users}" th:attr="data-user-id=${user.id}">
                                         <td th:text="${user.id}"></td>
-                                        <td th:text="${user.username}"></td>
-                                        <td th:text="${user.email}"></td>
+                                        <!-- Username -->
                                         <td>
-                                            <span th:if="${user.role == 'ADMIN'}" class="badge bg-danger">ADMIN</span>
-                                            <span th:if="${user.role == 'EMPLOYEE'}" class="badge bg-warning">EMPLOYEE</span>
-                                            <span th:if="${user.role == 'USER'}" class="badge bg-info">USER</span>
+                                            <span class="cell-view" th:text="${user.username}"></span>
+                                            <input class="cell-edit form-control" style="display:none;" th:attr="data-field='username'" th:value="${user.username}" />
                                         </td>
+                                        <!-- Email -->
                                         <td>
-                                            <span th:if="${user.isActive}" class="badge bg-success">Active</span>
-                                            <span th:unless="${user.isActive}" class="badge bg-danger">Inactive</span>
+                                            <span class="cell-view" th:text="${user.email}"></span>
+                                            <input class="cell-edit form-control" style="display:none;" th:attr="data-field='email'" th:value="${user.email}" />
+                                        </td>
+                                        <!-- Role -->
+                                        <td>
+                                            <span class="cell-view">
+                                                <span th:if="${user.role == 'ADMIN'}" class="badge badge-primary-soft"><i class="fas fa-user-shield"></i> ADMIN</span>
+                                                <span th:if="${user.role == 'EMPLOYEE'}" class="badge badge-muted"><i class="fas fa-user-tie"></i> EMPLOYEE</span>
+                                                <span th:if="${user.role == 'USER'}" class="badge badge-outline"><i class="fas fa-user"></i> USER</span>
+                                            </span>
+                                            <select class="cell-edit form-control" style="display:none;" th:attr="data-field='role'">
+                                                <option value="USER" th:selected="${user.role=='USER'}">USER</option>
+                                                <option value="EMPLOYEE" th:selected="${user.role=='EMPLOYEE'}">EMPLOYEE</option>
+                                                <option value="ADMIN" th:selected="${user.role=='ADMIN'}">ADMIN</option>
+                                            </select>
+                                        </td>
+                                        <!-- Active -->
+                                        <td>
+                                            <span class="cell-view">
+                                                <span th:if="${user.isActive}" class="badge badge-primary-soft"><i class="fas fa-check"></i> Active</span>
+                                                <span th:unless="${user.isActive}" class="badge badge-outline"><i class="fas fa-ban"></i> Inactive</span>
+                                            </span>
+                                            <select class="cell-edit form-control" style="display:none;" th:attr="data-field='isActive'">
+                                                <option value="true" th:selected="${user.isActive}">Active</option>
+                                                <option value="false" th:selected="${!user.isActive}">Inactive</option>
+                                            </select>
                                         </td>
                                         <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                                         <td class="text-center">
-                                            <button type="button" class="btn btn-info btn-sm" title="Xem" 
-                                                    th:onclick="'viewUser(' + ${user.id} + ')'">
+                                            <div class="cell-view">
+                                                <button type="button" class="btn btn-info btn-sm" title="Xem" th:onclick="'viewUser(' + ${user.id} + ')'">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button type="button" class="btn btn-warning btn-sm" title="Sửa" 
-                                                    th:onclick="'editUser(' + ${user.id} + ')'">
+                                                <button type="button" class="btn btn-warning btn-sm" title="Sửa" th:onclick="'enterUserEditMode(' + ${user.id} + ')'">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-danger btn-sm" title="Xóa" 
-                                                    th:onclick="'deleteUser(' + ${user.id} + ')'">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                                
+                                            </div>
+                                            <div class="cell-edit" style="display:none;">
+                                                <button type="button" class="btn btn-success btn-sm" th:onclick="'saveInlineUser(' + ${user.id} + ')'">Lưu</button>
+                                                <button type="button" class="btn btn-secondary btn-sm" th:onclick="'cancelUserEditMode(' + ${user.id} + ')'">Hủy</button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1235,9 +238,6 @@
                                 </li>
                             </ul>
                         </nav>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1297,177 +297,47 @@
         </div>
     </div>
 
-    <!-- Edit User Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Sửa User</h3>
-                <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="editUserForm">
-                    <input type="hidden" id="editUserId" name="id">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editUsername">Username *</label>
-                            <input type="text" id="editUsername" name="username" class="form-control" required>
-                            <div class="error-message" id="editUsernameError"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="editEmail">Email *</label>
-                            <input type="email" id="editEmail" name="email" class="form-control" required>
-                            <div class="error-message" id="editEmailError"></div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editPassword">Password (để trống nếu không đổi)</label>
-                            <input type="password" id="editPassword" name="password" class="form-control">
-                            <div class="error-message" id="editPasswordError"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="editRole">Role *</label>
-                            <select id="editRole" name="role" class="form-control" required>
-                                <option value="">Chọn role</option>
-                                <option value="USER">USER</option>
-                                <option value="EMPLOYEE">EMPLOYEE</option>
-                                <option value="ADMIN">ADMIN</option>
-                            </select>
-                            <div class="error-message" id="editRoleError"></div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="editIsActive" name="isActive">
-                            Kích hoạt tài khoản
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Hủy</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditUser()">Cập nhật</button>
-            </div>
-        </div>
-    </div>
+    
 
     <!-- View User Modal -->
-    <div id="viewModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Chi tiết User</h3>
-                <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
+    <!-- Drawer detail for User -->
+    <div id="userDrawer" class="drawer">
+        <div class="drawer-panel">
+            <div class="drawer-header">
+                <h3 class="drawer-title"><i class="fas fa-user" style="margin-right:8px;"></i>Chi tiết User</h3>
+                <button class="modal-close" onclick="closeDrawer('userDrawer')">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="user-detail">
-                    <div class="user-info">
-                        <h4>Thông tin cơ bản</h4>
-                        <div class="info-item">
-                            <span class="info-label">ID:</span>
-                            <span class="info-value" id="viewId">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Username:</span>
-                            <span class="info-value" id="viewUsername">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value" id="viewEmail">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Role:</span>
-                            <span class="info-value" id="viewRole">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Trạng thái:</span>
-                            <span class="info-value" id="viewIsActive">-</span>
-                        </div>
+            <div class="drawer-body">
+                <div class="desc-section">
+                    <h4 class="desc-section-title">Thông tin cơ bản</h4>
+                    <div class="desc-grid">
+                        <div class="desc-label">ID</div><div class="desc-value" id="viewId">-</div>
+                        <div class="desc-label">Username</div><div class="desc-value" id="viewUsername">-</div>
+                        <div class="desc-label">Email</div><div class="desc-value" id="viewEmail">-</div>
+                        <div class="desc-label">Role</div><div class="desc-value" id="viewRole">-</div>
+                        <div class="desc-label">Trạng thái</div><div class="desc-value" id="viewIsActive">-</div>
                     </div>
-                    <div class="user-info">
-                        <h4>Thông tin hệ thống</h4>
-                        <div class="info-item">
-                            <span class="info-label">Ngày tạo:</span>
-                            <span class="info-value" id="viewCreatedAt">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Ngày cập nhật:</span>
-                            <span class="info-value" id="viewUpdatedAt">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Tạo bởi:</span>
-                            <span class="info-value" id="viewCreatedBy">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Cập nhật bởi:</span>
-                            <span class="info-value" id="viewUpdatedBy">-</span>
-                        </div>
+                </div>
+                <div class="desc-section">
+                    <h4 class="desc-section-title">Thông tin hệ thống</h4>
+                    <div class="desc-grid">
+                        <div class="desc-label">Ngày tạo</div><div class="desc-value" id="viewCreatedAt">-</div>
+                        <div class="desc-label">Ngày cập nhật</div><div class="desc-value" id="viewUpdatedAt">-</div>
+                        <div class="desc-label">Tạo bởi</div><div class="desc-value" id="viewCreatedBy">-</div>
+                        <div class="desc-label">Cập nhật bởi</div><div class="desc-value" id="viewUpdatedBy">-</div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('viewModal')">Đóng</button>
-                <button type="button" class="btn btn-warning" onclick="editUserFromView()">Sửa</button>
-                <button type="button" class="btn btn-danger" onclick="deleteUserFromView()">Xóa</button>
+            <div class="drawer-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDrawer('userDrawer')">Đóng</button>
             </div>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Xác nhận xóa</h3>
-                <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa user này không?</p>
-                <div class="user-info">
-                    <div class="info-item">
-                        <span class="info-label">ID:</span>
-                        <span class="info-value" id="deleteUserId">-</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Username:</span>
-                        <span class="info-value" id="deleteUsername">-</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Email:</span>
-                        <span class="info-value" id="deleteEmail">-</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Hủy</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteUser()">Xóa</button>
-            </div>
-        </div>
-    </div>
+    
 
     <script>
-        // Theme Management
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
-        }
-
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        }
-
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById('themeIcon');
-            if (icon) {
-                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            }
-        }
-
-        // Container Loading Functions
+        // Container Loading Functions (sử dụng overlay từ layout)
         function showContainerLoading(text = 'Đang tải...') {
             const overlay = document.getElementById('containerLoadingOverlay');
             const textElement = overlay.querySelector('.container-loading-text');
@@ -1528,11 +398,7 @@
             }, 300);
         }
 
-        // Form Submission with Loading
-        function submitFormWithLoading(form) {
-            showTableLoading();
-            form.submit();
-        }
+        // submitFormWithLoading removed (không dùng)
 
         // Page size change handler
         function changePageSize() {
@@ -1587,36 +453,97 @@
         }
 
         // User Actions
-        function viewUser(id) {
-            fetchUserById(id).then(user => {
+        async function viewUser(id) {
+            try {
+                showTableLoading();
+                const user = await fetchUserById(id);
                 if (user) {
                     populateViewModal(user);
-                    showModal('viewModal');
+                    openDrawer('userDrawer');
                 }
-            });
+            } finally {
+                hideTableLoading();
+            }
         }
 
-        function editUser(id) {
-            fetchUserById(id).then(user => {
-                if (user) {
-                    populateEditModal(user);
-                    showModal('editModal');
-                }
-            });
-        }
+        // editUser removed (inline edit is used)
 
-        function deleteUser(id) {
-            fetchUserById(id).then(user => {
-                if (user) {
-                    populateDeleteModal(user);
-                    showModal('deleteModal');
-                }
-            });
-        }
+        // deleteUser removed (feature disabled)
 
         function showCreateModal() {
             clearCreateForm();
             showModal('createModal');
+        }
+
+        // Inline edit (giống Categories)
+        function enterUserEditMode(id){
+            const row = document.querySelector(`tr[data-user-id='${id}']`);
+            if(!row) return;
+            row.querySelectorAll('.cell-view').forEach(el => el.style.display='none');
+            row.querySelectorAll('.cell-edit').forEach(el => el.style.display='');
+        }
+        function cancelUserEditMode(id){
+            const row = document.querySelector(`tr[data-user-id='${id}']`);
+            if(!row) return;
+            row.querySelectorAll('.cell-edit').forEach(el => el.style.display='none');
+            row.querySelectorAll('.cell-view').forEach(el => el.style.display='');
+        }
+        let isUpdatingUser = false;
+        async function saveInlineUser(id){
+            const row = document.querySelector(`tr[data-user-id='${id}']`);
+            if(!row) return;
+            if (isUpdatingUser) { return; }
+            const getVal = (field) => {
+                const el = row.querySelector(`.cell-edit[data-field='${field}']`);
+                return el ? el.value : null;
+            };
+            const username = getVal('username');
+            const email = getVal('email');
+            const role = getVal('role');
+            const isActiveVal = getVal('isActive');
+            const isActive = String(isActiveVal) === 'true';
+
+            // Reuse validation from modal
+            let ok = true;
+            if(!username || username.trim()===''){ ok=false; }
+            if(!email || email.trim()===''){ ok=false; }
+            if(!role || role.trim()===''){ ok=false; }
+            if(!ok){ showNotification('Vui lòng nhập đủ thông tin bắt buộc', 'error'); return; }
+
+            const userData = { id, username, email, password: null, role, isActive };
+            const saveBtn = row.querySelector('.cell-edit .btn.btn-success');
+            const cancelBtn = row.querySelector('.cell-edit .btn.btn-secondary');
+            const disableRowEdit = (disable) => {
+                if (saveBtn) saveBtn.disabled = disable;
+                if (cancelBtn) cancelBtn.disabled = disable;
+                row.querySelectorAll('.cell-edit input, .cell-edit select').forEach(i => i.disabled = disable);
+            };
+            try {
+                showTableLoading();
+                isUpdatingUser = true;
+                disableRowEdit(true);
+                const token = await getToken();
+                const response = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(userData)
+                });
+                if(response.ok){
+                    showNotification('Cập nhật user thành công!', 'success');
+                    // Refresh to reflect badge texts quickly
+                    setTimeout(()=>{ window.location.href = window.location.href; }, 400);
+                } else {
+                    const err = await response.json().catch(()=>({}));
+                    showNotification(err.message || 'Lỗi khi cập nhật user', 'error');
+                }
+            } catch(e){
+                console.error('Inline update error:', e);
+                showNotification('Lỗi khi cập nhật user', 'error');
+            } finally {
+                hideTableLoading();
+                isUpdatingUser = false;
+                disableRowEdit(false);
+            }
         }
 
         // Modal Management
@@ -1636,6 +563,9 @@
             }
         }
 
+        function openDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.add('show'); document.body.style.overflow='hidden'; } }
+        function closeDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.remove('show'); document.body.style.overflow=''; } }
+
         // Close modal when clicking outside
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modal')) {
@@ -1646,10 +576,7 @@
         // Fetch user by ID
         async function fetchUserById(id) {
             try {
-                console.log('Fetching user with ID:', id);
                 const token = await getToken();
-                console.log('Using token:', token ? token.substring(0, 20) + '...' : 'null');
-                
                 const response = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
                     method: 'GET',
                     headers: {
@@ -1658,21 +585,14 @@
                     }
                 });
 
-                console.log('Response status:', response.status);
-                console.log('Response ok:', response.ok);
-
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Response data:', data);
                     return data.data;
                 } else {
-                    const errorText = await response.text();
-                    console.error('Error response:', errorText);
                     showNotification('Không thể tải thông tin user', 'error');
                     return null;
                 }
             } catch (error) {
-                console.error('Error fetching user:', error);
                 showNotification('Lỗi khi tải thông tin user', 'error');
                 return null;
             }
@@ -1683,14 +603,12 @@
             // Try localStorage first
             let token = localStorage.getItem('access_token');
             if (token) {
-                console.log('Token from localStorage:', token.substring(0, 20) + '...');
                 return token;
             }
             
             // Try cookie
             token = getCookie('access_token');
             if (token) {
-                console.log('Token from cookie:', token.substring(0, 20) + '...');
                 return token;
             }
             
@@ -1704,16 +622,14 @@
                     const data = await response.json();
                     token = data.token;
                     if (token) {
-                        console.log('Token from session:', token.substring(0, 20) + '...');
                         localStorage.setItem('access_token', token);
                         return token;
                     }
                 }
             } catch (error) {
-                console.log('Could not get token from session:', error);
+                
             }
             
-            console.log('No token found');
             return null;
         }
 
@@ -1737,21 +653,9 @@
             document.getElementById('viewUpdatedBy').textContent = user.updatedBy || '-';
         }
 
-        function populateEditModal(user) {
-            document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.username || '';
-            document.getElementById('editEmail').value = user.email || '';
-            document.getElementById('editPassword').value = '';
-            document.getElementById('editRole').value = user.role || '';
-            document.getElementById('editIsActive').checked = user.isActive || false;
-            clearEditErrors();
-        }
+        // populateEditModal removed (inline edit is used)
 
-        function populateDeleteModal(user) {
-            document.getElementById('deleteUserId').textContent = user.id || '-';
-            document.getElementById('deleteUsername').textContent = user.username || '-';
-            document.getElementById('deleteEmail').textContent = user.email || '-';
-        }
+        // populateDeleteModal removed
 
         function clearCreateForm() {
             document.getElementById('createUserForm').reset();
@@ -1766,15 +670,12 @@
             inputs.forEach(input => input.classList.remove('error'));
         }
 
-        function clearEditErrors() {
-            const errorElements = document.querySelectorAll('#editUserForm .error-message');
-            errorElements.forEach(el => el.textContent = '');
-            const inputs = document.querySelectorAll('#editUserForm .form-control');
-            inputs.forEach(input => input.classList.remove('error'));
-        }
+        // clearEditErrors removed
 
         // Form submissions
+        let isSubmittingCreateUser = false;
         async function submitCreateUser() {
+            if (isSubmittingCreateUser) { return; }
             const form = document.getElementById('createUserForm');
             const formData = new FormData(form);
             
@@ -1790,8 +691,21 @@
                 return;
             }
 
+            const createBtn = document.querySelector('#createModal .btn.btn-primary');
+            const cancelBtn = document.querySelector('#createModal .btn.btn-secondary');
+            const disableControls = (disable) => {
+                if (createBtn) { createBtn.disabled = disable; }
+                if (cancelBtn) { cancelBtn.disabled = disable; }
+                if (form) {
+                    const inputs = form.querySelectorAll('input, select');
+                    inputs.forEach(i => i.disabled = disable);
+                }
+            };
+
             try {
                 showTableLoading();
+                isSubmittingCreateUser = true;
+                disableControls(true);
                 const token = await getToken();
                 const response = await fetch('http://localhost:8080/api/v1/users', {
                     method: 'POST',
@@ -1813,90 +727,17 @@
                     showNotification(errorData.message || 'Lỗi khi tạo user', 'error');
                 }
             } catch (error) {
-                console.error('Error creating user:', error);
                 showNotification('Lỗi khi tạo user', 'error');
             } finally {
                 hideTableLoading();
+                isSubmittingCreateUser = false;
+                disableControls(false);
             }
         }
 
-        async function submitEditUser() {
-            const form = document.getElementById('editUserForm');
-            const formData = new FormData(form);
-            
-            const userData = {
-                id: formData.get('id'),
-                username: formData.get('username'),
-                email: formData.get('email'),
-                password: formData.get('password') || null,
-                role: formData.get('role'),
-                isActive: formData.get('isActive') === 'on'
-            };
+        // submitEditUser removed (inline edit is used)
 
-            if (!validateEditForm(userData)) {
-                return;
-            }
-
-            try {
-                showTableLoading();
-                const token = await getToken();
-                const response = await fetch(`http://localhost:8080/api/v1/users/${userData.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(userData)
-                });
-
-                if (response.ok) {
-                    showNotification('Cập nhật user thành công!', 'success');
-                    closeModal('editModal');
-                    setTimeout(() => {
-                        window.location.href = window.location.href;
-                    }, 500);
-                } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.message || 'Lỗi khi cập nhật user', 'error');
-                }
-            } catch (error) {
-                console.error('Error updating user:', error);
-                showNotification('Lỗi khi cập nhật user', 'error');
-            } finally {
-                hideTableLoading();
-            }
-        }
-
-        async function confirmDeleteUser() {
-            const userId = document.getElementById('deleteUserId').textContent;
-            
-            try {
-                showTableLoading();
-                const token = await getToken();
-                const response = await fetch(`http://localhost:8080/api/v1/users/${userId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    showNotification('Xóa user thành công!', 'success');
-                    closeModal('deleteModal');
-                    setTimeout(() => {
-                        window.location.href = window.location.href;
-                    }, 500);
-                } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.message || 'Lỗi khi xóa user', 'error');
-                }
-            } catch (error) {
-                console.error('Error deleting user:', error);
-                showNotification('Lỗi khi xóa user', 'error');
-            } finally {
-                hideTableLoading();
-            }
-        }
+        // confirmDeleteUser removed (feature disabled)
 
         // Form validation
         function validateCreateForm(data) {
@@ -1932,35 +773,7 @@
             return isValid;
         }
 
-        function validateEditForm(data) {
-            let isValid = true;
-            clearEditErrors();
-
-            if (!data.username || data.username.trim() === '') {
-                showFieldError('editUsername', 'Username là bắt buộc');
-                isValid = false;
-            }
-
-            if (!data.email || data.email.trim() === '') {
-                showFieldError('editEmail', 'Email là bắt buộc');
-                isValid = false;
-            } else if (!isValidEmail(data.email)) {
-                showFieldError('editEmail', 'Email không hợp lệ');
-                isValid = false;
-            }
-
-            if (data.password && data.password.length < 6) {
-                showFieldError('editPassword', 'Password phải có ít nhất 6 ký tự');
-                isValid = false;
-            }
-
-            if (!data.role || data.role.trim() === '') {
-                showFieldError('editRole', 'Role là bắt buộc');
-                isValid = false;
-            }
-
-            return isValid;
-        }
+        // validateEditForm removed (inline edit uses lightweight checks)
 
         function showFieldError(fieldId, message) {
             const field = document.getElementById(fieldId);
@@ -1991,43 +804,19 @@
         }
 
         // Actions from view modal
-        function editUserFromView() {
-            const userId = document.getElementById('viewId').textContent;
-            closeModal('viewModal');
-            editUser(userId);
-        }
+        // editUserFromView removed (drawer chỉ xem)
 
-        function deleteUserFromView() {
-            const userId = document.getElementById('viewId').textContent;
-            closeModal('viewModal');
-            deleteUser(userId);
-        }
+        // deleteUserFromView removed
 
-        // Test function to debug API calls
-        async function testApiCall() {
-            console.log('Testing API call...');
-            const token = await getToken();
-            console.log('Current token:', token);
-            console.log('All localStorage:', localStorage);
-            console.log('All cookies:', document.cookie);
-            
-            // Test with a known user ID (assuming user ID 1 exists)
-            await fetchUserById(1);
-        }
+        // testApiCall removed
 
         // Initialize on page load
         window.addEventListener('load', function() {
-            initTheme();
-            
             // Check for success parameter and show notification
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('success') === 'true') {
                 showNotification('Tải dữ liệu thành công!', 'success');
             }
-            
-            // Apply theme immediately to prevent flash
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
             
             // Add event listeners for filter form
             const filterForm = document.getElementById('filterForm');
@@ -2068,5 +857,7 @@
             }
         });
     </script>
+        </section>
+    </div>
 </body>
 </html>

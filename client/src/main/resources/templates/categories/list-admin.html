@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Categories</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+</head>
+<body>
+    <div th:replace="~{layouts/admin :: adminLayout(~{::section}, 'Quản lý Categories', 'categories')}">
+        <section>
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0;"><i class="fas fa-list"></i> Danh sách Categories</h4>
+                        <button type="button" class="btn btn-primary" onclick="showCreateCategoryModal()">
+                            <i class="fas fa-plus"></i> Thêm Category
+                        </button>
+                    </div>
+                </div>
+                <div class="admin-card-body">
+
+                        <!-- Filter Form -->
+                        <form id="filterForm" class="mb-4" th:action="@{/categories}" method="get">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label for="name"><i class="fas fa-tag" style="margin-right:6px;"></i>Tên:</label>
+                                    <input type="text" id="name" name="name" class="form-control" th:value="${name}" placeholder="Tìm theo tên...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="isActive"><i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái:</label>
+                                    <select id="isActive" name="isActive" class="form-control">
+                                        <option value="" th:selected="${isActive == null}">Tất cả</option>
+                                        <option value="true" th:selected="${isActive == true}">Active</option>
+                                        <option value="false" th:selected="${isActive == false}">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="search"><i class="fas fa-search" style="margin-right:6px;"></i>Tìm kiếm:</label>
+                                    <input type="text" id="search" name="search" class="form-control" th:value="${search}" placeholder="Nhập tên, mô tả hoặc id.">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Lọc
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="resetCategoriesFilters()">
+                                    <i class="fas fa-times"></i> Xóa bộ lọc
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Table Loading Overlay -->
+                        <div class="table-loading-overlay" id="tableLoadingOverlay">
+                            <div class="loading-spinner"></div>
+                        </div>
+
+                        <!-- Notification Container -->
+                        <div id="notificationContainer"></div>
+
+                        <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        <a class="text-decoration-none"
+                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, name=${name}, isActive=${isActive}, search=${search})}">
+                            <i class="fas fa-hashtag" style="margin-right:6px;"></i>ID
+                            <i th:if="${sort == 'id'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="text-decoration-none"
+                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='name', direction=${direction == 'asc' ? 'desc' : 'asc'}, name=${name}, isActive=${isActive}, search=${search})}">
+                            <i class="fas fa-tag" style="margin-right:6px;"></i>Tên
+                            <i th:if="${sort == 'name'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                        </a>
+                    </th>
+                    <th><i class="fas fa-image" style="margin-right:6px;"></i>Thumbnail</th>
+                    <th><i class="fas fa-align-left" style="margin-right:6px;"></i>Mô tả</th>
+                    <th>
+                        <a class="text-decoration-none"
+                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, name=${name}, isActive=${isActive}, search=${search})}">
+                            <i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái
+                            <i th:if="${sort == 'isActive'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                        </a>
+                    </th>
+                    <th class="text-center"><i class="fas fa-ellipsis-h" style="margin-right:6px;"></i>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="c : ${categories}" th:attr="data-cate-id=${c.id}">
+                    <td th:text="${c.id}"></td>
+                    <!-- Name -->
+                    <td>
+                        <span class="cell-view" th:text="${c.name}"></span>
+                        <input class="cell-edit form-control" style="display:none;" th:attr="data-field='name'" th:value="${c.name}" />
+                    </td>
+                    <!-- Thumbnail -->
+                    <td>
+                        <span class="cell-view">
+                            <img th:if="${c.thumbnailUrl}" th:src="${c.thumbnailUrl}" alt="thumb" style="width:48px;height:48px;object-fit:cover;border-radius:4px;"/>
+                            <span th:if="${c.thumbnailUrl == null || c.thumbnailUrl.isEmpty()}">-</span>
+                        </span>
+                        <input class="cell-edit form-control" style="display:none;" th:attr="data-field='thumbnailUrl'" th:value="${c.thumbnailUrl}" placeholder="Thumbnail URL" />
+                    </td>
+                    <!-- Description -->
+                    <td>
+                        <span class="cell-view" th:text="${c.description}"></span>
+                        <input class="cell-edit form-control" style="display:none;" th:attr="data-field='description'" th:value="${c.description}" placeholder="Mô tả" />
+                    </td>
+                    <!-- Active -->
+                    <td>
+                        <span class="cell-view">
+                            <span th:if="${c.isActive}" class="badge bg-success">Active</span>
+                            <span th:unless="${c.isActive}" class="badge bg-danger">Inactive</span>
+                        </span>
+                        <select class="cell-edit form-control" style="display:none;" th:attr="data-field='isActive'">
+                            <option value="true" th:selected="${c.isActive}">Active</option>
+                            <option value="false" th:selected="${!c.isActive}">Inactive</option>
+                        </select>
+                    </td>
+                    <!-- Actions -->
+                    <td class="text-center">
+                        <div class="cell-view">
+                            <button type="button" class="btn btn-info btn-sm" title="Xem" th:onclick="'viewCategory(' + ${c.id} + ')'">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" title="Sửa" th:onclick="'enterCategoryEditMode(' + ${c.id} + ')'">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div class="cell-edit" style="display:none;">
+                            <button type="button" class="btn btn-success btn-sm" th:onclick="'saveInlineCategory(' + ${c.id} + ')'">Lưu</button>
+                            <button type="button" class="btn btn-secondary btn-sm" th:onclick="'cancelCategoryEditMode(' + ${c.id} + ')'">Hủy</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(categories)}">
+                    <td colspan="6">Không có dữ liệu</td>
+                </tr>
+            </tbody>
+        </table>
+                        </div>
+
+        <!-- Page Size Selector -->
+        <div class="page-size-selector">
+            <label for="pageSize">Hiển thị:</label>
+            <select id="pageSize" name="pageSize" onchange="changePageSize()">
+                <option value="5" th:selected="${size == 5}">5</option>
+                <option value="10" th:selected="${size == 10}">10</option>
+                <option value="20" th:selected="${size == 20}">20</option>
+                <option value="50" th:selected="${size == 50}">50</option>
+                <option value="100" th:selected="${size == 100}">100</option>
+            </select>
+            <span>kết quả/trang</span>
+        </div>
+
+        <div class="pagination">
+            <a th:if="${hasPrev}" th:href="@{/categories(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, name=${name}, isActive=${isActive}, search=${search})}"><i class="fas fa-chevron-left"></i> Trước</a>
+            <span th:text="${currentPage} + ' / ' + ${totalPages}"></span>
+            <a th:if="${hasNext}" th:href="@{/categories(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, name=${name}, isActive=${isActive}, search=${search})}">Tiếp <i class="fas fa-chevron-right"></i></a>
+                </div>
+            </div>
+        </section>
+            </div>
+
+            <!-- Create Category Modal -->
+            <div id="createCategoryModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Thêm Category</h3>
+                        <button class="modal-close" onclick="closeModal('createCategoryModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createCategoryForm" th:action="@{/categories}" method="post">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="createCateName">Tên *</label>
+                                    <input id="createCateName" class="form-control" type="text" name="name" required />
+                                    <div class="error-message" id="createCateNameError"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="createCateThumbnail">Thumbnail URL</label>
+                                    <input id="createCateThumbnail" class="form-control" type="text" name="thumbnailUrl" />
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="createCateDesc">Mô tả</label>
+                                <input id="createCateDesc" class="form-control" type="text" name="description" />
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('createCategoryModal')">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="submitCreateCategory()">Thêm</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drawer detail for Category -->
+            <div id="cateDrawer" class="drawer">
+                <div class="drawer-panel">
+                    <div class="drawer-header">
+                        <h3 class="drawer-title"><i class="fas fa-tag" style="margin-right:8px;"></i>Chi tiết Category</h3>
+                        <button class="modal-close" onclick="closeDrawer('cateDrawer')">&times;</button>
+                    </div>
+                    <div class="drawer-body">
+                        <div class="desc-section">
+                            <h4 class="desc-section-title">Thông tin cơ bản</h4>
+                            <div class="desc-grid">
+                                <div class="desc-label">ID</div><div class="desc-value" id="viewCateId">-</div>
+                                <div class="desc-label">Tên</div><div class="desc-value" id="viewCateName">-</div>
+                                <div class="desc-label">Trạng thái</div><div class="desc-value" id="viewCateIsActive">-</div>
+                            </div>
+                        </div>
+                        <div class="desc-section">
+                            <h4 class="desc-section-title">Hiển thị</h4>
+                            <div class="desc-grid">
+                                <div class="desc-label">Thumbnail</div><div class="desc-value"><img id="viewCateThumbnail" class="thumb-lg" alt="thumb" style="display:none;"/></div>
+                                <div class="desc-label">Mô tả</div><div class="desc-value" id="viewCateDescription">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drawer-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeDrawer('cateDrawer')">Đóng</button>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <script>
+                // View modal (giống Users)
+                function viewCategory(id){
+                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
+                    if(!row){ return; }
+                    const getText = (sel) => {
+                        const el = row.querySelector(sel);
+                        return el ? (el.textContent || '').trim() : '';
+                    };
+                    const thumbImg = row.querySelector("td:nth-child(3) img");
+                    const name = getText("td:nth-child(2) .cell-view");
+                    const desc = getText("td:nth-child(4) .cell-view");
+                    const isActiveText = getText("td:nth-child(5) .cell-view");
+
+                    document.getElementById('viewCateId').textContent = id || '-';
+                    document.getElementById('viewCateName').textContent = name || '-';
+                    document.getElementById('viewCateDescription').textContent = desc || '-';
+                    const activeEl = document.getElementById('viewCateIsActive');
+                    activeEl.textContent = '';
+                    activeEl.className = 'info-value';
+                    if(isActiveText.toLowerCase().includes('active')){
+                        activeEl.innerHTML = '<span class="badge bg-success">Active</span>';
+                    } else if(isActiveText.toLowerCase().includes('inactive')){
+                        activeEl.innerHTML = '<span class="badge bg-danger">Inactive</span>';
+                    } else {
+                        activeEl.textContent = '-';
+                    }
+                    const viewImg = document.getElementById('viewCateThumbnail');
+                    if(thumbImg && thumbImg.getAttribute('src')){
+                        viewImg.src = thumbImg.getAttribute('src');
+                        viewImg.style.display = '';
+                    } else {
+                        viewImg.removeAttribute('src');
+                        viewImg.style.display = 'none';
+                    }
+                    openDrawer('cateDrawer');
+                }
+
+                // Modal helpers
+                function showCreateCategoryModal(){
+                    clearCreateCategoryErrors();
+                    showModal('createCategoryModal');
+                }
+                function showModal(id){ const m = document.getElementById(id); if(m){ m.classList.add('show'); document.body.style.overflow='hidden'; } }
+                function closeModal(id){ const m = document.getElementById(id); if(m){ m.classList.remove('show'); document.body.style.overflow=''; } }
+                function openDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.add('show'); document.body.style.overflow='hidden'; } }
+                function closeDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.remove('show'); document.body.style.overflow=''; } }
+
+                // Loading helpers
+                function showTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='flex'; } }
+                function hideTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='none'; } }
+
+                // Notification
+                function showNotification(message, type = 'success') {
+                    const container = document.getElementById('notificationContainer');
+                    const n = document.createElement('div');
+                    n.className = `notification ${type}`;
+                    n.textContent = message;
+                    container.appendChild(n);
+                    setTimeout(() => { n.classList.add('show'); }, 100);
+                    setTimeout(() => { n.classList.remove('show'); setTimeout(()=> n.remove(), 300); }, 3000);
+                }
+
+                // Create category via form submit with loading
+                let isSubmittingCreateCategory = false;
+                function submitCreateCategory(){
+                    if(isSubmittingCreateCategory){ return; }
+                    const form = document.getElementById('createCategoryForm');
+                    const nameInput = document.getElementById('createCateName');
+                    const name = nameInput.value.trim();
+                    if(!name){
+                        showFieldError('createCateName', 'Tên là bắt buộc');
+                        return;
+                    }
+                    const createBtn = document.querySelector('#createCategoryModal .btn.btn-primary');
+                    const cancelBtn = document.querySelector('#createCategoryModal .btn.btn-secondary');
+                    const disableControls = (disable) => {
+                        if(createBtn){ createBtn.disabled = disable; }
+                        if(cancelBtn){ cancelBtn.disabled = disable; }
+                        if(form){
+                            form.querySelectorAll('input, select').forEach(i=> i.disabled = disable);
+                        }
+                    };
+                    isSubmittingCreateCategory = true;
+                    disableControls(true);
+                    showTableLoading();
+                    form.submit();
+                }
+                function clearCreateCategoryErrors(){
+                    const el = document.getElementById('createCateNameError'); if(el){ el.textContent=''; }
+                    const input = document.getElementById('createCateName'); if(input){ input.classList.remove('error'); }
+                }
+                function showFieldError(fieldId, message){
+                    const field = document.getElementById(fieldId);
+                    const errorElement = document.getElementById(fieldId + 'Error');
+                    if(field){ field.classList.add('error'); }
+                    if(errorElement){ errorElement.textContent = message; }
+                }
+
+                // Inline edit giống Users
+                function enterCategoryEditMode(id){
+                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
+                    if(!row) return;
+                    row.querySelectorAll('.cell-view').forEach(el => el.style.display='none');
+                    row.querySelectorAll('.cell-edit').forEach(el => el.style.display='');
+                }
+                function cancelCategoryEditMode(id){
+                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
+                    if(!row) return;
+                    row.querySelectorAll('.cell-edit').forEach(el => el.style.display='none');
+                    row.querySelectorAll('.cell-view').forEach(el => el.style.display='');
+                }
+                function getCateEditVal(row, field){
+                    const el = row.querySelector(`.cell-edit[data-field='${field}']`);
+                    return el ? el.value : null;
+                }
+                let isUpdatingCategory = false;
+                function saveInlineCategory(id){
+                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
+                    if(!row) return;
+                    if (isUpdatingCategory) { return; }
+                    const name = getCateEditVal(row, 'name');
+                    if(!name || name.trim()===''){ showNotification('Tên là bắt buộc', 'error'); return; }
+                    const thumbnailUrl = getCateEditVal(row, 'thumbnailUrl');
+                    const description = getCateEditVal(row, 'description');
+                    const isActiveVal = getCateEditVal(row, 'isActive');
+                    const isActive = String(isActiveVal) === 'true';
+                    // Submit via standard form to keep server logic (similar to cate current)
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = `/categories/update/${id}`;
+                    const add = (k,v)=>{ const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; form.appendChild(i); };
+                    add('name', name);
+                    if(thumbnailUrl!=null) add('thumbnailUrl', thumbnailUrl);
+                    if(description!=null) add('description', description);
+                    add('isActive', isActive);
+                    document.body.appendChild(form);
+                    const saveBtn = row.querySelector('.cell-edit .btn.btn-success');
+                    const cancelBtn = row.querySelector('.cell-edit .btn.btn-secondary');
+                    if(saveBtn) saveBtn.disabled = true;
+                    if(cancelBtn) cancelBtn.disabled = true;
+                    row.querySelectorAll('.cell-edit input, .cell-edit select').forEach(i => i.disabled = true);
+                    isUpdatingCategory = true;
+                    showTableLoading();
+                    form.submit();
+                }
+
+                // editCategoryFromView removed (drawer chỉ xem)
+
+                // Remove delete related functions (no-op kept for compatibility)
+
+                // Container Loading Functions (đồng nhất với Users)
+                function showContainerLoading(text = 'Đang tải...'){
+                    const overlay = document.getElementById('containerLoadingOverlay');
+                    const textElement = overlay ? overlay.querySelector('.container-loading-text') : null;
+                    if(overlay){ if(textElement) textElement.textContent = text; overlay.classList.add('show'); }
+                }
+                function hideContainerLoading(){
+                    const overlay = document.getElementById('containerLoadingOverlay');
+                    if(overlay){ overlay.classList.remove('show'); }
+                }
+
+                // Table Loading helpers
+                function showTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='flex'; } }
+                function hideTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='none'; } }
+
+                // Filter form submit với container overlay (đồng nhất với Users)
+                (function(){
+                    const filterForm = document.getElementById('filterForm');
+                    if(filterForm){
+                        filterForm.addEventListener('submit', function(e){
+                            e.preventDefault();
+                            showContainerLoading('Đang lọc dữ liệu...');
+                            const url = new URL(window.location);
+                            // Clear old params
+                            url.searchParams.delete('name');
+                            url.searchParams.delete('isActive');
+                            url.searchParams.delete('search');
+                            url.searchParams.delete('page');
+                            // Collect values
+                            const name = document.getElementById('name')?.value || '';
+                            const isActive = document.getElementById('isActive')?.value || '';
+                            const search = document.getElementById('search')?.value || '';
+                            // Set non-empty
+                            if(name.trim() !== '') url.searchParams.set('name', name.trim());
+                            if(isActive !== '') url.searchParams.set('isActive', isActive);
+                            if(search.trim() !== '') url.searchParams.set('search', search.trim());
+                            // Navigate
+                            window.location.href = url.toString();
+                        });
+                    }
+                })();
+
+                function resetCategoriesFilters(){
+                    showContainerLoading('Đang xóa bộ lọc...');
+                    window.location.href = window.location.pathname;
+                }
+
+                // Page size & pagination (đồng nhất với Users)
+                function changePageSize(){
+                    showContainerLoading('Đang thay đổi kích thước trang...');
+                    const pageSize = document.getElementById('pageSize').value;
+                    const url = new URL(window.location);
+                    url.searchParams.set('size', pageSize);
+                    url.searchParams.set('page', '0');
+                    window.location.href = url.toString();
+                }
+                function goToPageWithLoading(page){
+                    showContainerLoading('Đang chuyển trang...');
+                    window.location.href = page;
+                }
+
+                // Bind pagination links to use container overlay
+                (function(){
+                    const paginationLinks = document.querySelectorAll('.pagination a[href]');
+                    paginationLinks.forEach(link => {
+                        link.addEventListener('click', function(e){
+                            e.preventDefault();
+                            goToPageWithLoading(this.href);
+                        });
+                    });
+                })();
+            </script>
+        </section>
+    </div>
+</body>
+</html>
+
+

@@ -18,7 +18,6 @@ import org.springframework.data.repository.query.Param;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> , JpaSpecificationExecutor<User> {
 
-    List<User> findByUsernameContainingIgnoreCase(String username);
 
     // You can define custom query methods if needed, for example:
     // List<User> findByEmail(String email);

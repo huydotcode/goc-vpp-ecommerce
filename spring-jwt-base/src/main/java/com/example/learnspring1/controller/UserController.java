@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +36,7 @@ import com.example.learnspring1.domain.CreateValidation;
 @RestController
 @RequestMapping("/users")
 @Tag(name = "User", description = "Quản lý người dùng")
+@SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
 
     private final UserService userService;
@@ -60,16 +62,6 @@ public class UserController {
     }
 
 
-    // @Operation(summary = "Lấy tất cả user", description = "Trả về danh sách tất cả user trong hệ thống.")
-    // @ApiResponse(responseCode = "200", description = "Thành công",
-    //     content = @Content(schema = @Schema(implementation = User.class)))
-    @Operation(summary = "Lấy tất cả user", description = "Trả về danh sách tất cả user trong hệ thống.")
-    @ApiResponse(responseCode = "200", description = "Thành công",
-        content = @Content(schema = @Schema(implementation = User.class)))
-    @GetMapping
-    public List<UserDTO> getAllUsers() {
-        return userService.getAllUsers().stream().map(this::toDTO).toList();
-    }
 
 
     @Operation(summary = "Lấy user phân trang", description = "Trả về danh sách user theo phân trang.")
@@ -187,32 +179,10 @@ public class UserController {
     }
 
 
-    @Operation(summary = "Tìm user theo tên", description = "Tìm kiếm user theo tên gần đúng (không phân biệt hoa thường).")
-    @ApiResponse(responseCode = "200", description = "Thành công",
-        content = @Content(schema = @Schema(implementation = User.class)))
-    @GetMapping("/search")
-    public List<UserDTO> getUsersByName(@Parameter(description = "Tên user muốn tìm", example = "giang") @RequestParam("name") String name) {
-        return userService.getUsersByName(name).stream().map(this::toDTO).toList();
-    }
 
 
 
 
-    @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu cho user.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Đổi mật khẩu thành công",
-            content = @Content(schema = @Schema(implementation = User.class))),
-        @ApiResponse(responseCode = "404", description = "Không tìm thấy user",
-            content = @Content(schema = @Schema(implementation = APIResponse.class)))
-    })
-    @PatchMapping("/{id}/change-password")
-    public UserDTO changePassword(
-            @Parameter(description = "ID của user", example = "1") @PathVariable("id") Long id,
-            @RequestBody PasswordChangeRequest request) {
-        return toDTO(userService.changePassword(id, request.getNewPassword(), encoder));
-        // Chuyển User entity sang UserDTO (không trả về password)
-
-    }
     
     
 
@@ -234,16 +204,4 @@ public class UserController {
                 .build();
     }
 
-    // DTO for password change request
-    public static class PasswordChangeRequest {
-        private String newPassword;
-
-        public String getNewPassword() {
-            return newPassword;
-        }
-
-        public void setNewPassword(String newPassword) {
-            this.newPassword = newPassword;
-        }
-    }
 }
