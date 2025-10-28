@@ -85,4 +85,8 @@ public class AuthService {
     public void logout() {
         tokenService.clearToken();
     }
+    
+    public String getTokenFromSession() {
+        return tokenService.getToken();
+    }
 }

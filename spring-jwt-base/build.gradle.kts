@@ -40,6 +40,9 @@ dependencies {
 	// SpringFilter for JPA filtering
 	implementation("com.turkraft:spring-filter:2.1.6")
 
+	// https://mvnrepository.com/artifact/com.cloudinary/cloudinary-http44
+	implementation("com.cloudinary:cloudinary-http44:1.39.0")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

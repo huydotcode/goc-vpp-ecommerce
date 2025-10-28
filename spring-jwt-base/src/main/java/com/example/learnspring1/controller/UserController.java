@@ -18,7 +18,6 @@ import java.util.NoSuchElementException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -93,12 +92,30 @@ public class UserController {
             @Parameter(description = "Trang hiện tại", example = "1") @RequestParam(name = "page", defaultValue = "1") int page,
             @Parameter(description = "Số lượng mỗi trang", example = "10") @RequestParam(name = "size", defaultValue = "10") int size,
             @Parameter(description = "Trường để sort", example = "username") @RequestParam(name = "sort", defaultValue = "id") String sortField,
-            @Parameter(description = "Hướng sort (asc/desc)", example = "asc") @RequestParam(name = "direction", defaultValue = "asc") String direction) 
+            @Parameter(description = "Hướng sort (asc/desc)", example = "asc") @RequestParam(name = "direction", defaultValue = "asc") String direction,
+            @Parameter(description = "Role để filter", example = "ADMIN") @RequestParam(name = "role", required = false) String role,
+            @Parameter(description = "Username để filter", example = "admin") @RequestParam(name = "username", required = false) String username,
+            @Parameter(description = "Email để filter", example = "admin@example.com") @RequestParam(name = "email", required = false) String email,
+            @Parameter(description = "Trạng thái active", example = "true") @RequestParam(name = "isActive", required = false) Boolean isActive,
+            @Parameter(description = "Search term", example = "admin") @RequestParam(name = "search", required = false) String search) 
     {
+        // Validate và normalize parameters
+        page = Math.max(1, page);
+        size = Math.min(Math.max(5, size), 100); // Min 5, Max 100
+        
+        // Validate và normalize sort field
+        String[] allowedSortFields = {"id", "username", "email", "role", "createdAt", "updatedAt"};
+        String validSortField = sortField;
+        if (!java.util.Arrays.asList(allowedSortFields).contains(sortField)) {
+            validSortField = "id"; // Default fallback
+        }
+        
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Sort sort = Sort.by(sortDirection, sortField);
+        Sort sort = Sort.by(sortDirection, validSortField);
         Pageable pageable = PageRequest.of(page - 1, size, sort);
-        Page<UserDTO> userPage = userService.getUsersPage(pageable).map(this::toDTO);
+        
+        // Sử dụng method mới với filtering
+        Page<UserDTO> userPage = userService.getUsersPageWithFilters(pageable, role, username, email, isActive, search).map(this::toDTO);
         
         // Tạo metadata
         MetadataDTO metadata = MetadataDTO.builder()
@@ -109,7 +126,7 @@ public class UserController {
                 .first(userPage.isFirst())
                 .last(userPage.isLast())
                 .empty(userPage.isEmpty())
-                .sortField(sortField)
+                .sortField(validSortField)
                 .sortDirection(direction)
                 .numberOfElements(userPage.getNumberOfElements())
                 .build();

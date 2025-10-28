@@ -18,9 +18,11 @@ import com.example.learnspring1.service.UserService;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -33,7 +35,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new IllegalArgumentException("UserName đã tồn tại");
         }
-        user.setPassword(encoder.encode(user.getPassword())); // Encode the password
+        user.setPassword(passwordEncoder.encode(user.getPassword())); // Encode the password
         return userRepository.save(user);
     }
 
@@ -55,6 +57,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<User> getUsersPage(Pageable pageable) {
         return userRepository.findByIsActiveTrue(pageable);
+    }
+    
+    @Override
+    public Page<User> getUsersPageWithFilters(Pageable pageable, String role, String username, String email, Boolean isActive, String search) {
+        // Convert role string to enum
+        Role roleEnum = null;
+        if (role != null && !role.trim().isEmpty()) {
+            try {
+                roleEnum = Role.valueOf(role.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Invalid role, ignore filter
+            }
+        }
+        
+        // Build dynamic query with filters
+        return userRepository.findUsersWithFiltersPaged(roleEnum, username, email, isActive, search, pageable);
     }
     
     @Override
@@ -85,8 +103,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(id).map(existing -> {
             existing.setUsername(user.getUsername());
             existing.setEmail(user.getEmail());
-            // KHÔNG cho phép update password qua endpoint này
-            // Dùng endpoint riêng để đổi password
+            existing.setRole(user.getRole());
+            existing.setIsActive(user.getIsActive());
+            
+            // Cập nhật password nếu có (và không null/empty)
+            if (user.getPassword() != null && !user.getPassword().trim().isEmpty()) {
+                existing.setPassword(passwordEncoder.encode(user.getPassword()));
+            }
+            
             if (user.getAvatarUrl() != null) {
                 existing.setAvatarUrl(user.getAvatarUrl());
             }

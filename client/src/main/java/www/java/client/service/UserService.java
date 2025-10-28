@@ -1,11 +1,9 @@
 package www.java.client.service;
 
 import www.java.client.model.User;
-import www.java.client.model.ApiResponse;
 import www.java.client.model.PaginatedResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,9 +22,6 @@ public class UserService {
     public UserService(RestTemplate restTemplate, TokenService tokenService) {
         this.restTemplate = restTemplate;
         this.tokenService = tokenService;
-        System.out.println("========================================");
-        System.out.println("UserService initialized with BASE_URL: " + BASE_URL);
-        System.out.println("========================================");
     }
     
     private HttpHeaders createHeaders() {
@@ -35,210 +30,82 @@ public class UserService {
         String token = tokenService.getToken();
         if (token != null && !token.isEmpty()) {
             headers.setBearerAuth(token);
-            System.out.println("Added Bearer token to request headers");
-            System.out.println("Token (first 20 chars): " + token.substring(0, Math.min(20, token.length())) + "...");
-        } else {
-            System.out.println("WARNING: No token available!");
         }
         return headers;
     }
     
-    public List<User> getAllUsers() {
+    /**
+     * Lấy danh sách users với pagination và filtering từ server
+     * @param page Trang hiện tại (bắt đầu từ 1)
+     * @param size Số items per page
+     * @param sort Trường để sort
+     * @param direction Hướng sort (asc/desc)
+     * @param role Filter theo role
+     * @param username Filter theo username
+     * @param email Filter theo email
+     * @param isActive Filter theo trạng thái active
+     * @param search Search term
+     * @return PaginatedResponse chứa dữ liệu và metadata
+     */
+    public PaginatedResponse<User> getUsersWithPagination(int page, int size, String sort, 
+                                                          String direction, String role, 
+                                                          String username, String email, 
+                                                          Boolean isActive, String search) {
         try {
-            String url = BASE_URL + "/page?page=1&size=100";
-            System.out.println("========================================");
-            System.out.println("Getting all users from: " + url);
-            HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
+            StringBuilder urlBuilder = new StringBuilder(BASE_URL + "/advanced");
+            urlBuilder.append("?page=").append(page)
+                     .append("&size=").append(size)
+                     .append("&sort=").append(sort)
+                     .append("&direction=").append(direction);
             
-            // Backend trả về PaginatedResponse<User>
-            ResponseEntity<PaginatedResponse<User>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<PaginatedResponse<User>>() {}
-            );
-            
-            PaginatedResponse<User> paginatedResponse = response.getBody();
-            if (paginatedResponse != null && paginatedResponse.getResult() != null) {
-                List<User> users = paginatedResponse.getResult();
-                System.out.println("Got " + users.size() + " users (Total: " + paginatedResponse.getMetadata().getTotalElements() + ")");
-                System.out.println("========================================");
-                return users;
-            }
-            
-            System.err.println("Failed to get users: Invalid response structure");
-            System.out.println("========================================");
-            return new ArrayList<>();
-        } catch (Exception e) {
-            System.err.println("ERROR getting all users:");
-            e.printStackTrace();
-            
-            // Nếu token hết hạn, clear token
-            if (e.getMessage().contains("401") || e.getMessage().contains("Unauthorized")) {
-                System.out.println("Token expired, clearing token");
-                tokenService.clearToken();
-            }
-            
-            return new ArrayList<>();
-        }
-    }
-
-    public PaginatedResponse<User> getUsersAdvanced(int page, int size, String sort, String direction) {
-        try {
-            String url = BASE_URL + "/advanced?page=" + page + "&size=" + size + "&sort=" + sort + "&direction=" + direction;
-            System.out.println("========================================");
-            System.out.println("Getting users (server-side pagination) from: " + url);
-            HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
-
-            // Lấy String để tương thích cả 2 dạng: trực tiếp hoặc bọc ApiResponse
-            ResponseEntity<String> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                String.class
-            );
-
-            String body = response.getBody();
-            if (body == null || body.isBlank()) return null;
-
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule());
-
-            // Nếu là wrapper ApiResponse => có field "status" và "data"
-            if (body.trim().startsWith("{")) {
-                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(body);
-                if (root.has("status") && root.has("data")) {
-                    com.fasterxml.jackson.databind.JsonNode dataNode = root.get("data");
-                    PaginatedResponse<User> paginated = mapper.readValue(
-                        mapper.treeAsTokens(dataNode),
-                        mapper.getTypeFactory().constructParametricType(PaginatedResponse.class, User.class)
-                    );
-                    logPaginated(paginated);
-                    return paginated;
-                }
-            }
-
-            // Ngược lại: parse trực tiếp PaginatedResponse
-            PaginatedResponse<User> paginated = mapper.readValue(
-                body,
-                mapper.getTypeFactory().constructParametricType(PaginatedResponse.class, User.class)
-            );
-            logPaginated(paginated);
-            return paginated;
-        } catch (Exception e) {
-            System.err.println("ERROR getting users (server-side pagination):");
-            e.printStackTrace();
-            if (e.getMessage() != null && (e.getMessage().contains("401") || e.getMessage().contains("Unauthorized"))) {
-                System.out.println("Token expired, clearing token");
-                tokenService.clearToken();
-            }
-            return null;
-        }
-    }
-
-    private void logPaginated(PaginatedResponse<User> p) {
-        if (p == null || p.getMetadata() == null) return;
-        System.out.println("Got " + (p.getResult() != null ? p.getResult().size() : 0)
-            + " users (Total: " + p.getMetadata().getTotalElements()
-            + ", Page: " + p.getMetadata().getPage()
-            + "/" + p.getMetadata().getTotalPages() + ")");
-        System.out.println("========================================");
-    }
-    
-    public List<User> getUsersWithFilters(String role, String username, String email, Boolean isActive) {
-        try {
-            // Sử dụng backend API /filter endpoint
-            StringBuilder urlBuilder = new StringBuilder(BASE_URL + "/filter?");
-            boolean hasParam = false;
-            
+            // Thêm filters nếu có
             if (role != null && !role.trim().isEmpty()) {
-                urlBuilder.append("role=").append(role);
-                hasParam = true;
+                urlBuilder.append("&role=").append(role);
             }
             if (username != null && !username.trim().isEmpty()) {
-                if (hasParam) urlBuilder.append("&");
-                urlBuilder.append("username=").append(username);
-                hasParam = true;
+                urlBuilder.append("&username=").append(username);
             }
             if (email != null && !email.trim().isEmpty()) {
-                if (hasParam) urlBuilder.append("&");
-                urlBuilder.append("email=").append(email);
-                hasParam = true;
+                urlBuilder.append("&email=").append(email);
             }
             if (isActive != null) {
-                if (hasParam) urlBuilder.append("&");
-                urlBuilder.append("isActive=").append(isActive);
-                hasParam = true;
+                urlBuilder.append("&isActive=").append(isActive);
+            }
+            if (search != null && !search.trim().isEmpty()) {
+                urlBuilder.append("&search=").append(search);
             }
             
             String url = urlBuilder.toString();
-            System.out.println("========================================");
-            System.out.println("Getting filtered users from backend API: " + url);
             HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
             
-            // Backend trả về List<UserDTO> trực tiếp, nhưng client model là User
-            // Sử dụng String response và parse manually
             ResponseEntity<String> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                String.class
+                url, HttpMethod.GET, entity, String.class
             );
             
-            System.out.println("Raw response: " + response.getBody());
+            return parsePaginatedResponse(response.getBody());
             
-            // Parse JSON response manually
-            String responseBody = response.getBody();
-            if (responseBody != null && !responseBody.trim().isEmpty()) {
-                try {
-                    // Parse wrapper object and extract "data" array then map to List<User>
-                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    // Support Java time types like Instant
-                    mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-                    com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(responseBody);
-                    com.fasterxml.jackson.databind.JsonNode dataNode = root.get("data");
-                    if (dataNode != null && dataNode.isArray()) {
-                        List<User> users = mapper.readValue(
-                            dataNode.traverse(),
-                            mapper.getTypeFactory().constructCollectionType(List.class, User.class)
-                        );
-                        System.out.println("Got " + users.size() + " filtered users from backend API");
-                        System.out.println("========================================");
-                        return users;
-                    } else {
-                        System.err.println("Response does not contain an array 'data' field");
-                    }
-                } catch (Exception parseException) {
-                    System.err.println("Error parsing JSON response: " + parseException.getMessage());
-                    System.err.println("Response body: " + responseBody);
-                }
-            }
-            
-            System.err.println("Failed to get filtered users: Invalid response structure");
-            System.out.println("========================================");
-            return new ArrayList<>();
         } catch (Exception e) {
-            System.err.println("ERROR getting filtered users from backend API:");
-            e.printStackTrace();
-            
-            // Nếu token hết hạn, clear token
-            if (e.getMessage().contains("401") || e.getMessage().contains("Unauthorized")) {
-                System.out.println("Token expired, clearing token");
-                tokenService.clearToken();
-            }
-            
+            handleServiceError("Error getting users with pagination", e);
+            return createEmptyPaginatedResponse();
+        }
+    }
+
+    /**
+     * Lấy tất cả users (sử dụng API /advanced với pagination)
+     */
+    public List<User> getAllUsers() {
+        try {
+            PaginatedResponse<User> response = getUsersWithPagination(1, 100, "id", "asc", 
+                                                                     null, null, null, null, null);
+            return response != null && response.getResult() != null ? response.getResult() : new ArrayList<>();
+        } catch (Exception e) {
+            handleServiceError("Error getting all users", e);
             return new ArrayList<>();
         }
     }
     
     public User getUserById(Long id) {
         try {
-            System.out.println("========================================");
-            System.out.println("UserService.getUserById() called");
-            System.out.println("Getting user by ID: " + id);
-            System.out.println("URL: " + BASE_URL + "/" + id);
-            System.out.println("========================================");
-            
             HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
             
             // Backend trả về UserDTO, cần parse JSON manually
@@ -250,15 +117,16 @@ public class UserService {
             );
             
             System.out.println("Response status: " + response.getStatusCode());
-            System.out.println("Raw response: " + response.getBody());
+            String responseBody = response.getBody();
+            System.out.println("Raw response: " + responseBody);
             
-            if (response.getBody() != null && !response.getBody().trim().isEmpty()) {
+            if (responseBody != null && !responseBody.trim().isEmpty()) {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.registerModule(new JavaTimeModule());
                     
                     // Parse ApiResponse wrapper first
-                    JsonNode root = mapper.readTree(response.getBody());
+                    JsonNode root = mapper.readTree(responseBody);
                     String status = root.get("status").asText();
                     
                     if ("success".equals(status)) {
@@ -274,7 +142,7 @@ public class UserService {
                     System.err.println("Invalid response structure or status: " + status);
                 } catch (Exception parseException) {
                     System.err.println("Error parsing JSON response: " + parseException.getMessage());
-                    System.err.println("Response body: " + response.getBody());
+                    System.err.println("Response body: " + responseBody);
                 }
             }
             
@@ -338,15 +206,16 @@ public class UserService {
             );
             
             System.out.println("Response status: " + response.getStatusCode());
-            System.out.println("Raw response: " + response.getBody());
+            String responseBody = response.getBody();
+            System.out.println("Raw response: " + responseBody);
             
-            if (response.getBody() != null && !response.getBody().trim().isEmpty()) {
+            if (responseBody != null && !responseBody.trim().isEmpty()) {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.registerModule(new JavaTimeModule());
                     
                     // Parse ApiResponse wrapper first
-                    JsonNode root = mapper.readTree(response.getBody());
+                    JsonNode root = mapper.readTree(responseBody);
                     String status = root.get("status").asText();
                     
                     if ("success".equals(status)) {
@@ -362,7 +231,7 @@ public class UserService {
                     System.err.println("Invalid response structure or status: " + status);
                 } catch (Exception parseException) {
                     System.err.println("Error parsing JSON response: " + parseException.getMessage());
-                    System.err.println("Response body: " + response.getBody());
+                    System.err.println("Response body: " + responseBody);
                 }
             }
             
@@ -393,46 +262,71 @@ public class UserService {
         }
     }
     
-    public List<User> sortUsers(List<User> users, String sortField, String direction) {
-        if (users == null || users.isEmpty()) {
-            return users;
+    /**
+     * Parse JSON response thành PaginatedResponse
+     */
+    private PaginatedResponse<User> parsePaginatedResponse(String responseBody) {
+        if (responseBody == null || responseBody.trim().isEmpty()) {
+            return createEmptyPaginatedResponse();
         }
         
-        boolean isAscending = "asc".equalsIgnoreCase(direction);
-        
-        switch (sortField.toLowerCase()) {
-            case "id":
-                users.sort((u1, u2) -> isAscending ? 
-                    u1.getId().compareTo(u2.getId()) : 
-                    u2.getId().compareTo(u1.getId()));
-                break;
-            case "username":
-                users.sort((u1, u2) -> isAscending ? 
-                    u1.getUsername().compareToIgnoreCase(u2.getUsername()) : 
-                    u2.getUsername().compareToIgnoreCase(u1.getUsername()));
-                break;
-            case "email":
-                users.sort((u1, u2) -> isAscending ? 
-                    u1.getEmail().compareToIgnoreCase(u2.getEmail()) : 
-                    u2.getEmail().compareToIgnoreCase(u1.getEmail()));
-                break;
-            case "role":
-                users.sort((u1, u2) -> isAscending ? 
-                    u1.getRole().compareToIgnoreCase(u2.getRole()) : 
-                    u2.getRole().compareToIgnoreCase(u1.getRole()));
-                break;
-            case "createdat":
-                users.sort((u1, u2) -> isAscending ? 
-                    u1.getCreatedAt().compareTo(u2.getCreatedAt()) : 
-                    u2.getCreatedAt().compareTo(u1.getCreatedAt()));
-                break;
-            default:
-                // Default sort by ID
-                users.sort((u1, u2) -> isAscending ? 
-                    u1.getId().compareTo(u2.getId()) : 
-                    u2.getId().compareTo(u1.getId()));
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            JsonNode root = mapper.readTree(responseBody);
+            
+            // Kiểm tra nếu response được wrap trong ApiResponse
+            if (root.has("status") && root.has("data")) {
+                JsonNode dataNode = root.get("data");
+                return mapper.readValue(
+                    mapper.treeAsTokens(dataNode),
+                    mapper.getTypeFactory().constructParametricType(PaginatedResponse.class, User.class)
+                );
+            }
+            
+            // Parse trực tiếp PaginatedResponse
+            return mapper.readValue(
+                responseBody,
+                mapper.getTypeFactory().constructParametricType(PaginatedResponse.class, User.class)
+            );
+            
+        } catch (Exception e) {
+            System.err.println("Error parsing paginated response: " + e.getMessage());
+            return createEmptyPaginatedResponse();
         }
+    }
+
+    /**
+     * Tạo PaginatedResponse rỗng
+     */
+    private PaginatedResponse<User> createEmptyPaginatedResponse() {
+        PaginatedResponse<User> response = new PaginatedResponse<>();
+        response.setResult(new ArrayList<>());
         
-        return users;
+        PaginatedResponse.Metadata metadata = new PaginatedResponse.Metadata();
+        metadata.setPage(1);
+        metadata.setSize(10);
+        metadata.setTotalElements(0);
+        metadata.setTotalPages(1);
+        metadata.setFirst(true);
+        metadata.setLast(true);
+        metadata.setIsEmpty(true);
+        response.setMetadata(metadata);
+        
+        return response;
+    }
+
+    /**
+     * Xử lý lỗi chung cho service
+     */
+    private void handleServiceError(String message, Exception e) {
+        System.err.println(message + ": " + e.getMessage());
+        
+        // Nếu token hết hạn, clear token
+        if (e.getMessage() != null && (e.getMessage().contains("401") || 
+                                     e.getMessage().contains("Unauthorized"))) {
+            System.out.println("Token expired, clearing token");
+            tokenService.clearToken();
+        }
     }
 }

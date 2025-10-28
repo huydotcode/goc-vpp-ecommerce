@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quản lý Users</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Admin Layout Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --sidebar-bg: #001529;
+            --sidebar-text: #fff;
+            --card-bg: #fff;
+            --border-color: #d9d9d9;
+            --primary-color: #1890ff;
+            --hover-color: #40a9ff;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --error-color: #f5222d;
+        }
+
+        /* Prevent flash of unstyled content */
+        html {
+            color-scheme: dark;
+        }
+
+        /* Default dark theme to prevent flash */
+        [data-theme="dark"] {
+            --bg-color: #141414;
+            --text-color: #fff;
+            --sidebar-bg: #000;
+            --sidebar-text: #fff;
+            --card-bg: #1f1f1f;
+            --border-color: #303030;
+            --primary-color: #177ddc;
+            --hover-color: #3c9be8;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .admin-sidebar {
+            width: 250px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .sidebar-logo {
+            font-size: 18px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .sidebar-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-menu a.active {
+            background-color: var(--primary-color);
+        }
+
+        .sidebar-menu i {
+            width: 20px;
+            margin-right: 12px;
+            text-align: center;
+        }
+
+        .admin-main {
+            flex: 1;
+            margin-left: 250px;
+        }
+
+        .admin-header {
+            background: var(--card-bg);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .admin-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--hover-color);
+            color: white;
+        }
+
+        .admin-content {
+            padding: 24px;
+        }
+
+        .admin-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .admin-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--card-bg);
+        }
+
+        .admin-card-body {
+            padding: 24px;
+        }
+
+        /* Table Styles */
+        .table-container {
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .table-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        [data-theme="dark"] .table-loading-overlay {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Container Loading Overlay */
+        .container-loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .container-loading-overlay.show {
+            display: flex;
+        }
+
+        .container-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .container-loading-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            margin-top: 80px;
+            color: var(--text-color);
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 16px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--card-bg);
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 14px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        th a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        th a:hover {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        td {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: rgba(24, 144, 255, 0.03);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 2px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--hover-color);
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background: #d9d9d9;
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff4d4f;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #73d13d;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d4a106;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .page-size-selector label {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .page-size-selector select {
+            padding: 8px 16px;
+            border: 2px solid var(--border-color, #d1d5db);
+            border-radius: 8px;
+            background: var(--card-bg, #1f2937);
+            color: var(--text-color, #f9fafb);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 40px;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .page-size-selector select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231890ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        }
+
+        .page-size-selector select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .page-size-selector span {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        /* Filter Form */
+        #filterForm {
+            margin-bottom: 32px;
+            padding: 24px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        #filterForm .form-group {
+            margin-bottom: 16px;
+        }
+
+        #filterForm label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .pagination a {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background: var(--card-bg);
+            min-width: 36px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .pagination a:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .pagination .current {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .pagination .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-color);
+        }
+
+        .pagination .disabled:hover {
+            transform: none;
+        }
+
+        /* Bootstrap pagination overrides */
+        .pagination .page-item {
+            list-style: none;
+            margin: 0;
+        }
+
+        .pagination .page-link {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background: var(--card-bg);
+            min-width: 36px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 13px;
+            display: block;
+        }
+
+        .pagination .page-link:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .pagination .page-item.active .page-link {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .pagination .page-item.disabled .page-link {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-color);
+        }
+
+        .pagination .page-item.disabled .page-link:hover {
+            transform: none;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1001;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: var(--error-color);
+        }
+
+        .notification.warning {
+            background: var(--warning-color);
+        }
+
+        /* Badge Styles */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .bg-danger {
+            background-color: var(--error-color) !important;
+        }
+
+        .bg-warning {
+            background-color: var(--warning-color) !important;
+        }
+
+        .bg-info {
+            background-color: #17a2b8 !important;
+        }
+
+        .bg-success {
+            background-color: var(--success-color) !important;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            width: 95%;
+            max-width: 900px;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-color);
+            padding: 6px;
+        }
+
+        .modal-close:hover {
+            color: var(--error-color);
+        }
+
+        .modal-body {
+            padding: 32px;
+        }
+
+        .modal-footer {
+            padding: 20px 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+        }
+
+        /* Form Styles */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color, #d1d5db);
+            border-radius: 8px;
+            background: var(--card-bg, #1f2937);
+            color: var(--text-color, #f9fafb);
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .form-control:hover {
+            border-color: var(--primary-color);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Select dropdown styling */
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 40px;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        select.form-control:focus {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231890ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        }
+
+        .form-control.error {
+            border-color: var(--error-color);
+        }
+
+        .error-message {
+            color: var(--error-color);
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        /* User Detail Styles */
+        .user-detail {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .user-info {
+            background: var(--bg-color);
+            padding: 24px;
+            border-radius: 8px;
+        }
+
+        .user-info h4 {
+            margin: 0 0 16px 0;
+            color: var(--text-color);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        /* Table Actions */
+        .table-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            min-width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-sm i {
+            font-size: 11px;
+        }
+
+        /* Tooltip */
+        .btn[title] {
+            position: relative;
+        }
+
+        .btn[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+
+            .admin-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                margin-left: 0;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            /* Table responsive */
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
+            }
+
+            th, td {
+                padding: 12px 8px;
+                font-size: 13px;
+            }
+
+            .btn-sm {
+                padding: 4px 6px;
+                font-size: 11px;
+                min-width: 28px;
+                height: 28px;
+            }
+
+            /* Pagination responsive */
+            .pagination {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .pagination a,
+            .pagination .page-link {
+                padding: 6px 8px;
+                font-size: 12px;
+                min-width: 28px;
+            }
+
+            /* Filter form responsive */
+            #filterForm {
+                padding: 16px;
+                margin-bottom: 24px;
+            }
+
+            #filterForm .form-group {
+                margin-bottom: 12px;
+            }
+
+            /* Modal responsive */
+            .modal-content {
+                width: 95%;
+                max-width: 500px;
+                margin: 10px;
+            }
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, var(--border-color) 25%, rgba(255,255,255,0.1) 50%, var(--border-color) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        .skeleton-text.short {
+            width: 60%;
+        }
+
+        .skeleton-text.medium {
+            width: 80%;
+        }
+
+        .skeleton-text.long {
+            width: 100%;
+        }
+
+        .skeleton-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        /* Accessibility */
+        .btn:focus,
+        .form-control:focus,
+        select:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .btn {
+                border: 2px solid currentColor;
+            }
+            
+            .form-control {
+                border: 2px solid currentColor;
+            }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="admin-sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Admin Panel</div>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="/users" class="active">
+                        <i class="fas fa-users"></i>
+                        <span>Quản lý Users</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="admin-main" id="mainContent">
+            <div class="admin-header">
+                <h1 class="admin-title">Quản lý Users</h1>
+                <div class="admin-actions">
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="admin-content">
+                <!-- Container Loading Overlay -->
+                <div class="container-loading-overlay" id="containerLoadingOverlay">
+                    <div class="container-spinner"></div>
+                    <div class="container-loading-text">Đang tải...</div>
+                </div>
+
+                <!-- Users Management Content -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="margin: 0;"><i class="fas fa-list"></i> Danh sách Users</h4>
+                            <button type="button" class="btn btn-primary" onclick="showCreateModal()">
+                                <i class="fas fa-plus"></i> Tạo User
+                            </button>
+                        </div>
+                    </div>
+                    <div class="admin-card-body">
+                        <!-- Filter Form -->
+                        <form id="filterForm" class="mb-4">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label for="role">Role:</label>
+                                    <select id="role" name="role" class="form-control">
+                                        <option value="">Tất cả</option>
+                                        <option value="ADMIN" th:selected="${role == 'ADMIN'}">ADMIN</option>
+                                        <option value="EMPLOYEE" th:selected="${role == 'EMPLOYEE'}">EMPLOYEE</option>
+                                        <option value="USER" th:selected="${role == 'USER'}">USER</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="username">Username:</label>
+                                    <input type="text" id="username" name="username" class="form-control" 
+                                           th:value="${username}" placeholder="Tìm theo username...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email:</label>
+                                    <input type="text" id="email" name="email" class="form-control" 
+                                           th:value="${email}" placeholder="Tìm theo email...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="isActive">Trạng thái:</label>
+                                    <select id="isActive" name="isActive" class="form-control">
+                                        <option value="">Tất cả</option>
+                                        <option value="true" th:selected="${isActive == true}">Active</option>
+                                        <option value="false" th:selected="${isActive == false}">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="search">Tìm kiếm:</label>
+                                    <input type="text" id="search" name="search" class="form-control" 
+                                           th:value="${search}" placeholder="Tìm kiếm chung...">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Lọc
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="resetAllFilters()">
+                                    <i class="fas fa-times"></i> Xóa bộ lọc
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Table Loading Overlay -->
+                        <div class="table-loading-overlay" id="tableLoadingOverlay">
+                            <div class="loading-spinner"></div>
+                        </div>
+
+                        <!-- Users Table -->
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <a th:href="@{/users(sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                               class="text-decoration-none">
+                                                ID
+                                                <i th:if="${sort == 'id'}" 
+                                                   th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a th:href="@{/users(sort='username', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                               class="text-decoration-none">
+                                                Username
+                                                <i th:if="${sort == 'username'}" 
+                                                   th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a th:href="@{/users(sort='email', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                               class="text-decoration-none">
+                                                Email
+                                                <i th:if="${sort == 'email'}" 
+                                                   th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a th:href="@{/users(sort='role', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                               class="text-decoration-none">
+                                                Role
+                                                <i th:if="${sort == 'role'}" 
+                                                   th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a th:href="@{/users(sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                               class="text-decoration-none">
+                                                Trạng thái
+                                                <i th:if="${sort == 'isActive'}" 
+                                                   th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a th:href="@{/users(sort='createdAt', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                               class="text-decoration-none">
+                                                Ngày tạo
+                                                <i th:if="${sort == 'createdAt'}" 
+                                                   th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                            </a>
+                                        </th>
+                                        <th class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="user : ${users}">
+                                        <td th:text="${user.id}"></td>
+                                        <td th:text="${user.username}"></td>
+                                        <td th:text="${user.email}"></td>
+                                        <td>
+                                            <span th:if="${user.role == 'ADMIN'}" class="badge bg-danger">ADMIN</span>
+                                            <span th:if="${user.role == 'EMPLOYEE'}" class="badge bg-warning">EMPLOYEE</span>
+                                            <span th:if="${user.role == 'USER'}" class="badge bg-info">USER</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${user.isActive}" class="badge bg-success">Active</span>
+                                            <span th:unless="${user.isActive}" class="badge bg-danger">Inactive</span>
+                                        </td>
+                                        <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-info btn-sm" title="Xem" 
+                                                    th:onclick="'viewUser(' + ${user.id} + ')'">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-warning btn-sm" title="Sửa" 
+                                                    th:onclick="'editUser(' + ${user.id} + ')'">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" title="Xóa" 
+                                                    th:onclick="'deleteUser(' + ${user.id} + ')'">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Page Size Selector -->
+                        <div class="page-size-selector">
+                            <label for="pageSize">Hiển thị:</label>
+                            <select id="pageSize" name="pageSize" onchange="changePageSize()">
+                                <option value="5" th:selected="${size == 5}">5</option>
+                                <option value="10" th:selected="${size == 10}">10</option>
+                                <option value="20" th:selected="${size == 20}">20</option>
+                                <option value="50" th:selected="${size == 50}">50</option>
+                                <option value="100" th:selected="${size == 100}">100</option>
+                            </select>
+                            <span>kết quả/trang</span>
+                        </div>
+
+                        <!-- Pagination -->
+                        <nav th:if="${totalPages > 1}" aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <!-- Previous -->
+                                <li class="page-item" th:classappend="${!hasPrev} ? 'disabled'">
+                                    <a class="page-link" 
+                                       th:href="@{/users(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
+                                       th:attr="data-page=${currentPage - 1}"
+                                       th:if="${hasPrev}">
+                                        <i class="fas fa-chevron-left"></i> Trước
+                                    </a>
+                                    <span class="page-link" th:unless="${hasPrev}">
+                                        <i class="fas fa-chevron-left"></i> Trước
+                                    </span>
+                                </li>
+                                
+                                <!-- Page Numbers -->
+                                <li th:each="pageNum : ${#numbers.sequence(1, totalPages)}" 
+                                    class="page-item" 
+                                    th:classappend="${pageNum == currentPage} ? 'active'">
+                                    <a class="page-link" 
+                                       th:href="@{/users(page=${pageNum}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
+                                       th:attr="data-page=${pageNum}"
+                                       th:text="${pageNum}"></a>
+                                </li>
+                                
+                                <!-- Next -->
+                                <li class="page-item" th:classappend="${!hasNext} ? 'disabled'">
+                                    <a class="page-link" 
+                                       th:href="@{/users(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
+                                       th:attr="data-page=${currentPage + 1}"
+                                       th:if="${hasNext}">
+                                        Tiếp <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                    <span class="page-link" th:unless="${hasNext}">
+                                        Tiếp <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- Create User Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Tạo User Mới</h3>
+                <button class="modal-close" onclick="closeModal('createModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createUsername">Username *</label>
+                            <input type="text" id="createUsername" name="username" class="form-control" required>
+                            <div class="error-message" id="createUsernameError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="createEmail">Email *</label>
+                            <input type="email" id="createEmail" name="email" class="form-control" required>
+                            <div class="error-message" id="createEmailError"></div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createPassword">Password *</label>
+                            <input type="password" id="createPassword" name="password" class="form-control" required>
+                            <div class="error-message" id="createPasswordError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="createRole">Role *</label>
+                            <select id="createRole" name="role" class="form-control" required>
+                                <option value="">Chọn role</option>
+                                <option value="USER">USER</option>
+                                <option value="EMPLOYEE">EMPLOYEE</option>
+                                <option value="ADMIN">ADMIN</option>
+                            </select>
+                            <div class="error-message" id="createRoleError"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="createIsActive" name="isActive" checked>
+                            Kích hoạt tài khoản
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('createModal')">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="submitCreateUser()">Tạo User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Sửa User</h3>
+                <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId" name="id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editUsername">Username *</label>
+                            <input type="text" id="editUsername" name="username" class="form-control" required>
+                            <div class="error-message" id="editUsernameError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail">Email *</label>
+                            <input type="email" id="editEmail" name="email" class="form-control" required>
+                            <div class="error-message" id="editEmailError"></div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPassword">Password (để trống nếu không đổi)</label>
+                            <input type="password" id="editPassword" name="password" class="form-control">
+                            <div class="error-message" id="editPasswordError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editRole">Role *</label>
+                            <select id="editRole" name="role" class="form-control" required>
+                                <option value="">Chọn role</option>
+                                <option value="USER">USER</option>
+                                <option value="EMPLOYEE">EMPLOYEE</option>
+                                <option value="ADMIN">ADMIN</option>
+                            </select>
+                            <div class="error-message" id="editRoleError"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editIsActive" name="isActive">
+                            Kích hoạt tài khoản
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditUser()">Cập nhật</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View User Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Chi tiết User</h3>
+                <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="user-detail">
+                    <div class="user-info">
+                        <h4>Thông tin cơ bản</h4>
+                        <div class="info-item">
+                            <span class="info-label">ID:</span>
+                            <span class="info-value" id="viewId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Username:</span>
+                            <span class="info-value" id="viewUsername">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value" id="viewEmail">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Role:</span>
+                            <span class="info-value" id="viewRole">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Trạng thái:</span>
+                            <span class="info-value" id="viewIsActive">-</span>
+                        </div>
+                    </div>
+                    <div class="user-info">
+                        <h4>Thông tin hệ thống</h4>
+                        <div class="info-item">
+                            <span class="info-label">Ngày tạo:</span>
+                            <span class="info-value" id="viewCreatedAt">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Ngày cập nhật:</span>
+                            <span class="info-value" id="viewUpdatedAt">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Tạo bởi:</span>
+                            <span class="info-value" id="viewCreatedBy">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Cập nhật bởi:</span>
+                            <span class="info-value" id="viewUpdatedBy">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('viewModal')">Đóng</button>
+                <button type="button" class="btn btn-warning" onclick="editUserFromView()">Sửa</button>
+                <button type="button" class="btn btn-danger" onclick="deleteUserFromView()">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Xác nhận xóa</h3>
+                <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa user này không?</p>
+                <div class="user-info">
+                    <div class="info-item">
+                        <span class="info-label">ID:</span>
+                        <span class="info-value" id="deleteUserId">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Username:</span>
+                        <span class="info-value" id="deleteUsername">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value" id="deleteEmail">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Hủy</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteUser()">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Container Loading Functions
+        function showContainerLoading(text = 'Đang tải...') {
+            const overlay = document.getElementById('containerLoadingOverlay');
+            const textElement = overlay.querySelector('.container-loading-text');
+            if (overlay) {
+                textElement.textContent = text;
+                overlay.classList.add('show');
+            }
+        }
+
+        function hideContainerLoading() {
+            const overlay = document.getElementById('containerLoadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+        }
+
+        // Table Loading Functions
+        function showTableLoading() {
+            const overlay = document.getElementById('tableLoadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+            }
+        }
+
+        function hideTableLoading() {
+            const overlay = document.getElementById('tableLoadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+
+        // Notification Functions
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            container.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                hideNotification(notification);
+            }, 3000);
+        }
+
+        function hideNotification(notification) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }
+
+        // Form Submission with Loading
+        function submitFormWithLoading(form) {
+            showTableLoading();
+            form.submit();
+        }
+
+        // Page size change handler
+        function changePageSize() {
+            showContainerLoading('Đang thay đổi kích thước trang...');
+            const pageSize = document.getElementById('pageSize').value;
+            const url = new URL(window.location);
+            url.searchParams.set('size', pageSize);
+            url.searchParams.set('page', '0'); // Reset to first page
+            window.location.href = url.toString();
+        }
+
+        function goToPageWithLoading(page) {
+            showContainerLoading('Đang chuyển trang...');
+            window.location.href = page;
+        }
+
+        function submitFilterWithLoading() {
+            showContainerLoading('Đang lọc dữ liệu...');
+            
+            // Get current URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Clear all filter parameters first
+            urlParams.delete('role');
+            urlParams.delete('username');
+            urlParams.delete('email');
+            urlParams.delete('isActive');
+            urlParams.delete('search');
+            urlParams.delete('page'); // Reset to page 1
+            
+            // Add non-empty filter values
+            const role = document.getElementById('role').value;
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const isActive = document.getElementById('isActive').value;
+            const search = document.getElementById('search').value;
+            
+            if (role && role !== '') urlParams.set('role', role);
+            if (username && username.trim() !== '') urlParams.set('username', username);
+            if (email && email.trim() !== '') urlParams.set('email', email);
+            if (isActive && isActive !== '') urlParams.set('isActive', isActive);
+            if (search && search.trim() !== '') urlParams.set('search', search);
+            
+            // Navigate to filtered URL
+            const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.location.href = newUrl;
+        }
+
+        function resetAllFilters() {
+            showContainerLoading('Đang xóa bộ lọc...');
+            window.location.href = window.location.pathname;
+        }
+
+        // User Actions
+        function viewUser(id) {
+            fetchUserById(id).then(user => {
+                if (user) {
+                    populateViewModal(user);
+                    showModal('viewModal');
+                }
+            });
+        }
+
+        function editUser(id) {
+            fetchUserById(id).then(user => {
+                if (user) {
+                    populateEditModal(user);
+                    showModal('editModal');
+                }
+            });
+        }
+
+        function deleteUser(id) {
+            fetchUserById(id).then(user => {
+                if (user) {
+                    populateDeleteModal(user);
+                    showModal('deleteModal');
+                }
+            });
+        }
+
+        function showCreateModal() {
+            clearCreateForm();
+            showModal('createModal');
+        }
+
+        // Modal Management
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                closeModal(e.target.id);
+            }
+        });
+
+        // Fetch user by ID
+        async function fetchUserById(id) {
+            try {
+                console.log('Fetching user with ID:', id);
+                const token = await getToken();
+                console.log('Using token:', token ? token.substring(0, 20) + '...' : 'null');
+                
+                const response = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Response data:', data);
+                    return data.data;
+                } else {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    showNotification('Không thể tải thông tin user', 'error');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching user:', error);
+                showNotification('Lỗi khi tải thông tin user', 'error');
+                return null;
+            }
+        }
+
+        // Get token from localStorage, cookie, or session
+        async function getToken() {
+            // Try localStorage first
+            let token = localStorage.getItem('access_token');
+            if (token) {
+                console.log('Token from localStorage:', token.substring(0, 20) + '...');
+                return token;
+            }
+            
+            // Try cookie
+            token = getCookie('access_token');
+            if (token) {
+                console.log('Token from cookie:', token.substring(0, 20) + '...');
+                return token;
+            }
+            
+            // Try to get from session via API
+            try {
+                const response = await fetch('/api/auth/token', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.token;
+                    if (token) {
+                        console.log('Token from session:', token.substring(0, 20) + '...');
+                        localStorage.setItem('access_token', token);
+                        return token;
+                    }
+                }
+            } catch (error) {
+                console.log('Could not get token from session:', error);
+            }
+            
+            console.log('No token found');
+            return null;
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        // Populate modals
+        function populateViewModal(user) {
+            document.getElementById('viewId').textContent = user.id || '-';
+            document.getElementById('viewUsername').textContent = user.username || '-';
+            document.getElementById('viewEmail').textContent = user.email || '-';
+            document.getElementById('viewRole').textContent = user.role || '-';
+            document.getElementById('viewIsActive').textContent = user.isActive ? 'Active' : 'Inactive';
+            document.getElementById('viewCreatedAt').textContent = formatDate(user.createdAt) || '-';
+            document.getElementById('viewUpdatedAt').textContent = formatDate(user.updatedAt) || '-';
+            document.getElementById('viewCreatedBy').textContent = user.createdBy || '-';
+            document.getElementById('viewUpdatedBy').textContent = user.updatedBy || '-';
+        }
+
+        function populateEditModal(user) {
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUsername').value = user.username || '';
+            document.getElementById('editEmail').value = user.email || '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editRole').value = user.role || '';
+            document.getElementById('editIsActive').checked = user.isActive || false;
+            clearEditErrors();
+        }
+
+        function populateDeleteModal(user) {
+            document.getElementById('deleteUserId').textContent = user.id || '-';
+            document.getElementById('deleteUsername').textContent = user.username || '-';
+            document.getElementById('deleteEmail').textContent = user.email || '-';
+        }
+
+        function clearCreateForm() {
+            document.getElementById('createUserForm').reset();
+            document.getElementById('createIsActive').checked = true;
+            clearCreateErrors();
+        }
+
+        function clearCreateErrors() {
+            const errorElements = document.querySelectorAll('#createUserForm .error-message');
+            errorElements.forEach(el => el.textContent = '');
+            const inputs = document.querySelectorAll('#createUserForm .form-control');
+            inputs.forEach(input => input.classList.remove('error'));
+        }
+
+        function clearEditErrors() {
+            const errorElements = document.querySelectorAll('#editUserForm .error-message');
+            errorElements.forEach(el => el.textContent = '');
+            const inputs = document.querySelectorAll('#editUserForm .form-control');
+            inputs.forEach(input => input.classList.remove('error'));
+        }
+
+        // Form submissions
+        async function submitCreateUser() {
+            const form = document.getElementById('createUserForm');
+            const formData = new FormData(form);
+            
+            const userData = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                role: formData.get('role'),
+                isActive: formData.get('isActive') === 'on'
+            };
+
+            if (!validateCreateForm(userData)) {
+                return;
+            }
+
+            try {
+                showTableLoading();
+                const token = await getToken();
+                const response = await fetch('http://localhost:8080/api/v1/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    showNotification('Tạo user thành công!', 'success');
+                    closeModal('createModal');
+                    setTimeout(() => {
+                        window.location.href = window.location.href;
+                    }, 500);
+                } else {
+                    const errorData = await response.json();
+                    showNotification(errorData.message || 'Lỗi khi tạo user', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating user:', error);
+                showNotification('Lỗi khi tạo user', 'error');
+            } finally {
+                hideTableLoading();
+            }
+        }
+
+        async function submitEditUser() {
+            const form = document.getElementById('editUserForm');
+            const formData = new FormData(form);
+            
+            const userData = {
+                id: formData.get('id'),
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: formData.get('password') || null,
+                role: formData.get('role'),
+                isActive: formData.get('isActive') === 'on'
+            };
+
+            if (!validateEditForm(userData)) {
+                return;
+            }
+
+            try {
+                showTableLoading();
+                const token = await getToken();
+                const response = await fetch(`http://localhost:8080/api/v1/users/${userData.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    showNotification('Cập nhật user thành công!', 'success');
+                    closeModal('editModal');
+                    setTimeout(() => {
+                        window.location.href = window.location.href;
+                    }, 500);
+                } else {
+                    const errorData = await response.json();
+                    showNotification(errorData.message || 'Lỗi khi cập nhật user', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+                showNotification('Lỗi khi cập nhật user', 'error');
+            } finally {
+                hideTableLoading();
+            }
+        }
+
+        async function confirmDeleteUser() {
+            const userId = document.getElementById('deleteUserId').textContent;
+            
+            try {
+                showTableLoading();
+                const token = await getToken();
+                const response = await fetch(`http://localhost:8080/api/v1/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification('Xóa user thành công!', 'success');
+                    closeModal('deleteModal');
+                    setTimeout(() => {
+                        window.location.href = window.location.href;
+                    }, 500);
+                } else {
+                    const errorData = await response.json();
+                    showNotification(errorData.message || 'Lỗi khi xóa user', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showNotification('Lỗi khi xóa user', 'error');
+            } finally {
+                hideTableLoading();
+            }
+        }
+
+        // Form validation
+        function validateCreateForm(data) {
+            let isValid = true;
+            clearCreateErrors();
+
+            if (!data.username || data.username.trim() === '') {
+                showFieldError('createUsername', 'Username là bắt buộc');
+                isValid = false;
+            }
+
+            if (!data.email || data.email.trim() === '') {
+                showFieldError('createEmail', 'Email là bắt buộc');
+                isValid = false;
+            } else if (!isValidEmail(data.email)) {
+                showFieldError('createEmail', 'Email không hợp lệ');
+                isValid = false;
+            }
+
+            if (!data.password || data.password.trim() === '') {
+                showFieldError('createPassword', 'Password là bắt buộc');
+                isValid = false;
+            } else if (data.password.length < 6) {
+                showFieldError('createPassword', 'Password phải có ít nhất 6 ký tự');
+                isValid = false;
+            }
+
+            if (!data.role || data.role.trim() === '') {
+                showFieldError('createRole', 'Role là bắt buộc');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function validateEditForm(data) {
+            let isValid = true;
+            clearEditErrors();
+
+            if (!data.username || data.username.trim() === '') {
+                showFieldError('editUsername', 'Username là bắt buộc');
+                isValid = false;
+            }
+
+            if (!data.email || data.email.trim() === '') {
+                showFieldError('editEmail', 'Email là bắt buộc');
+                isValid = false;
+            } else if (!isValidEmail(data.email)) {
+                showFieldError('editEmail', 'Email không hợp lệ');
+                isValid = false;
+            }
+
+            if (data.password && data.password.length < 6) {
+                showFieldError('editPassword', 'Password phải có ít nhất 6 ký tự');
+                isValid = false;
+            }
+
+            if (!data.role || data.role.trim() === '') {
+                showFieldError('editRole', 'Role là bắt buộc');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorElement = document.getElementById(fieldId + 'Error');
+            
+            if (field) {
+                field.classList.add('error');
+            }
+            
+            if (errorElement) {
+                errorElement.textContent = message;
+            }
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('vi-VN');
+            } catch (error) {
+                return '-';
+            }
+        }
+
+        // Actions from view modal
+        function editUserFromView() {
+            const userId = document.getElementById('viewId').textContent;
+            closeModal('viewModal');
+            editUser(userId);
+        }
+
+        function deleteUserFromView() {
+            const userId = document.getElementById('viewId').textContent;
+            closeModal('viewModal');
+            deleteUser(userId);
+        }
+
+        // Test function to debug API calls
+        async function testApiCall() {
+            console.log('Testing API call...');
+            const token = await getToken();
+            console.log('Current token:', token);
+            console.log('All localStorage:', localStorage);
+            console.log('All cookies:', document.cookie);
+            
+            // Test with a known user ID (assuming user ID 1 exists)
+            await fetchUserById(1);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            initTheme();
+            
+            // Check for success parameter and show notification
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                showNotification('Tải dữ liệu thành công!', 'success');
+            }
+            
+            // Apply theme immediately to prevent flash
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Add event listeners for filter form
+            const filterForm = document.getElementById('filterForm');
+            if (filterForm) {
+                filterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    submitFilterWithLoading();
+                });
+            }
+            
+            // Add event listeners for pagination links
+            const paginationLinks = document.querySelectorAll('.pagination a[data-page]');
+            paginationLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    goToPageWithLoading(this.href);
+                });
+            });
+            
+            // Add event listeners for role and isActive selects
+            const roleSelect = document.getElementById('role');
+            const isActiveSelect = document.getElementById('isActive');
+            
+            if (roleSelect) {
+                roleSelect.addEventListener('change', function() {
+                    if (this.value === '') {
+                        submitFilterWithLoading();
+                    }
+                });
+            }
+            
+            if (isActiveSelect) {
+                isActiveSelect.addEventListener('change', function() {
+                    if (this.value === '') {
+                        submitFilterWithLoading();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

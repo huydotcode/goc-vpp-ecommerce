@@ -2,6 +2,7 @@ package www.java.client.controller;
 
 import www.java.client.model.User;
 import www.java.client.service.UserService;
+import www.java.client.model.PaginatedResponse;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -10,10 +11,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Controller
 @RequestMapping("/users")
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private static final int MIN_PAGE_SIZE = 5;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final UserService userService;
 
@@ -21,7 +28,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Hiển thị danh sách users với sort, filter và search
     @GetMapping
     public String listUsers(
             @RequestParam(value = "page", defaultValue = "1") int page,
@@ -35,69 +41,94 @@ public class UserController {
             @RequestParam(value = "search", required = false) String search,
             Model model) {
         
-        System.out.println("========================================");
-        System.out.println("UserController.listUsers() called");
-        System.out.println("Page: " + page + ", Size: " + size);
-        System.out.println("Sort: " + sort + ", Direction: " + direction);
-        System.out.println("Role: " + role + ", Username: " + username + ", Email: " + email);
-        System.out.println("IsActive: " + isActive + ", Search: " + search);
-        System.out.println("========================================");
-        
         try {
-            // Server-side pagination từ backend
-            var paginated = userService.getUsersAdvanced(page, size, sort, direction);
-            List<User> users = (paginated != null && paginated.getResult() != null) ? paginated.getResult() : new ArrayList<>();
+            // Validate và normalize parameters
+            page = Math.max(1, page);
+            size = Math.min(Math.max(MIN_PAGE_SIZE, size), MAX_PAGE_SIZE);
+            direction = "desc".equalsIgnoreCase(direction) ? "desc" : "asc";
             
-            // Apply search filter ở client (vì backend chưa có search API)
-            if (search != null && !search.trim().isEmpty()) {
-                users = users.stream()
-                    .filter(user -> 
-                        user.getUsername().toLowerCase().contains(search.toLowerCase()) ||
-                        user.getEmail().toLowerCase().contains(search.toLowerCase()) ||
-                        (user.getId().toString().equals(search))
-                    )
-                    .collect(java.util.stream.Collectors.toList());
+            logger.debug("Loading users - Page: {}, Size: {}, Sort: {}, Direction: {}", 
+                        page, size, sort, direction);
+
+            // Gọi API với server-side pagination và filtering
+            PaginatedResponse<User> paginatedResponse = userService.getUsersWithPagination(
+                page, size, sort, direction, role, username, email, isActive, search);
+
+            if (paginatedResponse == null || paginatedResponse.getResult() == null) {
+                logger.warn("Received null or empty response from service");
+                paginatedResponse = new PaginatedResponse<>();
+                paginatedResponse.setResult(new ArrayList<>());
             }
+
+            // Tính toán pagination metadata
+            PaginatedResponse.Metadata metadata = paginatedResponse.getMetadata();
+            int currentPage = metadata != null ? metadata.getPage() : page;
+            int totalPages = metadata != null ? metadata.getTotalPages() : 1;
+            long totalElements = metadata != null ? metadata.getTotalElements() : 0;
             
-            // Apply sorting ở client
-            users = userService.sortUsers(users, sort, direction);
-            
-            // Apply pagination ở client (clamp page hợp lệ, tránh out-of-range)
-            // Metadata từ backend
-            int totalElements = (paginated != null && paginated.getMetadata() != null) ? (int) paginated.getMetadata().getTotalElements() : users.size();
-            int totalPages = (paginated != null && paginated.getMetadata() != null) ? paginated.getMetadata().getTotalPages() : 1;
-            int currentPage = (paginated != null && paginated.getMetadata() != null) ? paginated.getMetadata().getPage() : page;
             boolean hasNext = currentPage < totalPages;
             boolean hasPrev = currentPage > 1;
+
+            // Add attributes to model
+            addPaginationAttributes(model, paginatedResponse.getResult(), currentPage, 
+                                  totalPages, totalElements, hasNext, hasPrev, 
+                                  sort, direction, role, username, email, isActive, search, size);
+
+            logger.debug("Successfully loaded {} users (page {}/{})", 
+                        paginatedResponse.getResult().size(), currentPage, totalPages);
             
-            model.addAttribute("users", users);
-            model.addAttribute("currentPage", currentPage);
-            model.addAttribute("totalPages", totalPages);
-            model.addAttribute("totalElements", totalElements);
-            model.addAttribute("hasNext", hasNext);
-            model.addAttribute("hasPrev", hasPrev);
-            model.addAttribute("sort", sort);
-            model.addAttribute("direction", direction);
-            model.addAttribute("role", role);
-            model.addAttribute("username", username);
-            model.addAttribute("email", email);
-            model.addAttribute("isActive", isActive);
-            model.addAttribute("search", search);
-            model.addAttribute("size", size);
+            // Add success parameter for notification
+            model.addAttribute("success", "true");
             
-            return "users/list";
+            return "users/list-admin";
+            
         } catch (Exception e) {
-            System.err.println("ERROR in listUsers: " + e.getMessage());
-            // Nếu có lỗi authentication, redirect về login
-            if (e.getMessage().contains("401") || e.getMessage().contains("Unauthorized")) {
-                System.out.println("Token expired or invalid, redirecting to login");
+            logger.error("Error loading users: {}", e.getMessage(), e);
+            logger.error("Exception type: {}", e.getClass().getSimpleName());
+            logger.error("Exception cause: {}", e.getCause());
+            
+            if (isAuthenticationError(e)) {
+                logger.warn("Authentication error detected, redirecting to login");
+                logger.warn("Error message: {}", e.getMessage());
                 return "redirect:/login?error=token_expired";
             }
-            // Nếu có lỗi khác, hiển thị trang trống
-            model.addAttribute("users", new java.util.ArrayList<>());
-            model.addAttribute("errorMessage", "Có lỗi xảy ra khi tải danh sách users: " + e.getMessage());
-            return "users/list";
+            
+            // Return empty page with error message
+            addPaginationAttributes(model, new ArrayList<>(), 1, 1, 0, 
+                                  false, false, sort, direction, role, username, 
+                                  email, isActive, search, size);
+            model.addAttribute("errorMessage", "Có lỗi xảy ra khi tải danh sách users. Vui lòng thử lại.");
+            
+            return "users/list-admin";
         }
+    }
+
+    private void addPaginationAttributes(Model model, List<User> users, int currentPage, 
+                                       int totalPages, long totalElements, boolean hasNext, 
+                                       boolean hasPrev, String sort, String direction, 
+                                       String role, String username, String email, 
+                                       Boolean isActive, String search, int size) {
+        model.addAttribute("users", users);
+        model.addAttribute("currentPage", currentPage);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("totalElements", totalElements);
+        model.addAttribute("hasNext", hasNext);
+        model.addAttribute("hasPrev", hasPrev);
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
+        model.addAttribute("role", role);
+        model.addAttribute("username", username);
+        model.addAttribute("email", email);
+        model.addAttribute("isActive", isActive);
+        model.addAttribute("search", search);
+        model.addAttribute("size", size);
+    }
+
+    private boolean isAuthenticationError(Exception e) {
+        String message = e.getMessage();
+        return message != null && (message.contains("401") || 
+                                  message.contains("Unauthorized") || 
+                                  message.contains("Forbidden"));
     }
 
     // Hiển thị form tạo mới user

@@ -35,15 +35,31 @@ public interface UserRepository extends JpaRepository<User, Long> , JpaSpecifica
     
     Page<User> findByIsActiveTrue(Pageable pageable);
     
-    // Custom query for filtering
+    // Custom query for filtering (without pagination)
     @Query("SELECT u FROM User u WHERE " +
            "(:role IS NULL OR u.role = :role) AND " +
            "(:username IS NULL OR u.username LIKE %:username%) AND " +
            "(:email IS NULL OR u.email LIKE %:email%) AND " +
-           "(:isActive IS NULL OR u.isActive = :isActive)")
+           "(:isActive IS NULL OR u.isActive = :isActive) AND " +
+           "(u.deletedBy IS NULL)")
     List<User> findUsersWithFilters(@Param("role") Role role, 
                                    @Param("username") String username, 
                                    @Param("email") String email, 
                                    @Param("isActive") Boolean isActive);
+
+    // Custom query for filtering with pagination
+    @Query("SELECT u FROM User u WHERE " +
+           "(:role IS NULL OR u.role = :role) AND " +
+           "(:username IS NULL OR u.username LIKE %:username%) AND " +
+           "(:email IS NULL OR u.email LIKE %:email%) AND " +
+           "(:isActive IS NULL OR u.isActive = :isActive) AND " +
+           "(:search IS NULL OR u.username LIKE %:search% OR u.email LIKE %:search% OR CAST(u.id AS string) LIKE %:search%) AND " +
+           "(u.deletedBy IS NULL)")
+    Page<User> findUsersWithFiltersPaged(@Param("role") Role role, 
+                                        @Param("username") String username, 
+                                        @Param("email") String email, 
+                                        @Param("isActive") Boolean isActive,
+                                        @Param("search") String search,
+                                        Pageable pageable);
 
 }

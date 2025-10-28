@@ -21,6 +21,8 @@ public interface UserService {
     
     Page<User> getUsersPage(Pageable pageable);
     
+    Page<User> getUsersPageWithFilters(Pageable pageable, String role, String username, String email, Boolean isActive, String search);
+    
     List<User> getUsersWithFilters(String role, String username, String email, Boolean isActive);
 
     Optional<User> getUserById(Long id);

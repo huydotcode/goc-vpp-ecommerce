@@ -63,4 +63,20 @@ public class AuthController {
     public String home() {
         return "redirect:/login";
     }
+
+    // API endpoint để lấy token từ session
+    @GetMapping("/api/auth/token")
+    @ResponseBody
+    public java.util.Map<String, String> getToken() {
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        String token = authService.getTokenFromSession();
+        if (token != null) {
+            response.put("token", token);
+            response.put("status", "success");
+        } else {
+            response.put("status", "error");
+            response.put("message", "No token found");
+        }
+        return response;
+    }
 }
