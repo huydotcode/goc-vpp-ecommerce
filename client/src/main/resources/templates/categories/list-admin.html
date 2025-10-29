@@ -295,15 +295,33 @@
                 function showTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='flex'; } }
                 function hideTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='none'; } }
 
-                // Notification
+                // Notification Functions (đồng nhất với user)
                 function showNotification(message, type = 'success') {
                     const container = document.getElementById('notificationContainer');
-                    const n = document.createElement('div');
-                    n.className = `notification ${type}`;
-                    n.textContent = message;
-                    container.appendChild(n);
-                    setTimeout(() => { n.classList.add('show'); }, 100);
-                    setTimeout(() => { n.classList.remove('show'); setTimeout(()=> n.remove(), 300); }, 3000);
+                    const notification = document.createElement('div');
+                    notification.className = `notification ${type}`;
+                    notification.textContent = message;
+                    
+                    container.appendChild(notification);
+                    
+                    // Trigger animation
+                    setTimeout(() => {
+                        notification.classList.add('show');
+                    }, 100);
+                    
+                    // Auto hide after 3 seconds
+                    setTimeout(() => {
+                        hideNotification(notification);
+                    }, 3000);
+                }
+
+                function hideNotification(notification) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
                 }
 
                 // Create category via direct API call (like user)
@@ -397,7 +415,7 @@
                     return el ? el.value : null;
                 }
                 let isUpdatingCategory = false;
-                function saveInlineCategory(id){
+                async function saveInlineCategory(id){
                     const row = document.querySelector(`tr[data-cate-id='${id}']`);
                     if(!row) return;
                     if (isUpdatingCategory) { return; }
@@ -407,24 +425,48 @@
                     const description = getCateEditVal(row, 'description');
                     const isActiveVal = getCateEditVal(row, 'isActive');
                     const isActive = String(isActiveVal) === 'true';
-                    // Submit via standard form to keep server logic (similar to cate current)
-                    const form = document.createElement('form');
-                    form.method = 'post';
-                    form.action = `/categories/update/${id}`;
-                    const add = (k,v)=>{ const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; form.appendChild(i); };
-                    add('name', name);
-                    if(thumbnailUrl!=null) add('thumbnailUrl', thumbnailUrl);
-                    if(description!=null) add('description', description);
-                    add('isActive', isActive);
-                    document.body.appendChild(form);
+                    
+                    const categoryData = {
+                        name: name,
+                        description: description,
+                        thumbnailUrl: thumbnailUrl,
+                        isActive: isActive
+                    };
+
                     const saveBtn = row.querySelector('.cell-edit .btn.btn-success');
                     const cancelBtn = row.querySelector('.cell-edit .btn.btn-secondary');
-                    if(saveBtn) saveBtn.disabled = true;
-                    if(cancelBtn) cancelBtn.disabled = true;
-                    row.querySelectorAll('.cell-edit input, .cell-edit select').forEach(i => i.disabled = true);
-                    isUpdatingCategory = true;
-                    showTableLoading();
-                    form.submit();
+                    const disableRowEdit = (disable) => {
+                        if(saveBtn) saveBtn.disabled = disable;
+                        if(cancelBtn) cancelBtn.disabled = disable;
+                        row.querySelectorAll('.cell-edit input, .cell-edit select').forEach(i => i.disabled = disable);
+                    };
+
+                    try {
+                        showTableLoading();
+                        isUpdatingCategory = true;
+                        disableRowEdit(true);
+                        const token = await getToken();
+                        const response = await fetch(`http://localhost:8080/api/v1/categories/${id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify(categoryData)
+                        });
+                        if(response.ok){
+                            showNotification('Cập nhật category thành công!', 'success');
+                            // Refresh to reflect changes quickly
+                            setTimeout(()=>{ window.location.href = window.location.href; }, 400);
+                        } else {
+                            const err = await response.json().catch(()=>({}));
+                            showNotification(err.message || 'Lỗi khi cập nhật category', 'error');
+                        }
+                    } catch(e){
+                        console.error('Inline update error:', e);
+                        showNotification('Lỗi khi cập nhật category', 'error');
+                    } finally {
+                        hideTableLoading();
+                        isUpdatingCategory = false;
+                        disableRowEdit(false);
+                    }
                 }
 
                 // editCategoryFromView removed (drawer chỉ xem)
