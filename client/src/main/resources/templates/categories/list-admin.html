@@ -58,6 +58,18 @@
 
                         <!-- Notification Container -->
                         <div id="notificationContainer"></div>
+                        
+                        <!-- Flash Messages -->
+                        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                            <span th:text="${successMessage}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                            <span th:text="${errorMessage}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
 
                         <div class="table-container">
         <table class="table">
@@ -294,17 +306,25 @@
                     setTimeout(() => { n.classList.remove('show'); setTimeout(()=> n.remove(), 300); }, 3000);
                 }
 
-                // Create category via form submit with loading
+                // Create category via direct API call (like user)
                 let isSubmittingCreateCategory = false;
-                function submitCreateCategory(){
+                async function submitCreateCategory(){
                     if(isSubmittingCreateCategory){ return; }
                     const form = document.getElementById('createCategoryForm');
-                    const nameInput = document.getElementById('createCateName');
-                    const name = nameInput.value.trim();
-                    if(!name){
+                    const formData = new FormData(form);
+                    
+                    const categoryData = {
+                        name: formData.get('name'),
+                        description: formData.get('description'),
+                        thumbnailUrl: formData.get('thumbnailUrl'),
+                        isActive: true
+                    };
+
+                    if (!categoryData.name || categoryData.name.trim() === '') {
                         showFieldError('createCateName', 'Tên là bắt buộc');
                         return;
                     }
+
                     const createBtn = document.querySelector('#createCategoryModal .btn.btn-primary');
                     const cancelBtn = document.querySelector('#createCategoryModal .btn.btn-secondary');
                     const disableControls = (disable) => {
@@ -314,10 +334,39 @@
                             form.querySelectorAll('input, select').forEach(i=> i.disabled = disable);
                         }
                     };
-                    isSubmittingCreateCategory = true;
-                    disableControls(true);
-                    showTableLoading();
-                    form.submit();
+
+                    try {
+                        showTableLoading();
+                        isSubmittingCreateCategory = true;
+                        disableControls(true);
+                        
+                        const token = await getToken();
+                        const response = await fetch('http://localhost:8080/api/v1/categories', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify(categoryData)
+                        });
+
+                        if (response.ok) {
+                            showNotification('Tạo category thành công!', 'success');
+                            closeModal('createCategoryModal');
+                            setTimeout(() => {
+                                window.location.href = window.location.href;
+                            }, 500);
+                        } else {
+                            const errorData = await response.json();
+                            showNotification(errorData.message || 'Lỗi khi tạo category', 'error');
+                        }
+                    } catch (error) {
+                        showNotification('Lỗi khi tạo category', 'error');
+                    } finally {
+                        hideTableLoading();
+                        isSubmittingCreateCategory = false;
+                        disableControls(false);
+                    }
                 }
                 function clearCreateCategoryErrors(){
                     const el = document.getElementById('createCateNameError'); if(el){ el.textContent=''; }
@@ -453,6 +502,48 @@
                         });
                     });
                 })();
+
+                // Get token from localStorage, cookie, or session
+                async function getToken() {
+                    // Try localStorage first
+                    let token = localStorage.getItem('access_token');
+                    if (token) {
+                        return token;
+                    }
+                    
+                    // Try cookie
+                    token = getCookie('access_token');
+                    if (token) {
+                        return token;
+                    }
+                    
+                    // Try to get from session via API
+                    try {
+                        const response = await fetch('/api/auth/token', {
+                            method: 'GET',
+                            credentials: 'include'
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            token = data.token;
+                            if (token) {
+                                localStorage.setItem('access_token', token);
+                                return token;
+                            }
+                        }
+                    } catch (error) {
+                        // Silent fail
+                    }
+                    
+                    return null;
+                }
+
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
+                    return null;
+                }
             </script>
         </section>
     </div>

@@ -8,6 +8,8 @@ import org.springframework.http.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 @Service
 public class CategoryService {
     
+    private static final Logger logger = LoggerFactory.getLogger(CategoryService.class);
     private final RestTemplate restTemplate;
     private final String BASE_URL = "http://localhost:8080/api/v1/categories";
     private final TokenService tokenService;
@@ -114,6 +117,20 @@ public class CategoryService {
     }
     
     public Category createCategory(Category category) {
+        logger.info("========================================");
+        logger.info("CategoryService.createCategory() called");
+        logger.info("Creating category: {}", category.getName());
+        logger.info("Category details:");
+        logger.info("Name: {}", category.getName());
+        logger.info("Description: {}", category.getDescription());
+        logger.info("ThumbnailUrl: {}", category.getThumbnailUrl());
+        logger.info("IsActive: {}", category.getIsActive());
+        logger.info("CreatedAt: {}", category.getCreatedAt());
+        logger.info("UpdatedAt: {}", category.getUpdatedAt());
+        logger.info("CreatedBy: {}", category.getCreatedBy());
+        logger.info("UpdatedBy: {}", category.getUpdatedBy());
+        logger.info("========================================");
+        
         try {
             HttpEntity<Category> request = new HttpEntity<>(category, createHeaders());
             ResponseEntity<Category> response = restTemplate.exchange(
@@ -122,15 +139,33 @@ public class CategoryService {
                 request,
                 Category.class
             );
-            return response.getBody();
+            
+            Category created = response.getBody();
+            if (created != null) {
+                logger.info("Category created successfully with ID: {}", created.getId());
+            } else {
+                logger.warn("Category creation response body is null");
+            }
+            return created;
         } catch (Exception e) {
-            System.err.println("ERROR creating category:");
-            e.printStackTrace();
+            logger.error("ERROR creating category:", e);
             return null;
         }
     }
     
     public Category updateCategory(Long id, Category category) {
+        logger.info("========================================");
+        logger.info("CategoryService.updateCategory() called with ID: {}", id);
+        logger.info("Updating category: {}", category.getName());
+        logger.info("Category update details:");
+        logger.info("Name: {}", category.getName());
+        logger.info("Description: {}", category.getDescription());
+        logger.info("ThumbnailUrl: {}", category.getThumbnailUrl());
+        logger.info("IsActive: {}", category.getIsActive());
+        logger.info("UpdatedAt: {}", category.getUpdatedAt());
+        logger.info("UpdatedBy: {}", category.getUpdatedBy());
+        logger.info("========================================");
+        
         try {
             HttpEntity<Category> request = new HttpEntity<>(category, createHeaders());
             ResponseEntity<String> response = restTemplate.exchange(
@@ -148,22 +183,28 @@ public class CategoryService {
                     if (root.has("status") && "success".equals(root.get("status").asText())) {
                         JsonNode dataNode = root.get("data");
                         if (dataNode != null) {
-                            return mapper.treeToValue(dataNode, Category.class);
+                            Category updated = mapper.treeToValue(dataNode, Category.class);
+                            logger.info("Category updated successfully with ID: {}", updated.getId());
+                            return updated;
                         }
                     }
                 } catch (Exception parseException) {
-                    System.err.println("Error parsing JSON response: " + parseException.getMessage());
+                    logger.error("Error parsing JSON response: {}", parseException.getMessage());
                 }
             }
+            logger.warn("Category update response body is null or empty");
             return null;
         } catch (Exception e) {
-            System.err.println("ERROR updating category:");
-            e.printStackTrace();
+            logger.error("ERROR updating category with ID: {}", id, e);
             return null;
         }
     }
     
     public void deleteCategory(Long id) {
+        logger.info("========================================");
+        logger.info("CategoryService.deleteCategory() called with ID: {}", id);
+        logger.info("========================================");
+        
         try {
             HttpEntity<Void> entity = new HttpEntity<>(createHeaders());
             restTemplate.exchange(
@@ -172,9 +213,10 @@ public class CategoryService {
                 entity,
                 Void.class
             );
+            logger.info("Category deleted successfully with ID: {}", id);
         } catch (Exception e) {
-            System.err.println("ERROR deleting category:");
-            e.printStackTrace();
+            logger.error("ERROR deleting category with ID: {}", id, e);
+            throw e; // Re-throw để controller có thể handle
         }
     }
     
