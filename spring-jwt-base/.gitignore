@@ -37,5 +37,10 @@ out/
 .vscode/
 
 ### Local Environment / Secrets ###
+application.properties
 application-local.properties
 *.local.properties
+.env
+.env.*
+.env.local
+.env.*.local

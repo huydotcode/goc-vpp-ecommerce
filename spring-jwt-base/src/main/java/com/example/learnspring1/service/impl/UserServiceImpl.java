@@ -51,7 +51,12 @@ public class UserServiceImpl implements UserService {
     }
     
     @Override
-    public Page<User> getUsersPageWithFilters(Pageable pageable, String role, String username, String email, Boolean isActive, String search) {
+    public Page<User> getUsersPageWithFilters(Pageable pageable, Long id, String role, String username, String email, Boolean isActive, String search) {
+        // If ID filter is provided, it takes ABSOLUTE priority - ignore all other filters
+        if (id != null) {
+            return userRepository.findUsersByIdOnly(String.valueOf(id), pageable);
+        }
+        
         // Convert role string to enum
         Role roleEnum = null;
         if (role != null && !role.trim().isEmpty()) {

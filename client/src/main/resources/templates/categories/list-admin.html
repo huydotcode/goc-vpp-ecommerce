@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <script th:src="@{/js/api.js}"></script>
+    <script th:src="@{/js/lib.js}"></script>
+    <script th:src="@{/js/entity-manager.js}"></script>
+    <script th:src="@{/js/image-upload-manager.js}"></script>
+    <script th:src="@{/js/categories.js}"></script>
 </head>
 <body>
     <div th:replace="~{layouts/admin :: adminLayout(~{::section}, 'Quản lý Categories', 'categories')}">
@@ -24,6 +29,10 @@
                         <!-- Filter Form -->
                         <form id="filterForm" class="mb-4" th:action="@{/categories}" method="get">
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label for="id"><i class="fas fa-hashtag" style="margin-right:6px;"></i>ID:</label>
+                                    <input type="text" id="id" name="id" class="form-control" th:value="${id}" placeholder="Tìm theo ID...">
+                                </div>
                                 <div class="form-group">
                                     <label for="name"><i class="fas fa-tag" style="margin-right:6px;"></i>Tên:</label>
                                     <input type="text" id="name" name="name" class="form-control" th:value="${name}" placeholder="Tìm theo tên...">
@@ -77,14 +86,14 @@
                 <tr>
                     <th>
                         <a class="text-decoration-none"
-                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, name=${name}, isActive=${isActive}, search=${search})}">
+                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, name=${name}, isActive=${isActive}, search=${search})}">
                             <i class="fas fa-hashtag" style="margin-right:6px;"></i>ID
                             <i th:if="${sort == 'id'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                         </a>
                     </th>
                     <th>
                         <a class="text-decoration-none"
-                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='name', direction=${direction == 'asc' ? 'desc' : 'asc'}, name=${name}, isActive=${isActive}, search=${search})}">
+                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='name', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, name=${name}, isActive=${isActive}, search=${search})}">
                             <i class="fas fa-tag" style="margin-right:6px;"></i>Tên
                             <i th:if="${sort == 'name'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                         </a>
@@ -93,7 +102,7 @@
                     <th><i class="fas fa-align-left" style="margin-right:6px;"></i>Mô tả</th>
                     <th>
                         <a class="text-decoration-none"
-                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, name=${name}, isActive=${isActive}, search=${search})}">
+                           th:href="@{/categories(page=${currentPage}, size=${size}, sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, name=${name}, isActive=${isActive}, search=${search})}">
                             <i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái
                             <i th:if="${sort == 'isActive'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                         </a>
@@ -112,10 +121,25 @@
                     <!-- Thumbnail -->
                     <td>
                         <span class="cell-view">
-                            <img th:if="${c.thumbnailUrl}" th:src="${c.thumbnailUrl}" alt="thumb" style="width:48px;height:48px;object-fit:cover;border-radius:4px;"/>
+                            <img th:if="${c.thumbnailUrl}" th:src="${c.thumbnailUrl}" alt="thumb" 
+                                 class="clickable-image" 
+                                 th:attr="data-image-url=${c.thumbnailUrl}"
+                                 style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;"/>
                             <span th:if="${c.thumbnailUrl == null || c.thumbnailUrl.isEmpty()}">-</span>
                         </span>
-                        <input class="cell-edit form-control" style="display:none;" th:attr="data-field='thumbnailUrl'" th:value="${c.thumbnailUrl}" placeholder="Thumbnail URL" />
+                        <div class="cell-edit" style="display:none;">
+                            <div class="upload-url-input-container">
+                                <input class="form-control upload-url-input" th:attr="data-field='thumbnailUrl'" th:value="${c.thumbnailUrl}" placeholder="Thumbnail URL" />
+                            </div>
+                            <div class="inline-upload-area" th:attr="data-category-id=${c.id}" onclick="triggerFileInput(this)">
+                                <i class="fas fa-cloud-upload-alt inline-upload-icon"></i>
+                                <div class="inline-upload-text">Kéo thả ảnh hoặc click để chọn</div>
+                                <div class="inline-upload-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                                <input type="file" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" 
+                                       th:id="'thumbnailUrlFile' + ${c.id}" th:attr="data-category-id=${c.id}, onchange='handleThumbnailUpload(this, ' + ${c.id} + ')'" />
+                            </div>
+                            <div class="upload-preview-container"></div>
+                        </div>
                     </td>
                     <!-- Description -->
                     <td>
@@ -170,9 +194,9 @@
         </div>
 
         <div class="pagination">
-            <a th:if="${hasPrev}" th:href="@{/categories(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, name=${name}, isActive=${isActive}, search=${search})}"><i class="fas fa-chevron-left"></i> Trước</a>
+            <a th:if="${hasPrev}" th:href="@{/categories(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, id=${id}, name=${name}, isActive=${isActive}, search=${search})}"><i class="fas fa-chevron-left"></i> Trước</a>
             <span th:text="${currentPage} + ' / ' + ${totalPages}"></span>
-            <a th:if="${hasNext}" th:href="@{/categories(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, name=${name}, isActive=${isActive}, search=${search})}">Tiếp <i class="fas fa-chevron-right"></i></a>
+            <a th:if="${hasNext}" th:href="@{/categories(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, id=${id}, name=${name}, isActive=${isActive}, search=${search})}">Tiếp <i class="fas fa-chevron-right"></i></a>
                 </div>
             </div>
         </section>
@@ -194,8 +218,26 @@
                                     <div class="error-message" id="createCateNameError"></div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="createCateThumbnail">Thumbnail URL</label>
-                                    <input id="createCateThumbnail" class="form-control" type="text" name="thumbnailUrl" />
+                                    <label for="createCateThumbnail">Thumbnail</label>
+                                    <div class="upload-url-input-container">
+                                        <input id="createCateThumbnail" class="form-control upload-url-input" type="text" name="thumbnailUrl" placeholder="Nhập URL ảnh hoặc upload bên dưới" />
+                                    </div>
+                                    <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
+                                        <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                                        <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
+                                        <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                                        <input type="file" id="createCateThumbnailFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleThumbnailUpload(this)" />
+                                    </div>
+                                    <div class="upload-progress-container" id="createCategoryProgressContainer">
+                                        <div class="upload-progress-label">
+                                            <span>Đang upload ảnh...</span>
+                                            <span class="upload-progress-percent">0%</span>
+                                        </div>
+                                        <div class="upload-progress-bar">
+                                            <div class="upload-progress-fill"></div>
+                                        </div>
+                                    </div>
+                                    <div id="createCatePreviewContainer" class="upload-preview-container"></div>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -230,7 +272,7 @@
                         <div class="desc-section">
                             <h4 class="desc-section-title">Hiển thị</h4>
                             <div class="desc-grid">
-                                <div class="desc-label">Thumbnail</div><div class="desc-value"><img id="viewCateThumbnail" class="thumb-lg" alt="thumb" style="display:none;"/></div>
+                                <div class="desc-label">Thumbnail</div><div class="desc-value"><img id="viewCateThumbnail" class="thumb-lg clickable-image" alt="thumb" style="display:none;cursor:pointer;" /></div>
                                 <div class="desc-label">Mô tả</div><div class="desc-value" id="viewCateDescription">-</div>
                             </div>
                         </div>
@@ -241,354 +283,113 @@
                 </div>
             </div>
 
-            
-
-            <script>
-                // View modal (giống Users)
-                function viewCategory(id){
-                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
-                    if(!row){ return; }
-                    const getText = (sel) => {
-                        const el = row.querySelector(sel);
-                        return el ? (el.textContent || '').trim() : '';
-                    };
-                    const thumbImg = row.querySelector("td:nth-child(3) img");
-                    const name = getText("td:nth-child(2) .cell-view");
-                    const desc = getText("td:nth-child(4) .cell-view");
-                    const isActiveText = getText("td:nth-child(5) .cell-view");
-
-                    document.getElementById('viewCateId').textContent = id || '-';
-                    document.getElementById('viewCateName').textContent = name || '-';
-                    document.getElementById('viewCateDescription').textContent = desc || '-';
-                    const activeEl = document.getElementById('viewCateIsActive');
-                    activeEl.textContent = '';
-                    activeEl.className = 'info-value';
-                    if(isActiveText.toLowerCase().includes('active')){
-                        activeEl.innerHTML = '<span class="badge bg-success">Active</span>';
-                    } else if(isActiveText.toLowerCase().includes('inactive')){
-                        activeEl.innerHTML = '<span class="badge bg-danger">Inactive</span>';
-                    } else {
-                        activeEl.textContent = '-';
-                    }
-                    const viewImg = document.getElementById('viewCateThumbnail');
-                    if(thumbImg && thumbImg.getAttribute('src')){
-                        viewImg.src = thumbImg.getAttribute('src');
-                        viewImg.style.display = '';
-                    } else {
-                        viewImg.removeAttribute('src');
-                        viewImg.style.display = 'none';
-                    }
-                    openDrawer('cateDrawer');
-                }
-
-                // Modal helpers
-                function showCreateCategoryModal(){
-                    clearCreateCategoryErrors();
-                    showModal('createCategoryModal');
-                }
-                function showModal(id){ const m = document.getElementById(id); if(m){ m.classList.add('show'); document.body.style.overflow='hidden'; } }
-                function closeModal(id){ const m = document.getElementById(id); if(m){ m.classList.remove('show'); document.body.style.overflow=''; } }
-                function openDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.add('show'); document.body.style.overflow='hidden'; } }
-                function closeDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.remove('show'); document.body.style.overflow=''; } }
-
-                // Loading helpers
-                function showTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='flex'; } }
-                function hideTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='none'; } }
-
-                // Notification Functions (đồng nhất với user)
-                function showNotification(message, type = 'success') {
-                    const container = document.getElementById('notificationContainer');
-                    const notification = document.createElement('div');
-                    notification.className = `notification ${type}`;
-                    notification.textContent = message;
-                    
-                    container.appendChild(notification);
-                    
-                    // Trigger animation
-                    setTimeout(() => {
-                        notification.classList.add('show');
-                    }, 100);
-                    
-                    // Auto hide after 3 seconds
-                    setTimeout(() => {
-                        hideNotification(notification);
-                    }, 3000);
-                }
-
-                function hideNotification(notification) {
-                    notification.classList.remove('show');
-                    setTimeout(() => {
-                        if (notification.parentNode) {
-                            notification.parentNode.removeChild(notification);
-                        }
-                    }, 300);
-                }
-
-                // Create category via direct API call (like user)
-                let isSubmittingCreateCategory = false;
-                async function submitCreateCategory(){
-                    if(isSubmittingCreateCategory){ return; }
-                    const form = document.getElementById('createCategoryForm');
-                    const formData = new FormData(form);
-                    
-                    const categoryData = {
-                        name: formData.get('name'),
-                        description: formData.get('description'),
-                        thumbnailUrl: formData.get('thumbnailUrl'),
-                        isActive: true
-                    };
-
-                    if (!categoryData.name || categoryData.name.trim() === '') {
-                        showFieldError('createCateName', 'Tên là bắt buộc');
-                        return;
-                    }
-
-                    const createBtn = document.querySelector('#createCategoryModal .btn.btn-primary');
-                    const cancelBtn = document.querySelector('#createCategoryModal .btn.btn-secondary');
-                    const disableControls = (disable) => {
-                        if(createBtn){ createBtn.disabled = disable; }
-                        if(cancelBtn){ cancelBtn.disabled = disable; }
-                        if(form){
-                            form.querySelectorAll('input, select').forEach(i=> i.disabled = disable);
-                        }
-                    };
-
-                    try {
-                        showTableLoading();
-                        isSubmittingCreateCategory = true;
-                        disableControls(true);
-                        
-                        const token = await getToken();
-                        const response = await fetch('http://localhost:8080/api/v1/categories', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify(categoryData)
-                        });
-
-                        if (response.ok) {
-                            showNotification('Tạo category thành công!', 'success');
-                            closeModal('createCategoryModal');
-                            setTimeout(() => {
-                                window.location.href = window.location.href;
-                            }, 500);
-                        } else {
-                            const errorData = await response.json();
-                            showNotification(errorData.message || 'Lỗi khi tạo category', 'error');
-                        }
-                    } catch (error) {
-                        showNotification('Lỗi khi tạo category', 'error');
-                    } finally {
-                        hideTableLoading();
-                        isSubmittingCreateCategory = false;
-                        disableControls(false);
-                    }
-                }
-                function clearCreateCategoryErrors(){
-                    const el = document.getElementById('createCateNameError'); if(el){ el.textContent=''; }
-                    const input = document.getElementById('createCateName'); if(input){ input.classList.remove('error'); }
-                }
-                function showFieldError(fieldId, message){
-                    const field = document.getElementById(fieldId);
-                    const errorElement = document.getElementById(fieldId + 'Error');
-                    if(field){ field.classList.add('error'); }
-                    if(errorElement){ errorElement.textContent = message; }
-                }
-
-                // Inline edit giống Users
-                function enterCategoryEditMode(id){
-                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
-                    if(!row) return;
-                    row.querySelectorAll('.cell-view').forEach(el => el.style.display='none');
-                    row.querySelectorAll('.cell-edit').forEach(el => el.style.display='');
-                }
-                function cancelCategoryEditMode(id){
-                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
-                    if(!row) return;
-                    row.querySelectorAll('.cell-edit').forEach(el => el.style.display='none');
-                    row.querySelectorAll('.cell-view').forEach(el => el.style.display='');
-                }
-                function getCateEditVal(row, field){
-                    const el = row.querySelector(`.cell-edit[data-field='${field}']`);
-                    return el ? el.value : null;
-                }
-                let isUpdatingCategory = false;
-                async function saveInlineCategory(id){
-                    const row = document.querySelector(`tr[data-cate-id='${id}']`);
-                    if(!row) return;
-                    if (isUpdatingCategory) { return; }
-                    const name = getCateEditVal(row, 'name');
-                    if(!name || name.trim()===''){ showNotification('Tên là bắt buộc', 'error'); return; }
-                    const thumbnailUrl = getCateEditVal(row, 'thumbnailUrl');
-                    const description = getCateEditVal(row, 'description');
-                    const isActiveVal = getCateEditVal(row, 'isActive');
-                    const isActive = String(isActiveVal) === 'true';
-                    
-                    const categoryData = {
-                        name: name,
-                        description: description,
-                        thumbnailUrl: thumbnailUrl,
-                        isActive: isActive
-                    };
-
-                    const saveBtn = row.querySelector('.cell-edit .btn.btn-success');
-                    const cancelBtn = row.querySelector('.cell-edit .btn.btn-secondary');
-                    const disableRowEdit = (disable) => {
-                        if(saveBtn) saveBtn.disabled = disable;
-                        if(cancelBtn) cancelBtn.disabled = disable;
-                        row.querySelectorAll('.cell-edit input, .cell-edit select').forEach(i => i.disabled = disable);
-                    };
-
-                    try {
-                        showTableLoading();
-                        isUpdatingCategory = true;
-                        disableRowEdit(true);
-                        const token = await getToken();
-                        const response = await fetch(`http://localhost:8080/api/v1/categories/${id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify(categoryData)
-                        });
-                        if(response.ok){
-                            showNotification('Cập nhật category thành công!', 'success');
-                            // Refresh to reflect changes quickly
-                            setTimeout(()=>{ window.location.href = window.location.href; }, 400);
-                        } else {
-                            const err = await response.json().catch(()=>({}));
-                            showNotification(err.message || 'Lỗi khi cập nhật category', 'error');
-                        }
-                    } catch(e){
-                        console.error('Inline update error:', e);
-                        showNotification('Lỗi khi cập nhật category', 'error');
-                    } finally {
-                        hideTableLoading();
-                        isUpdatingCategory = false;
-                        disableRowEdit(false);
-                    }
-                }
-
-                // editCategoryFromView removed (drawer chỉ xem)
-
-                // Remove delete related functions (no-op kept for compatibility)
-
-                // Container Loading Functions (đồng nhất với Users)
-                function showContainerLoading(text = 'Đang tải...'){
-                    const overlay = document.getElementById('containerLoadingOverlay');
-                    const textElement = overlay ? overlay.querySelector('.container-loading-text') : null;
-                    if(overlay){ if(textElement) textElement.textContent = text; overlay.classList.add('show'); }
-                }
-                function hideContainerLoading(){
-                    const overlay = document.getElementById('containerLoadingOverlay');
-                    if(overlay){ overlay.classList.remove('show'); }
-                }
-
-                // Table Loading helpers
-                function showTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='flex'; } }
-                function hideTableLoading(){ const o = document.getElementById('tableLoadingOverlay'); if(o){ o.style.display='none'; } }
-
-                // Filter form submit với container overlay (đồng nhất với Users)
-                (function(){
-                    const filterForm = document.getElementById('filterForm');
-                    if(filterForm){
-                        filterForm.addEventListener('submit', function(e){
-                            e.preventDefault();
-                            showContainerLoading('Đang lọc dữ liệu...');
-                            const url = new URL(window.location);
-                            // Clear old params
-                            url.searchParams.delete('name');
-                            url.searchParams.delete('isActive');
-                            url.searchParams.delete('search');
-                            url.searchParams.delete('page');
-                            // Collect values
-                            const name = document.getElementById('name')?.value || '';
-                            const isActive = document.getElementById('isActive')?.value || '';
-                            const search = document.getElementById('search')?.value || '';
-                            // Set non-empty
-                            if(name.trim() !== '') url.searchParams.set('name', name.trim());
-                            if(isActive !== '') url.searchParams.set('isActive', isActive);
-                            if(search.trim() !== '') url.searchParams.set('search', search.trim());
-                            // Navigate
-                            window.location.href = url.toString();
-                        });
-                    }
-                })();
-
-                function resetCategoriesFilters(){
-                    showContainerLoading('Đang xóa bộ lọc...');
-                    window.location.href = window.location.pathname;
-                }
-
-                // Page size & pagination (đồng nhất với Users)
-                function changePageSize(){
-                    showContainerLoading('Đang thay đổi kích thước trang...');
-                    const pageSize = document.getElementById('pageSize').value;
-                    const url = new URL(window.location);
-                    url.searchParams.set('size', pageSize);
-                    url.searchParams.set('page', '0');
-                    window.location.href = url.toString();
-                }
-                function goToPageWithLoading(page){
-                    showContainerLoading('Đang chuyển trang...');
-                    window.location.href = page;
-                }
-
-                // Bind pagination links to use container overlay
-                (function(){
-                    const paginationLinks = document.querySelectorAll('.pagination a[href]');
-                    paginationLinks.forEach(link => {
-                        link.addEventListener('click', function(e){
-                            e.preventDefault();
-                            goToPageWithLoading(this.href);
-                        });
-                    });
-                })();
-
-                // Get token from localStorage, cookie, or session
-                async function getToken() {
-                    // Try localStorage first
-                    let token = localStorage.getItem('access_token');
-                    if (token) {
-                        return token;
-                    }
-                    
-                    // Try cookie
-                    token = getCookie('access_token');
-                    if (token) {
-                        return token;
-                    }
-                    
-                    // Try to get from session via API
-                    try {
-                        const response = await fetch('/api/auth/token', {
-                            method: 'GET',
-                            credentials: 'include'
-                        });
-                        if (response.ok) {
-                            const data = await response.json();
-                            token = data.token;
-                            if (token) {
-                                localStorage.setItem('access_token', token);
-                                return token;
-                            }
-                        }
-                    } catch (error) {
-                        // Silent fail
-                    }
-                    
-                    return null;
-                }
-
-                function getCookie(name) {
-                    const value = `; ${document.cookie}`;
-                    const parts = value.split(`; ${name}=`);
-                    if (parts.length === 2) return parts.pop().split(';').shift();
-                    return null;
-                }
-            </script>
         </section>
     </div>
+
+    <!-- Image Preview Modal -->
+    <div id="imagePreviewModal" class="image-preview-modal">
+        <div class="image-preview-content">
+            <button class="image-preview-close" onclick="closeImagePreview()">&times;</button>
+            <img id="previewImage" src="" alt="Preview" />
+        </div>
+    </div>
+    
+    <script>
+        // Ensure functions are globally available
+        window.showImagePreview = function(imageUrl) {
+            console.log('showImagePreview called with:', imageUrl);
+            
+            const modal = document.getElementById('imagePreviewModal');
+            const img = document.getElementById('previewImage');
+            
+            console.log('Modal element:', modal);
+            console.log('Preview image element:', img);
+            
+            if (!modal) {
+                console.error('Image preview modal not found!');
+                return;
+            }
+            
+            if (!img) {
+                console.error('Preview image element not found!');
+                return;
+            }
+            
+            if (!imageUrl || imageUrl === 'undefined' || imageUrl === 'null') {
+                console.error('Invalid image URL:', imageUrl);
+                return;
+            }
+            
+            try {
+                img.src = imageUrl;
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                console.log('Modal should be visible now');
+            } catch (error) {
+                console.error('Error showing image preview:', error);
+            }
+        };
+        
+        window.closeImagePreview = function() {
+            const modal = document.getElementById('imagePreviewModal');
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        };
+        
+        // Test on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking for images...');
+            const images = document.querySelectorAll('.clickable-image');
+            console.log('Found', images.length, 'clickable images on DOMContentLoaded');
+            
+            images.forEach((img, index) => {
+                console.log(`Image ${index}:`, img, 'URL:', img.getAttribute('data-image-url') || img.src);
+                
+                img.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Image clicked directly:', this);
+                    
+                    let imageUrl = this.getAttribute('data-image-url');
+                    if (!imageUrl) {
+                        imageUrl = this.src;
+                    }
+                    
+                    console.log('Image URL to show:', imageUrl);
+                    window.showImagePreview(imageUrl);
+                });
+            });
+        });
+        
+        // Also try after window load
+        window.addEventListener('load', function() {
+            console.log('Window loaded, checking for images again...');
+            setTimeout(function() {
+                const images = document.querySelectorAll('.clickable-image');
+                console.log('Found', images.length, 'clickable images after load');
+                
+                images.forEach((img, index) => {
+                    if (!img.onclick) {
+                        img.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Image clicked (load handler):', this);
+                            
+                            let imageUrl = this.getAttribute('data-image-url');
+                            if (!imageUrl) {
+                                imageUrl = this.src;
+                            }
+                            
+                            console.log('Image URL to show:', imageUrl);
+                            window.showImagePreview(imageUrl);
+                        });
+                    }
+                });
+            }, 500);
+        });
+    </script>
 </body>
 </html>
 

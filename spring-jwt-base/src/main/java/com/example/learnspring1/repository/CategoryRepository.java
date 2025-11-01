@@ -43,5 +43,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
                                                  @Param("isActive") Boolean isActive,
                                                  @Param("search") String search,
                                                  Pageable pageable);
+
+    // Absolute ID filter - only search by ID, ignoring all other filters
+    @Query("SELECT c FROM Category c WHERE " +
+           "CAST(c.id AS string) LIKE %:id% AND " +
+           "(c.deletedBy IS NULL)")
+    Page<Category> findCategoriesByIdOnly(@Param("id") String id, Pageable pageable);
 }
 

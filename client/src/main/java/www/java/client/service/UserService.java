@@ -40,6 +40,7 @@ public class UserService {
      * @param size Số items per page
      * @param sort Trường để sort
      * @param direction Hướng sort (asc/desc)
+     * @param id Filter theo ID (tuyệt đối - nếu có thì ignore các filter khác)
      * @param role Filter theo role
      * @param username Filter theo username
      * @param email Filter theo email
@@ -48,7 +49,7 @@ public class UserService {
      * @return PaginatedResponse chứa dữ liệu và metadata
      */
     public PaginatedResponse<User> getUsersWithPagination(int page, int size, String sort, 
-                                                          String direction, String role, 
+                                                          String direction, String id, String role, 
                                                           String username, String email, 
                                                           Boolean isActive, String search) {
         try {
@@ -59,6 +60,9 @@ public class UserService {
                      .append("&direction=").append(direction);
             
             // Thêm filters nếu có
+            if (id != null && !id.trim().isEmpty()) {
+                urlBuilder.append("&id=").append(id);
+            }
             if (role != null && !role.trim().isEmpty()) {
                 urlBuilder.append("&role=").append(role);
             }
@@ -88,6 +92,16 @@ public class UserService {
             handleServiceError("Error getting users with pagination", e);
             return createEmptyPaginatedResponse();
         }
+    }
+
+    /**
+     * @deprecated Use {@link #getUsersWithPagination(int, int, String, String, String, String, String, String, Boolean, String)} instead
+     */
+    public PaginatedResponse<User> getUsersWithPagination(int page, int size, String sort, 
+                                                          String direction, String role, 
+                                                          String username, String email, 
+                                                          Boolean isActive, String search) {
+        return getUsersWithPagination(page, size, sort, direction, null, role, username, email, isActive, search);
     }
 
     /**

@@ -41,7 +41,12 @@ public class CategoryServiceImpl implements CategoryService {
     }
     
     @Override
-    public Page<Category> getCategoriesPageWithFilters(Pageable pageable, String name, Boolean isActive, String search) {
+    public Page<Category> getCategoriesPageWithFilters(Pageable pageable, Long id, String name, Boolean isActive, String search) {
+        // If ID filter is provided, it takes ABSOLUTE priority - ignore all other filters
+        if (id != null) {
+            return categoryRepository.findCategoriesByIdOnly(String.valueOf(id), pageable);
+        }
+        
         // Build dynamic query with filters
         return categoryRepository.findCategoriesWithFiltersPaged(name, isActive, search, pageable);
     }

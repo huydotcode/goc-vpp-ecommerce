@@ -38,7 +38,7 @@ public class CategoryService {
     }
     
     public PaginatedResponse<Category> getCategoriesWithPagination(int page, int size, String sort, 
-                                                                   String direction, String name, 
+                                                                   String direction, String id, String name, 
                                                                    Boolean isActive, String search) {
         try {
             StringBuilder urlBuilder = new StringBuilder(BASE_URL + "/advanced");
@@ -47,6 +47,9 @@ public class CategoryService {
                      .append("&sort=").append(sort)
                      .append("&direction=").append(direction);
             
+            if (id != null && !id.trim().isEmpty()) {
+                urlBuilder.append("&id=").append(id);
+            }
             if (name != null && !name.trim().isEmpty()) {
                 urlBuilder.append("&name=").append(name);
             }
@@ -70,6 +73,15 @@ public class CategoryService {
             handleServiceError("Error getting categories with pagination", e);
             return createEmptyPaginatedResponse();
         }
+    }
+
+    /**
+     * @deprecated Use {@link #getCategoriesWithPagination(int, int, String, String, String, String, Boolean, String)} instead
+     */
+    public PaginatedResponse<Category> getCategoriesWithPagination(int page, int size, String sort, 
+                                                                   String direction, String name, 
+                                                                   Boolean isActive, String search) {
+        return getCategoriesWithPagination(page, size, sort, direction, null, name, isActive, search);
     }
 
     public List<Category> getAllCategories() {

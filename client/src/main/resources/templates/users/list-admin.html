@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/api.js}"></script>
+    <script th:src="@{/js/lib.js}"></script>
+    <script th:src="@{/js/entity-manager.js}"></script>
+    <script th:src="@{/js/image-upload-manager.js}"></script>
+    <script th:src="@{/js/users.js}"></script>
 </head>
 <body>
     <div th:replace="~{layouts/admin :: adminLayout(~{::section}, 'Quản lý Users', 'users')}">
@@ -21,8 +26,13 @@
                     </div>
                     <div class="admin-card-body">
                         <!-- Filter Form -->
-                        <form id="filterForm" class="mb-4">
+                        <form id="filterForm" class="mb-4" th:action="@{/users}" method="get">
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label for="id"><i class="fas fa-hashtag" style="margin-right:6px;"></i>ID:</label>
+                                    <input type="text" id="id" name="id" class="form-control" 
+                                           th:value="${id}" placeholder="Tìm theo ID...">
+                                </div>
                                 <div class="form-group">
                                     <label for="role"><i class="fas fa-user-shield" style="margin-right:6px;"></i>Role:</label>
                                     <select id="role" name="role" class="form-control">
@@ -71,13 +81,28 @@
                             <div class="loading-spinner"></div>
                         </div>
 
+                        <!-- Notification Container -->
+                        <div id="notificationContainer"></div>
+                        
+                        <!-- Flash Messages -->
+                        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                            <span th:text="${successMessage}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                            <span th:text="${errorMessage}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+
                         <!-- Users Table -->
                         <div class="table-container">
                             <table class="table">
                                 <thead>
                                     <tr>
                                         <th>
-                                            <a th:href="@{/users(sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                            <a th:href="@{/users(sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
                                                 <i class="fas fa-hashtag" style="margin-right:6px;"></i>ID
                                                 <i th:if="${sort == 'id'}" 
@@ -85,15 +110,16 @@
                                             </a>
                                         </th>
                                         <th>
-                                            <a th:href="@{/users(sort='username', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                            <a th:href="@{/users(sort='username', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
                                                 <i class="fas fa-user" style="margin-right:6px;"></i>Username
                                                 <i th:if="${sort == 'username'}" 
                                                    th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
                                             </a>
                                         </th>
+                                        <th><i class="fas fa-image" style="margin-right:6px;"></i>Avatar</th>
                                         <th>
-                                            <a th:href="@{/users(sort='email', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                            <a th:href="@{/users(sort='email', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
                                                 <i class="fas fa-envelope" style="margin-right:6px;"></i>Email
                                                 <i th:if="${sort == 'email'}" 
@@ -101,7 +127,7 @@
                                             </a>
                                         </th>
                                         <th>
-                                            <a th:href="@{/users(sort='role', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                            <a th:href="@{/users(sort='role', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
                                                 <i class="fas fa-user-shield" style="margin-right:6px;"></i>Role
                                                 <i th:if="${sort == 'role'}" 
@@ -109,7 +135,7 @@
                                             </a>
                                         </th>
                                         <th>
-                                            <a th:href="@{/users(sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                            <a th:href="@{/users(sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
                                                 <i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái
                                                 <i th:if="${sort == 'isActive'}" 
@@ -117,7 +143,7 @@
                                             </a>
                                         </th>
                                         <th>
-                                            <a th:href="@{/users(sort='createdAt', direction=${direction == 'asc' ? 'desc' : 'asc'}, role=${role}, isActive=${isActive}, search=${search})}" 
+                                            <a th:href="@{/users(sort='createdAt', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}" 
                                                class="text-decoration-none">
                                                 <i class="fas fa-clock" style="margin-right:6px;"></i>Ngày tạo
                                                 <i th:if="${sort == 'createdAt'}" 
@@ -135,6 +161,31 @@
                                             <span class="cell-view" th:text="${user.username}"></span>
                                             <input class="cell-edit form-control" style="display:none;" th:attr="data-field='username'" th:value="${user.username}" />
                                         </td>
+                                        <!-- Avatar -->
+                                        <td>
+                                            <span class="cell-view">
+                                                <img th:if="${user.avatarUrl}" th:src="${user.avatarUrl}" alt="avatar" 
+                                                     class="clickable-image" 
+                                                     th:attr="data-image-url=${user.avatarUrl}"
+                                                     style="width:48px;height:48px;object-fit:cover;border-radius:50%;cursor:pointer;border: 2px solid transparent; transition: all 0.3s ease;"
+                                                     onmouseover="this.style.borderColor='#ff7a45'; this.style.transform='scale(1.1)'"
+                                                     onmouseout="this.style.borderColor='transparent'; this.style.transform='scale(1)'"/>
+                                                <span th:if="${user.avatarUrl == null || user.avatarUrl.isEmpty()}">-</span>
+                                            </span>
+                                            <div class="cell-edit" style="display:none;">
+                                                <div class="upload-url-input-container">
+                                                    <input class="form-control upload-url-input" th:attr="data-field='avatarUrl'" th:value="${user.avatarUrl}" placeholder="Avatar URL" />
+                                                </div>
+                                                <div class="inline-upload-area" th:attr="data-user-id=${user.id}" onclick="triggerFileInput(this)">
+                                                    <i class="fas fa-cloud-upload-alt inline-upload-icon"></i>
+                                                    <div class="inline-upload-text">Kéo thả ảnh hoặc click</div>
+                                                    <div class="inline-upload-hint">JPG, PNG, WEBP, AVIF - max 2MB</div>
+                                                    <input type="file" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" 
+                                                           th:id="'avatarUrlFile' + ${user.id}" th:attr="data-user-id=${user.id}, onchange='handleAvatarUpload(this, ' + ${user.id} + ')'" />
+                                                </div>
+                                                <div class="upload-preview-container"></div>
+                                            </div>
+                                        </td>
                                         <!-- Email -->
                                         <td>
                                             <span class="cell-view" th:text="${user.email}"></span>
@@ -143,9 +194,9 @@
                                         <!-- Role -->
                                         <td>
                                             <span class="cell-view">
-                                                <span th:if="${user.role == 'ADMIN'}" class="badge badge-primary-soft"><i class="fas fa-user-shield"></i> ADMIN</span>
-                                                <span th:if="${user.role == 'EMPLOYEE'}" class="badge badge-muted"><i class="fas fa-user-tie"></i> EMPLOYEE</span>
-                                                <span th:if="${user.role == 'USER'}" class="badge badge-outline"><i class="fas fa-user"></i> USER</span>
+                                                <span th:if="${user.role == 'ADMIN'}" class="badge bg-primary"><i class="fas fa-user-shield"></i> ADMIN</span>
+                                                <span th:if="${user.role == 'EMPLOYEE'}" class="badge bg-secondary"><i class="fas fa-user-tie"></i> EMPLOYEE</span>
+                                                <span th:if="${user.role == 'USER'}" class="badge bg-info"><i class="fas fa-user"></i> USER</span>
                                             </span>
                                             <select class="cell-edit form-control" style="display:none;" th:attr="data-field='role'">
                                                 <option value="USER" th:selected="${user.role=='USER'}">USER</option>
@@ -156,8 +207,8 @@
                                         <!-- Active -->
                                         <td>
                                             <span class="cell-view">
-                                                <span th:if="${user.isActive}" class="badge badge-primary-soft"><i class="fas fa-check"></i> Active</span>
-                                                <span th:unless="${user.isActive}" class="badge badge-outline"><i class="fas fa-ban"></i> Inactive</span>
+                                                <span th:if="${user.isActive}" class="badge bg-success">Active</span>
+                                                <span th:unless="${user.isActive}" class="badge bg-danger">Inactive</span>
                                             </span>
                                             <select class="cell-edit form-control" style="display:none;" th:attr="data-field='isActive'">
                                                 <option value="true" th:selected="${user.isActive}">Active</option>
@@ -181,6 +232,9 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    <tr th:if="${#lists.isEmpty(users)}">
+                                        <td colspan="8">Không có dữ liệu</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -199,50 +253,13 @@
                         </div>
 
                         <!-- Pagination -->
-                        <nav th:if="${totalPages > 1}" aria-label="Page navigation">
-                            <ul class="pagination justify-content-center">
-                                <!-- Previous -->
-                                <li class="page-item" th:classappend="${!hasPrev} ? 'disabled'">
-                                    <a class="page-link" 
-                                       th:href="@{/users(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
-                                       th:attr="data-page=${currentPage - 1}"
-                                       th:if="${hasPrev}">
-                                        <i class="fas fa-chevron-left"></i> Trước
-                                    </a>
-                                    <span class="page-link" th:unless="${hasPrev}">
-                                        <i class="fas fa-chevron-left"></i> Trước
-                                    </span>
-                                </li>
-                                
-                                <!-- Page Numbers -->
-                                <li th:each="pageNum : ${#numbers.sequence(1, totalPages)}" 
-                                    class="page-item" 
-                                    th:classappend="${pageNum == currentPage} ? 'active'">
-                                    <a class="page-link" 
-                                       th:href="@{/users(page=${pageNum}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
-                                       th:attr="data-page=${pageNum}"
-                                       th:text="${pageNum}"></a>
-                                </li>
-                                
-                                <!-- Next -->
-                                <li class="page-item" th:classappend="${!hasNext} ? 'disabled'">
-                                    <a class="page-link" 
-                                       th:href="@{/users(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, role=${role}, isActive=${isActive}, search=${search})}"
-                                       th:attr="data-page=${currentPage + 1}"
-                                       th:if="${hasNext}">
-                                        Tiếp <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                    <span class="page-link" th:unless="${hasNext}">
-                                        Tiếp <i class="fas fa-chevron-right"></i>
-                                    </span>
-                                </li>
-                            </ul>
-                        </nav>
+                        <div class="pagination">
+                            <a th:if="${hasPrev}" th:href="@{/users(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}"><i class="fas fa-chevron-left"></i> Trước</a>
+                            <span th:text="${currentPage} + ' / ' + ${totalPages}"></span>
+                            <a th:if="${hasNext}" th:href="@{/users(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, id=${id}, role=${role}, isActive=${isActive}, search=${search})}">Tiếp <i class="fas fa-chevron-right"></i></a>
+                        </div>
         </div>
     </div>
-
-    <!-- Notification Container -->
-    <div id="notificationContainer"></div>
 
     <!-- Create User Modal -->
     <div id="createModal" class="modal">
@@ -283,6 +300,29 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="createUserAvatar"><i class="fas fa-image" style="margin-right: 6px;"></i>Avatar</label>
+                        <div class="upload-url-input-container">
+                            <input id="createUserAvatar" class="form-control upload-url-input" type="text" name="avatarUrl" placeholder="Nhập URL ảnh hoặc upload bên dưới" />
+                        </div>
+                        <div class="upload-error-message" id="createUserAvatarError"></div>
+                        <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
+                            <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                            <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - Tối đa 2MB</div>
+                            <input type="file" id="createUserAvatarFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleAvatarUpload(this)" />
+                        </div>
+                        <div class="upload-progress-container" id="createProgressContainer">
+                            <div class="upload-progress-label">
+                                <span>Đang upload ảnh...</span>
+                                <span class="upload-progress-percent">0%</span>
+                            </div>
+                            <div class="upload-progress-bar">
+                                <div class="upload-progress-fill"></div>
+                            </div>
+                        </div>
+                        <div id="createUserPreviewContainer" class="upload-preview-container"></div>
+                    </div>
+                    <div class="form-group">
                         <label>
                             <input type="checkbox" id="createIsActive" name="isActive" checked>
                             Kích hoạt tài khoản
@@ -316,6 +356,7 @@
                         <div class="desc-label">Email</div><div class="desc-value" id="viewEmail">-</div>
                         <div class="desc-label">Role</div><div class="desc-value" id="viewRole">-</div>
                         <div class="desc-label">Trạng thái</div><div class="desc-value" id="viewIsActive">-</div>
+                        <div class="desc-label">Avatar</div><div class="desc-value"><img id="viewAvatar" class="thumb-lg clickable-image" alt="avatar" style="display:none;border-radius:50%;cursor:pointer;" /></div>
                     </div>
                 </div>
                 <div class="desc-section">
@@ -336,528 +377,112 @@
 
     
 
+        </section>
+    </div>
+
+    <!-- Image Preview Modal (Lightbox) -->
+    <div id="imagePreviewModal" class="image-preview-modal">
+        <div class="image-preview-content">
+            <img id="previewImage" src="" alt="Image Preview" />
+            <button class="image-preview-close" onclick="closeImagePreview()">&times;</button>
+        </div>
+    </div>
+    
     <script>
-        // Container Loading Functions (sử dụng overlay từ layout)
-        function showContainerLoading(text = 'Đang tải...') {
-            const overlay = document.getElementById('containerLoadingOverlay');
-            const textElement = overlay.querySelector('.container-loading-text');
-            if (overlay) {
-                textElement.textContent = text;
-                overlay.classList.add('show');
+        // Ensure functions are globally available
+        window.showImagePreview = function(imageUrl) {
+            console.log('showImagePreview called with:', imageUrl);
+            
+            const modal = document.getElementById('imagePreviewModal');
+            const img = document.getElementById('previewImage');
+            
+            console.log('Modal element:', modal);
+            console.log('Preview image element:', img);
+            
+            if (!modal) {
+                console.error('Image preview modal not found!');
+                return;
             }
-        }
-
-        function hideContainerLoading() {
-            const overlay = document.getElementById('containerLoadingOverlay');
-            if (overlay) {
-                overlay.classList.remove('show');
+            
+            if (!img) {
+                console.error('Preview image element not found!');
+                return;
             }
-        }
-
-        // Table Loading Functions
-        function showTableLoading() {
-            const overlay = document.getElementById('tableLoadingOverlay');
-            if (overlay) {
-                overlay.style.display = 'flex';
+            
+            if (!imageUrl || imageUrl === 'undefined' || imageUrl === 'null') {
+                console.error('Invalid image URL:', imageUrl);
+                return;
             }
-        }
-
-        function hideTableLoading() {
-            const overlay = document.getElementById('tableLoadingOverlay');
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
-        }
-
-        // Notification Functions
-        function showNotification(message, type = 'success') {
-            const container = document.getElementById('notificationContainer');
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
             
-            container.appendChild(notification);
-            
-            // Trigger animation
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-            
-            // Auto hide after 3 seconds
-            setTimeout(() => {
-                hideNotification(notification);
-            }, 3000);
-        }
-
-        function hideNotification(notification) {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }
-
-        // submitFormWithLoading removed (không dùng)
-
-        // Page size change handler
-        function changePageSize() {
-            showContainerLoading('Đang thay đổi kích thước trang...');
-            const pageSize = document.getElementById('pageSize').value;
-            const url = new URL(window.location);
-            url.searchParams.set('size', pageSize);
-            url.searchParams.set('page', '0'); // Reset to first page
-            window.location.href = url.toString();
-        }
-
-        function goToPageWithLoading(page) {
-            showContainerLoading('Đang chuyển trang...');
-            window.location.href = page;
-        }
-
-        function submitFilterWithLoading() {
-            showContainerLoading('Đang lọc dữ liệu...');
-            
-            // Get current URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Clear all filter parameters first
-            urlParams.delete('role');
-            urlParams.delete('username');
-            urlParams.delete('email');
-            urlParams.delete('isActive');
-            urlParams.delete('search');
-            urlParams.delete('page'); // Reset to page 1
-            
-            // Add non-empty filter values
-            const role = document.getElementById('role').value;
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
-            const isActive = document.getElementById('isActive').value;
-            const search = document.getElementById('search').value;
-            
-            if (role && role !== '') urlParams.set('role', role);
-            if (username && username.trim() !== '') urlParams.set('username', username);
-            if (email && email.trim() !== '') urlParams.set('email', email);
-            if (isActive && isActive !== '') urlParams.set('isActive', isActive);
-            if (search && search.trim() !== '') urlParams.set('search', search);
-            
-            // Navigate to filtered URL
-            const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-            window.location.href = newUrl;
-        }
-
-        function resetAllFilters() {
-            showContainerLoading('Đang xóa bộ lọc...');
-            window.location.href = window.location.pathname;
-        }
-
-        // User Actions
-        async function viewUser(id) {
             try {
-                showTableLoading();
-                const user = await fetchUserById(id);
-                if (user) {
-                    populateViewModal(user);
-                    openDrawer('userDrawer');
-                }
-            } finally {
-                hideTableLoading();
-            }
-        }
-
-        // editUser removed (inline edit is used)
-
-        // deleteUser removed (feature disabled)
-
-        function showCreateModal() {
-            clearCreateForm();
-            showModal('createModal');
-        }
-
-        // Inline edit (giống Categories)
-        function enterUserEditMode(id){
-            const row = document.querySelector(`tr[data-user-id='${id}']`);
-            if(!row) return;
-            row.querySelectorAll('.cell-view').forEach(el => el.style.display='none');
-            row.querySelectorAll('.cell-edit').forEach(el => el.style.display='');
-        }
-        function cancelUserEditMode(id){
-            const row = document.querySelector(`tr[data-user-id='${id}']`);
-            if(!row) return;
-            row.querySelectorAll('.cell-edit').forEach(el => el.style.display='none');
-            row.querySelectorAll('.cell-view').forEach(el => el.style.display='');
-        }
-        let isUpdatingUser = false;
-        async function saveInlineUser(id){
-            const row = document.querySelector(`tr[data-user-id='${id}']`);
-            if(!row) return;
-            if (isUpdatingUser) { return; }
-            const getVal = (field) => {
-                const el = row.querySelector(`.cell-edit[data-field='${field}']`);
-                return el ? el.value : null;
-            };
-            const username = getVal('username');
-            const email = getVal('email');
-            const role = getVal('role');
-            const isActiveVal = getVal('isActive');
-            const isActive = String(isActiveVal) === 'true';
-
-            // Reuse validation from modal
-            let ok = true;
-            if(!username || username.trim()===''){ ok=false; }
-            if(!email || email.trim()===''){ ok=false; }
-            if(!role || role.trim()===''){ ok=false; }
-            if(!ok){ showNotification('Vui lòng nhập đủ thông tin bắt buộc', 'error'); return; }
-
-            const userData = { id, username, email, password: null, role, isActive };
-            const saveBtn = row.querySelector('.cell-edit .btn.btn-success');
-            const cancelBtn = row.querySelector('.cell-edit .btn.btn-secondary');
-            const disableRowEdit = (disable) => {
-                if (saveBtn) saveBtn.disabled = disable;
-                if (cancelBtn) cancelBtn.disabled = disable;
-                row.querySelectorAll('.cell-edit input, .cell-edit select').forEach(i => i.disabled = disable);
-            };
-            try {
-                showTableLoading();
-                isUpdatingUser = true;
-                disableRowEdit(true);
-                const token = await getToken();
-                const response = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(userData)
-                });
-                if(response.ok){
-                    showNotification('Cập nhật user thành công!', 'success');
-                    // Refresh to reflect badge texts quickly
-                    setTimeout(()=>{ window.location.href = window.location.href; }, 400);
-                } else {
-                    const err = await response.json().catch(()=>({}));
-                    showNotification(err.message || 'Lỗi khi cập nhật user', 'error');
-                }
-            } catch(e){
-                console.error('Inline update error:', e);
-                showNotification('Lỗi khi cập nhật user', 'error');
-            } finally {
-                hideTableLoading();
-                isUpdatingUser = false;
-                disableRowEdit(false);
-            }
-        }
-
-        // Modal Management
-        function showModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
+                img.src = imageUrl;
                 modal.classList.add('show');
                 document.body.style.overflow = 'hidden';
+                console.log('Modal should be visible now');
+            } catch (error) {
+                console.error('Error showing image preview:', error);
             }
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
+        };
+        
+        window.closeImagePreview = function() {
+            const modal = document.getElementById('imagePreviewModal');
             if (modal) {
                 modal.classList.remove('show');
                 document.body.style.overflow = '';
             }
-        }
-
-        function openDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.add('show'); document.body.style.overflow='hidden'; } }
-        function closeDrawer(id){ const d=document.getElementById(id); if(d){ d.classList.remove('show'); document.body.style.overflow=''; } }
-
-        // Close modal when clicking outside
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal')) {
-                closeModal(e.target.id);
-            }
-        });
-
-        // Fetch user by ID
-        async function fetchUserById(id) {
-            try {
-                const token = await getToken();
-                const response = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.data;
-                } else {
-                    showNotification('Không thể tải thông tin user', 'error');
-                    return null;
-                }
-            } catch (error) {
-                showNotification('Lỗi khi tải thông tin user', 'error');
-                return null;
-            }
-        }
-
-        // Get token from localStorage, cookie, or session
-        async function getToken() {
-            // Try localStorage first
-            let token = localStorage.getItem('access_token');
-            if (token) {
-                return token;
-            }
+        };
+        
+        // Test on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking for images...');
+            const images = document.querySelectorAll('.clickable-image');
+            console.log('Found', images.length, 'clickable images on DOMContentLoaded');
             
-            // Try cookie
-            token = getCookie('access_token');
-            if (token) {
-                return token;
-            }
-            
-            // Try to get from session via API
-            try {
-                const response = await fetch('/api/auth/token', {
-                    method: 'GET',
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    token = data.token;
-                    if (token) {
-                        localStorage.setItem('access_token', token);
-                        return token;
-                    }
-                }
-            } catch (error) {
+            images.forEach((img, index) => {
+                console.log(`Image ${index}:`, img, 'URL:', img.getAttribute('data-image-url') || img.src);
                 
-            }
-            
-            return null;
-        }
-
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return null;
-        }
-
-        // Populate modals
-        function populateViewModal(user) {
-            document.getElementById('viewId').textContent = user.id || '-';
-            document.getElementById('viewUsername').textContent = user.username || '-';
-            document.getElementById('viewEmail').textContent = user.email || '-';
-            document.getElementById('viewRole').textContent = user.role || '-';
-            document.getElementById('viewIsActive').textContent = user.isActive ? 'Active' : 'Inactive';
-            document.getElementById('viewCreatedAt').textContent = formatDate(user.createdAt) || '-';
-            document.getElementById('viewUpdatedAt').textContent = formatDate(user.updatedAt) || '-';
-            document.getElementById('viewCreatedBy').textContent = user.createdBy || '-';
-            document.getElementById('viewUpdatedBy').textContent = user.updatedBy || '-';
-        }
-
-        // populateEditModal removed (inline edit is used)
-
-        // populateDeleteModal removed
-
-        function clearCreateForm() {
-            document.getElementById('createUserForm').reset();
-            document.getElementById('createIsActive').checked = true;
-            clearCreateErrors();
-        }
-
-        function clearCreateErrors() {
-            const errorElements = document.querySelectorAll('#createUserForm .error-message');
-            errorElements.forEach(el => el.textContent = '');
-            const inputs = document.querySelectorAll('#createUserForm .form-control');
-            inputs.forEach(input => input.classList.remove('error'));
-        }
-
-        // clearEditErrors removed
-
-        // Form submissions
-        let isSubmittingCreateUser = false;
-        async function submitCreateUser() {
-            if (isSubmittingCreateUser) { return; }
-            const form = document.getElementById('createUserForm');
-            const formData = new FormData(form);
-            
-            const userData = {
-                username: formData.get('username'),
-                email: formData.get('email'),
-                password: formData.get('password'),
-                role: formData.get('role'),
-                isActive: formData.get('isActive') === 'on'
-            };
-
-            if (!validateCreateForm(userData)) {
-                return;
-            }
-
-            const createBtn = document.querySelector('#createModal .btn.btn-primary');
-            const cancelBtn = document.querySelector('#createModal .btn.btn-secondary');
-            const disableControls = (disable) => {
-                if (createBtn) { createBtn.disabled = disable; }
-                if (cancelBtn) { cancelBtn.disabled = disable; }
-                if (form) {
-                    const inputs = form.querySelectorAll('input, select');
-                    inputs.forEach(i => i.disabled = disable);
-                }
-            };
-
-            try {
-                showTableLoading();
-                isSubmittingCreateUser = true;
-                disableControls(true);
-                const token = await getToken();
-                const response = await fetch('http://localhost:8080/api/v1/users', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(userData)
-                });
-
-                if (response.ok) {
-                    showNotification('Tạo user thành công!', 'success');
-                    closeModal('createModal');
-                    setTimeout(() => {
-                        window.location.href = window.location.href;
-                    }, 500);
-                } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.message || 'Lỗi khi tạo user', 'error');
-                }
-            } catch (error) {
-                showNotification('Lỗi khi tạo user', 'error');
-            } finally {
-                hideTableLoading();
-                isSubmittingCreateUser = false;
-                disableControls(false);
-            }
-        }
-
-        // submitEditUser removed (inline edit is used)
-
-        // confirmDeleteUser removed (feature disabled)
-
-        // Form validation
-        function validateCreateForm(data) {
-            let isValid = true;
-            clearCreateErrors();
-
-            if (!data.username || data.username.trim() === '') {
-                showFieldError('createUsername', 'Username là bắt buộc');
-                isValid = false;
-            }
-
-            if (!data.email || data.email.trim() === '') {
-                showFieldError('createEmail', 'Email là bắt buộc');
-                isValid = false;
-            } else if (!isValidEmail(data.email)) {
-                showFieldError('createEmail', 'Email không hợp lệ');
-                isValid = false;
-            }
-
-            if (!data.password || data.password.trim() === '') {
-                showFieldError('createPassword', 'Password là bắt buộc');
-                isValid = false;
-            } else if (data.password.length < 6) {
-                showFieldError('createPassword', 'Password phải có ít nhất 6 ký tự');
-                isValid = false;
-            }
-
-            if (!data.role || data.role.trim() === '') {
-                showFieldError('createRole', 'Role là bắt buộc');
-                isValid = false;
-            }
-
-            return isValid;
-        }
-
-        // validateEditForm removed (inline edit uses lightweight checks)
-
-        function showFieldError(fieldId, message) {
-            const field = document.getElementById(fieldId);
-            const errorElement = document.getElementById(fieldId + 'Error');
-            
-            if (field) {
-                field.classList.add('error');
-            }
-            
-            if (errorElement) {
-                errorElement.textContent = message;
-            }
-        }
-
-        function isValidEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            try {
-                const date = new Date(dateString);
-                return date.toLocaleString('vi-VN');
-            } catch (error) {
-                return '-';
-            }
-        }
-
-        // Actions from view modal
-        // editUserFromView removed (drawer chỉ xem)
-
-        // deleteUserFromView removed
-
-        // testApiCall removed
-
-        // Initialize on page load
-        window.addEventListener('load', function() {
-            // Check for success parameter and show notification
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('success') === 'true') {
-                showNotification('Tải dữ liệu thành công!', 'success');
-            }
-            
-            // Add event listeners for filter form
-            const filterForm = document.getElementById('filterForm');
-            if (filterForm) {
-                filterForm.addEventListener('submit', function(e) {
+                img.addEventListener('click', function(e) {
                     e.preventDefault();
-                    submitFilterWithLoading();
-                });
-            }
-            
-            // Add event listeners for pagination links
-            const paginationLinks = document.querySelectorAll('.pagination a[data-page]');
-            paginationLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    goToPageWithLoading(this.href);
+                    e.stopPropagation();
+                    console.log('Image clicked directly:', this);
+                    
+                    let imageUrl = this.getAttribute('data-image-url');
+                    if (!imageUrl) {
+                        imageUrl = this.src;
+                    }
+                    
+                    console.log('Image URL to show:', imageUrl);
+                    window.showImagePreview(imageUrl);
                 });
             });
-            
-            // Add event listeners for role and isActive selects
-            const roleSelect = document.getElementById('role');
-            const isActiveSelect = document.getElementById('isActive');
-            
-            if (roleSelect) {
-                roleSelect.addEventListener('change', function() {
-                    if (this.value === '') {
-                        submitFilterWithLoading();
+        });
+        
+        // Also try after window load
+        window.addEventListener('load', function() {
+            console.log('Window loaded, checking for images again...');
+            setTimeout(function() {
+                const images = document.querySelectorAll('.clickable-image');
+                console.log('Found', images.length, 'clickable images after load');
+                
+                images.forEach((img, index) => {
+                    if (!img.onclick) {
+                        img.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Image clicked (load handler):', this);
+                            
+                            let imageUrl = this.getAttribute('data-image-url');
+                            if (!imageUrl) {
+                                imageUrl = this.src;
+                            }
+                            
+                            console.log('Image URL to show:', imageUrl);
+                            window.showImagePreview(imageUrl);
+                        });
                     }
                 });
-            }
-            
-            if (isActiveSelect) {
-                isActiveSelect.addEventListener('change', function() {
-                    if (this.value === '') {
-                        submitFilterWithLoading();
-                    }
-                });
-            }
+            }, 500);
         });
     </script>
-        </section>
-    </div>
 </body>
 </html>

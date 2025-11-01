@@ -34,6 +34,7 @@ public class UserController {
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "sort", defaultValue = "id") String sort,
             @RequestParam(value = "direction", defaultValue = "asc") String direction,
+            @RequestParam(value = "id", required = false) String id,
             @RequestParam(value = "role", required = false) String role,
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "email", required = false) String email,
@@ -52,7 +53,7 @@ public class UserController {
 
             // Gọi API với server-side pagination và filtering
             PaginatedResponse<User> paginatedResponse = userService.getUsersWithPagination(
-                page, size, sort, direction, role, username, email, isActive, search);
+                page, size, sort, direction, id, role, username, email, isActive, search);
 
             if (paginatedResponse == null || paginatedResponse.getResult() == null) {
                 logger.warn("Received null or empty response from service");
@@ -72,7 +73,7 @@ public class UserController {
             // Add attributes to model
             addPaginationAttributes(model, paginatedResponse.getResult(), currentPage, 
                                   totalPages, totalElements, hasNext, hasPrev, 
-                                  sort, direction, role, username, email, isActive, search, size);
+                                  sort, direction, id, role, username, email, isActive, search, size);
 
             logger.debug("Successfully loaded {} users (page {}/{})", 
                         paginatedResponse.getResult().size(), currentPage, totalPages);
@@ -95,7 +96,7 @@ public class UserController {
             
             // Return empty page with error message
             addPaginationAttributes(model, new ArrayList<>(), 1, 1, 0, 
-                                  false, false, sort, direction, role, username, 
+                                  false, false, sort, direction, id, role, username, 
                                   email, isActive, search, size);
             model.addAttribute("errorMessage", "Có lỗi xảy ra khi tải danh sách users. Vui lòng thử lại.");
             
@@ -106,7 +107,7 @@ public class UserController {
     private void addPaginationAttributes(Model model, List<User> users, int currentPage, 
                                        int totalPages, long totalElements, boolean hasNext, 
                                        boolean hasPrev, String sort, String direction, 
-                                       String role, String username, String email, 
+                                       String id, String role, String username, String email, 
                                        Boolean isActive, String search, int size) {
         model.addAttribute("users", users);
         model.addAttribute("currentPage", currentPage);
@@ -116,6 +117,7 @@ public class UserController {
         model.addAttribute("hasPrev", hasPrev);
         model.addAttribute("sort", sort);
         model.addAttribute("direction", direction);
+        model.addAttribute("id", id);
         model.addAttribute("role", role);
         model.addAttribute("username", username);
         model.addAttribute("email", email);

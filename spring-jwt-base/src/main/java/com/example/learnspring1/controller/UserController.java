@@ -85,6 +85,7 @@ public class UserController {
             @Parameter(description = "Số lượng mỗi trang", example = "10") @RequestParam(name = "size", defaultValue = "10") int size,
             @Parameter(description = "Trường để sort", example = "username") @RequestParam(name = "sort", defaultValue = "id") String sortField,
             @Parameter(description = "Hướng sort (asc/desc)", example = "asc") @RequestParam(name = "direction", defaultValue = "asc") String direction,
+            @Parameter(description = "ID để filter", example = "1") @RequestParam(name = "id", required = false) Long id,
             @Parameter(description = "Role để filter", example = "ADMIN") @RequestParam(name = "role", required = false) String role,
             @Parameter(description = "Username để filter", example = "admin") @RequestParam(name = "username", required = false) String username,
             @Parameter(description = "Email để filter", example = "admin@example.com") @RequestParam(name = "email", required = false) String email,
@@ -107,7 +108,7 @@ public class UserController {
         Pageable pageable = PageRequest.of(page - 1, size, sort);
         
         // Sử dụng method mới với filtering
-        Page<UserDTO> userPage = userService.getUsersPageWithFilters(pageable, role, username, email, isActive, search).map(this::toDTO);
+        Page<UserDTO> userPage = userService.getUsersPageWithFilters(pageable, id, role, username, email, isActive, search).map(this::toDTO);
         
         // Tạo metadata
         MetadataDTO metadata = MetadataDTO.builder()

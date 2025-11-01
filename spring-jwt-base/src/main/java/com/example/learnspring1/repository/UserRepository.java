@@ -61,4 +61,10 @@ public interface UserRepository extends JpaRepository<User, Long> , JpaSpecifica
                                         @Param("search") String search,
                                         Pageable pageable);
 
+    // Absolute ID filter - only search by ID, ignoring all other filters
+    @Query("SELECT u FROM User u WHERE " +
+           "CAST(u.id AS string) LIKE %:id% AND " +
+           "(u.deletedBy IS NULL)")
+    Page<User> findUsersByIdOnly(@Param("id") String id, Pageable pageable);
+
 }

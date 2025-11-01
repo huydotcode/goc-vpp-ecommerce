@@ -33,6 +33,7 @@ public class CategoryController {
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "sort", defaultValue = "id") String sort,
             @RequestParam(value = "direction", defaultValue = "asc") String direction,
+            @RequestParam(value = "id", required = false) String id,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "isActive", required = false) Boolean isActive,
             @RequestParam(value = "search", required = false) String search,
@@ -43,7 +44,7 @@ public class CategoryController {
         direction = "desc".equalsIgnoreCase(direction) ? "desc" : "asc";
 
         PaginatedResponse<Category> paginatedResponse = categoryService.getCategoriesWithPagination(
-            page, size, sort, direction, name, isActive, search);
+            page, size, sort, direction, id, name, isActive, search);
 
         if (paginatedResponse == null || paginatedResponse.getResult() == null) {
             paginatedResponse = new PaginatedResponse<>();
@@ -66,6 +67,7 @@ public class CategoryController {
         model.addAttribute("hasPrev", hasPrev);
         model.addAttribute("sort", sort);
         model.addAttribute("direction", direction);
+        model.addAttribute("id", id);
         model.addAttribute("name", name);
         model.addAttribute("isActive", isActive);
         model.addAttribute("search", search);

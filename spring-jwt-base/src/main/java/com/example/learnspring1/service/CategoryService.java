@@ -16,7 +16,7 @@ public interface CategoryService {
     
     Page<Category> getCategoriesPage(Pageable pageable);
     
-    Page<Category> getCategoriesPageWithFilters(Pageable pageable, String name, Boolean isActive, String search);
+    Page<Category> getCategoriesPageWithFilters(Pageable pageable, Long id, String name, Boolean isActive, String search);
     
     List<Category> getCategoriesWithFilters(String name, Boolean isActive);
 

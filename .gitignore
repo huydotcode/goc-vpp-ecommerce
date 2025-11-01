@@ -43,11 +43,36 @@ client/build/
 coverage/
 
 # Environment / Secrets
-*.env
-.env*
+.env
+.env.*
+.env.local
+.env.*.local
 
 # Temporary files
 *.swp
 *.swo
 ~$*
 
+application.properties
+
+
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Local Environment / Secrets ###
+/application.properties
+/application-local.properties
+/*.local.properties
+/.env
+/.env.*
+/.env.local
+.env.*.local
+spring-jwt-base/src/main/resources/application.properties

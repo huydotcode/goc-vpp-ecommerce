@@ -64,6 +64,7 @@ public class CategoryController {
             @Parameter(description = "Số lượng mỗi trang", example = "10") @RequestParam(name = "size", defaultValue = "10") int size,
             @Parameter(description = "Trường để sort", example = "name") @RequestParam(name = "sort", defaultValue = "id") String sortField,
             @Parameter(description = "Hướng sort (asc/desc)", example = "asc") @RequestParam(name = "direction", defaultValue = "asc") String direction,
+            @Parameter(description = "ID để filter", example = "1") @RequestParam(name = "id", required = false) Long id,
             @Parameter(description = "Tên để filter", example = "Electronics") @RequestParam(name = "name", required = false) String name,
             @Parameter(description = "Trạng thái active", example = "true") @RequestParam(name = "isActive", required = false) Boolean isActive,
             @Parameter(description = "Search term", example = "electronics") @RequestParam(name = "search", required = false) String search) 
@@ -84,7 +85,7 @@ public class CategoryController {
         Pageable pageable = PageRequest.of(page - 1, size, sort);
         
         // Sử dụng method với filtering
-        Page<CategoryDTO> categoryPage = categoryService.getCategoriesPageWithFilters(pageable, name, isActive, search).map(this::toDTO);
+        Page<CategoryDTO> categoryPage = categoryService.getCategoriesPageWithFilters(pageable, id, name, isActive, search).map(this::toDTO);
         
         // Tạo metadata
         MetadataDTO metadata = MetadataDTO.builder()
