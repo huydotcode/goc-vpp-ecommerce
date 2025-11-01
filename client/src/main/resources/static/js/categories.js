@@ -149,9 +149,9 @@ async function submitCreateCategory() {
         
         // Update categoryData with uploaded URLs
         if (Object.keys(uploadResults.urls).length > 0) {
-            const thumbnailFieldId = 'createCategoryThumbnailUrl';
-            if (uploadResults.urls[`${thumbnailFieldId}File`]) {
-                categoryData.thumbnailUrl = uploadResults.urls[`${thumbnailFieldId}File`];
+            // Key format: createThumbnailUrlFile
+            if (uploadResults.urls['createThumbnailUrlFile']) {
+                categoryData.thumbnailUrl = uploadResults.urls['createThumbnailUrlFile'];
             }
         }
         

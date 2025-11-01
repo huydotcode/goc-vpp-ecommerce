@@ -142,9 +142,9 @@ async function submitCreateUser() {
         
         // Update userData with uploaded URLs
         if (Object.keys(uploadResults.urls).length > 0) {
-            const avatarFieldId = 'createAvatarUrl';
-            if (uploadResults.urls[`${avatarFieldId}File`]) {
-                userData.avatarUrl = uploadResults.urls[`${avatarFieldId}File`];
+            // Key format: createAvatarUrlFile
+            if (uploadResults.urls['createAvatarUrlFile']) {
+                userData.avatarUrl = uploadResults.urls['createAvatarUrlFile'];
             }
         }
         

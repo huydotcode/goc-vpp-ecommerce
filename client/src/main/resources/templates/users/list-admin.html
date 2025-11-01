@@ -300,16 +300,16 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="createUserAvatar"><i class="fas fa-image" style="margin-right: 6px;"></i>Avatar</label>
+                        <label for="createAvatarUrl"><i class="fas fa-image" style="margin-right: 6px;"></i>Avatar</label>
                         <div class="upload-url-input-container">
-                            <input id="createUserAvatar" class="form-control upload-url-input" type="text" name="avatarUrl" placeholder="Nhập URL ảnh hoặc upload bên dưới" />
+                            <input id="createAvatarUrl" class="form-control upload-url-input" type="text" name="avatarUrl" placeholder="Nhập URL ảnh hoặc upload bên dưới" />
                         </div>
-                        <div class="upload-error-message" id="createUserAvatarError"></div>
+                        <div class="upload-error-message" id="createAvatarUrlError"></div>
                         <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
                             <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
                             <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
                             <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - Tối đa 2MB</div>
-                            <input type="file" id="createUserAvatarFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleAvatarUpload(this)" />
+                            <input type="file" id="createAvatarUrlFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleAvatarUpload(this)" />
                         </div>
                         <div class="upload-progress-container" id="createProgressContainer">
                             <div class="upload-progress-label">
@@ -320,7 +320,7 @@
                                 <div class="upload-progress-fill"></div>
                             </div>
                         </div>
-                        <div id="createUserPreviewContainer" class="upload-preview-container"></div>
+                        <div id="createAvatarUrlPreviewContainer" class="upload-preview-container"></div>
                     </div>
                     <div class="form-group">
                         <label>
