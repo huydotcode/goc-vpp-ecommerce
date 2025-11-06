@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Products</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <script th:src="@{/js/api.js}"></script>
+    <script th:src="@{/js/lib.js}"></script>
+    <script th:src="@{/js/entity-manager.js}"></script>
+    <script th:src="@{/js/image-upload-manager.js}"></script>
+    <script th:src="@{/js/products.js}"></script>
+    <style>
+        .thumb { width:48px; height:48px; object-fit:cover; border-radius:4px; cursor:pointer; }
+    </style>
+    
+    
+</head>
+<body>
+    <div th:replace="~{layouts/admin :: adminLayout(~{::section}, 'Quản lý Products', 'products')}">
+        <section>
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <h4 style="margin:0;"><i class="fas fa-box"></i> Danh sách Products</h4>
+                        <button type="button" class="btn btn-primary" onclick="showCreateProductModal()">
+                            <i class="fas fa-plus"></i> Thêm Product
+                        </button>
+                    </div>
+                </div>
+                <div class="admin-card-body">
+                    <form id="filterForm" class="mb-4" th:action="@{/products}" method="get">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px;">
+                            <div class="form-group">
+                                <label for="id"><i class="fas fa-hashtag" style="margin-right:6px;"></i>ID:</label>
+                                <input type="text" id="id" name="id" class="form-control" th:value="${id}" placeholder="Tìm theo ID..." />
+                            </div>
+                            <div class="form-group">
+                                <label for="name"><i class="fas fa-tag" style="margin-right:6px;"></i>Tên:</label>
+                                <input type="text" id="name" name="name" class="form-control" th:value="${name}" placeholder="Tìm theo tên..." />
+                            </div>
+                            <div class="form-group">
+                                <label for="sku"><i class="fas fa-barcode" style="margin-right:6px;"></i>SKU:</label>
+                                <input type="text" id="sku" name="sku" class="form-control" th:value="${sku}" placeholder="Tìm theo SKU..." />
+                            </div>
+                            <div class="form-group">
+                                <label for="brand"><i class="fas fa-industry" style="margin-right:6px;"></i>Brand:</label>
+                                <input type="text" id="brand" name="brand" class="form-control" th:value="${brand}" placeholder="Tìm theo brand..." />
+                            </div>
+                            <div class="form-group">
+                                <label for="isActive"><i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái:</label>
+                                <select id="isActive" name="isActive" class="form-control">
+                                    <option value="" th:selected="${isActive == null}">Tất cả</option>
+                                    <option value="true" th:selected="${isActive == true}">Active</option>
+                                    <option value="false" th:selected="${isActive == false}">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="search"><i class="fas fa-search" style="margin-right:6px;"></i>Tìm kiếm:</label>
+                                <input type="text" id="search" name="search" class="form-control" th:value="${search}" placeholder="Nhập tên, sku, brand hoặc id." />
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Lọc</button>
+                            <button type="button" class="btn btn-secondary" onclick="resetProductsFilters()"><i class="fas fa-times"></i> Xóa bộ lọc</button>
+                        </div>
+                    </form>
+
+                    <div class="table-loading-overlay" id="tableLoadingOverlay"><div class="loading-spinner"></div></div>
+                    <div id="notificationContainer"></div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <a class="text-decoration-none" th:href="@{/products(page=${currentPage}, size=${size}, sort='id', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, name=${name}, sku=${sku}, brand=${brand}, isActive=${isActive}, search=${search})}">
+                                            <i class="fas fa-hashtag" style="margin-right:6px;"></i>ID
+                                            <i th:if="${sort == 'id'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a class="text-decoration-none" th:href="@{/products(page=${currentPage}, size=${size}, sort='name', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, name=${name}, sku=${sku}, brand=${brand}, isActive=${isActive}, search=${search})}">
+                                            <i class="fas fa-tag" style="margin-right:6px;"></i>Tên
+                                            <i th:if="${sort == 'name'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                        </a>
+                                    </th>
+                                    <th><i class="fas fa-image" style="margin-right:6px;"></i>Thumbnail</th>
+                                    <th><i class="fas fa-barcode" style="margin-right:6px;"></i>SKU</th>
+                                    <th><i class="fas fa-industry" style="margin-right:6px;"></i>Brand</th>
+                                    <th>
+                                        <a class="text-decoration-none" th:href="@{/products(page=${currentPage}, size=${size}, sort='isActive', direction=${direction == 'asc' ? 'desc' : 'asc'}, id=${id}, name=${name}, sku=${sku}, brand=${brand}, isActive=${isActive}, search=${search})}">
+                                            <i class="fas fa-toggle-on" style="margin-right:6px;"></i>Trạng thái
+                                            <i th:if="${sort == 'isActive'}" th:class="${direction == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"></i>
+                                        </a>
+                                    </th>
+                                    <th class="text-center"><i class="fas fa-ellipsis-h" style="margin-right:6px;"></i>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="p : ${products}" th:attr="data-product-id=${p.id}">
+                                    <td th:text="${p.id}"></td>
+                                    <td th:text="${p.name}"></td>
+                                    <td>
+                                        <img th:if="${p.thumbnailUrl}" th:src="${p.thumbnailUrl}" alt="thumb" class="thumb clickable-image" th:attr="data-image-url=${p.thumbnailUrl}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Crect fill=\'%23e6e6e6\' width=\'80\' height=\'80\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\' font-size=\'12\'%3ENo Image%3C/text%3E%3C/svg%3E'; this.classList.add('img-error');" />
+                                        <span th:if="${p.thumbnailUrl == null || p.thumbnailUrl.isEmpty()}">-</span>
+                                    </td>
+                                    <td th:text="${p.sku}"></td>
+                                    <td th:text="${p.brand}"></td>
+                                    <td>
+                                        <span th:if="${p.isActive}" class="badge bg-success">Active</span>
+                                        <span th:unless="${p.isActive}" class="badge bg-danger">Inactive</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-success btn-sm" title="Xem" th:onclick="'viewProduct(' + ${p.id} + ')'">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-info btn-sm" title="Ảnh" th:attr="data-product-id=${p.id}, data-product-name=${p.name}" onclick="openGalleryModalFromButton(this)">
+                                            <i class="fas fa-images"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-warning btn-sm" title="Sửa" th:onclick="'openEditProductModal(' + ${p.id} + ')'">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(products)}">
+                                    <td colspan="7">Không có dữ liệu</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="page-size-selector">
+                        <label for="pageSize">Hiển thị:</label>
+                        <select id="pageSize" name="pageSize" onchange="changePageSize()">
+                            <option value="5" th:selected="${size == 5}">5</option>
+                            <option value="10" th:selected="${size == 10}">10</option>
+                            <option value="20" th:selected="${size == 20}">20</option>
+                            <option value="50" th:selected="${size == 50}">50</option>
+                            <option value="100" th:selected="${size == 100}">100</option>
+                        </select>
+                        <span>kết quả/trang</span>
+                    </div>
+
+                    <div class="pagination">
+                        <a th:if="${hasPrev}" th:href="@{/products(page=${currentPage - 1}, size=${size}, sort=${sort}, direction=${direction}, id=${id}, name=${name}, sku=${sku}, brand=${brand}, isActive=${isActive}, search=${search})}"><i class="fas fa-chevron-left"></i> Trước</a>
+                        <span th:text="${currentPage} + ' / ' + ${totalPages}"></span>
+                        <a th:if="${hasNext}" th:href="@{/products(page=${currentPage + 1}, size=${size}, sort=${sort}, direction=${direction}, id=${id}, name=${name}, sku=${sku}, brand=${brand}, isActive=${isActive}, search=${search})}">Tiếp <i class="fas fa-chevron-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="modal" data-static="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Cập nhật Product</h3>
+                <button class="modal-close" onclick="closeModal('editProductModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProductForm">
+                    <input type="hidden" id="editId" />
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editName">Tên *</label>
+                            <input id="editName" class="form-control" type="text" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="editSku">SKU *</label>
+                            <input id="editSku" class="form-control" type="text" required />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPrice">Giá</label>
+                            <input id="editPrice" class="form-control" type="number" step="0.01" />
+                        </div>
+                        <div class="form-group">
+                            <label for="editDiscountPrice">Giá KM</label>
+                            <input id="editDiscountPrice" class="form-control" type="number" step="0.01" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editStock">Tồn kho</label>
+                            <input id="editStock" class="form-control" type="number" />
+                        </div>
+                        <div class="form-group">
+                            <label for="editBrand">Brand</label>
+                            <input id="editBrand" class="form-control" type="text" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editColor">Màu</label>
+                            <input id="editColor" class="form-control" type="text" />
+                        </div>
+                        <div class="form-group">
+                            <label for="editSize">Size</label>
+                            <input id="editSize" class="form-control" type="text" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editWeight">Trọng lượng</label>
+                            <input id="editWeight" class="form-control" type="text" />
+                        </div>
+                        <div class="form-group">
+                            <label for="editDimensions">Kích thước</label>
+                            <input id="editDimensions" class="form-control" type="text" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSpecifications">Thông số</label>
+                        <input id="editSpecifications" class="form-control" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription">Mô tả</label>
+                        <input id="editDescription" class="form-control" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label for="editThumbnailUrl">Thumbnail</label>
+                        <div class="upload-url-input-container">
+                            <input id="editThumbnailUrl" class="form-control upload-url-input" type="text" placeholder="Nhập URL ảnh hoặc upload bên dưới" />
+                        </div>
+                        <div class="upload-area" onclick="triggerFileInput(this)" data-edit-mode="true">
+                            <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                            <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                            <input type="file" id="editThumbnailUrlFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleEditProductThumbnailUpload(this)" />
+                        </div>
+                        <div class="upload-progress-container" id="editProductProgressContainer">
+                            <div class="upload-progress-label">
+                                <span>Đang upload ảnh...</span>
+                                <span class="upload-progress-percent">0%</span>
+                            </div>
+                            <div class="upload-progress-bar"><div class="upload-progress-fill"></div></div>
+                        </div>
+                        <div id="editThumbnailUrlPreviewContainer" class="upload-preview-container"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Danh sách ảnh (ProductImage)</label>
+                        <div class="upload-area" onclick="triggerFileInput(this)" data-edit-mode="true">
+                            <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                            <div class="upload-area-text">Kéo thả nhiều ảnh hoặc click để chọn</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB/ảnh</div>
+                            <input type="file" id="editProductImagesFiles" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange="handleAddEditProductImages(this)" />
+                        </div>
+                        <div id="editProductImagesPreviewContainer" class="upload-preview-container"></div>
+                        <div id="editProductImagesListContainer" class="edit-images-list-container"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editIsActive" /> Kích hoạt
+                        </label>
+                        <label style="margin-left:16px;">
+                            <input type="checkbox" id="editIsFeatured" /> Nổi bật
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="submitUpdateProduct()">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Product Modal -->
+    <div id="createProductModal" class="modal" data-static="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Thêm Product</h3>
+                <button class="modal-close" onclick="closeModal('createProductModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createProductForm" th:action="@{/products}" method="post">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createName">Tên *</label>
+                            <input id="createName" class="form-control" type="text" name="name" required />
+                            <div class="error-message" id="createNameError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="createSku">SKU *</label>
+                            <input id="createSku" class="form-control" type="text" name="sku" required />
+                            <div class="error-message" id="createSkuError"></div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createPrice">Giá</label>
+                            <input id="createPrice" class="form-control" type="number" step="0.01" name="price" />
+                        </div>
+                        <div class="form-group">
+                            <label for="createDiscountPrice">Giá KM</label>
+                            <input id="createDiscountPrice" class="form-control" type="number" step="0.01" name="discountPrice" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createStock">Tồn kho</label>
+                            <input id="createStock" class="form-control" type="number" name="stockQuantity" />
+                        </div>
+                        <div class="form-group">
+                            <label for="createBrand">Brand</label>
+                            <input id="createBrand" class="form-control" type="text" name="brand" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createColor">Màu</label>
+                            <input id="createColor" class="form-control" type="text" name="color" />
+                        </div>
+                        <div class="form-group">
+                            <label for="createSize">Size</label>
+                            <input id="createSize" class="form-control" type="text" name="size" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createWeight">Trọng lượng</label>
+                            <input id="createWeight" class="form-control" type="text" name="weight" />
+                        </div>
+                        <div class="form-group">
+                            <label for="createDimensions">Kích thước</label>
+                            <input id="createDimensions" class="form-control" type="text" name="dimensions" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="createSpecifications">Thông số</label>
+                        <input id="createSpecifications" class="form-control" type="text" name="specifications" />
+                    </div>
+                    <div class="form-group">
+                        <label for="createDescription">Mô tả</label>
+                        <input id="createDescription" class="form-control" type="text" name="description" />
+                    </div>
+                    <div class="form-group">
+                        <label for="createThumbnailUrl">Thumbnail</label>
+                        <div class="upload-url-input-container">
+                            <input id="createThumbnailUrl" class="form-control upload-url-input" type="text" name="thumbnailUrl" placeholder="Nhập URL ảnh hoặc upload bên dưới" />
+                        </div>
+                        <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
+                            <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                            <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                            <input type="file" id="createThumbnailUrlFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleProductThumbnailUpload(this)" />
+                        </div>
+                        <div class="upload-progress-container" id="createProductProgressContainer">
+                            <div class="upload-progress-label">
+                                <span>Đang upload ảnh...</span>
+                                <span class="upload-progress-percent">0%</span>
+                            </div>
+                            <div class="upload-progress-bar"><div class="upload-progress-fill"></div></div>
+                        </div>
+                        <div id="createThumbnailUrlPreviewContainer" class="upload-preview-container"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Danh sách ảnh (ProductImage)</label>
+                        <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
+                            <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                            <div class="upload-area-text">Kéo thả nhiều ảnh hoặc click để chọn</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB/ảnh</div>
+                            <input type="file" id="createProductImagesFiles" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange="handleAddCreateProductImages(this)" />
+                        </div>
+                        <div id="createProductImagesPreviewContainer" class="upload-preview-container"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="createIsActive" name="isActive" checked> Kích hoạt
+                        </label>
+                        <label style="margin-left:16px;">
+                            <input type="checkbox" id="createIsFeatured" name="isFeatured"> Nổi bật
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('createProductModal')">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="submitCreateProduct()">Thêm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer quản lý ảnh Product -->
+    <div id="productImagesDrawer" class="drawer">
+        <div class="drawer-panel">
+            <div class="drawer-header">
+                <h3 class="drawer-title"><i class="fas fa-images" style="margin-right:8px;"></i>Ảnh của sản phẩm <span id="imagesDrawerProductName"></span></h3>
+                <button class="modal-close" onclick="closeDrawer('productImagesDrawer')">&times;</button>
+            </div>
+            <div class="drawer-body">
+                <div class="form-group">
+                    <label>Thêm ảnh</label>
+                    <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
+                        <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
+                        <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
+                        <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                        <input type="file" id="productImageFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleAddProductImage(this)" />
+                    </div>
+                    <div id="productImagesPreviewContainer" class="upload-preview-container"></div>
+                </div>
+                <div id="currentImagesContainer"></div>
+            </div>
+            <div class="drawer-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDrawer('productImagesDrawer')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="imagePreviewModal" class="image-preview-modal">
+        <div class="image-preview-content">
+            <button class="image-preview-close" onclick="closeImagePreview()">&times;</button>
+            <img id="previewImage" src="" alt="Preview" />
+        </div>
+    </div>
+
+    <!-- Fullscreen Gallery Modal -->
+    <div id="productGalleryModal" class="gallery-modal">
+        <div class="gallery-modal-header">
+            <div class="gallery-modal-title" id="galleryTitle">Danh sách ảnh</div>
+            <div id="galleryCounter">0 / 0</div>
+            <button class="gallery-modal-close" onclick="closeProductGallery()">&times;</button>
+        </div>
+        <div class="gallery-modal-body">
+            <img id="galleryMain" class="gallery-modal-main" src="" alt="main" />
+        </div>
+        <div class="gallery-modal-strip" id="galleryStrip"></div>
+    </div>
+
+    <!-- Drawer chi tiết Product -->
+    <div id="productDrawer" class="drawer">
+        <div class="drawer-panel">
+            <div class="drawer-header">
+                <h3 class="drawer-title"><i class="fas fa-box" style="margin-right:8px;"></i>Chi tiết Product</h3>
+                <button class="modal-close" onclick="closeDrawer('productDrawer')">&times;</button>
+            </div>
+            <div class="drawer-body">
+                <div class="desc-section">
+                    <h4 class="desc-section-title">Thông tin cơ bản</h4>
+                    <div class="desc-grid">
+                        <div class="desc-label">ID</div><div class="desc-value" id="viewProdId">-</div>
+                        <div class="desc-label">Tên</div><div class="desc-value" id="viewProdName">-</div>
+                        <div class="desc-label">SKU</div><div class="desc-value" id="viewProdSku">-</div>
+                        <div class="desc-label">Brand</div><div class="desc-value" id="viewProdBrand">-</div>
+                        <div class="desc-label">Giá</div><div class="desc-value" id="viewProdPrice">-</div>
+                        <div class="desc-label">Giá KM</div><div class="desc-value" id="viewProdDiscountPrice">-</div>
+                        <div class="desc-label">Tồn kho</div><div class="desc-value" id="viewProdStock">-</div>
+                        <div class="desc-label">Màu</div><div class="desc-value" id="viewProdColor">-</div>
+                        <div class="desc-label">Size</div><div class="desc-value" id="viewProdSize">-</div>
+                        <div class="desc-label">Trọng lượng</div><div class="desc-value" id="viewProdWeight">-</div>
+                        <div class="desc-label">Kích thước</div><div class="desc-value" id="viewProdDimensions">-</div>
+                        <div class="desc-label">Thông số</div><div class="desc-value" id="viewProdSpecifications">-</div>
+                        <div class="desc-label">Mô tả</div><div class="desc-value" id="viewProdDescription">-</div>
+                        <div class="desc-label">Trạng thái</div><div class="desc-value" id="viewProdActive">-</div>
+                        <div class="desc-label">Nổi bật</div><div class="desc-value" id="viewProdFeatured">-</div>
+                    </div>
+                </div>
+                <div class="desc-section">
+                    <h4 class="desc-section-title">Hiển thị</h4>
+                    <div class="desc-grid">
+                        <div class="desc-label">Thumbnail</div>
+                        <div class="desc-value">
+                            <div id="viewProdThumbSkeleton" class="skeleton skeleton-lg" style="display:none;"></div>
+                            <img id="viewProdThumb" class="thumb clickable-image" alt="thumb" style="display:none;cursor:pointer;" />
+                            <div id="viewProdThumbEmpty" class="empty-state" style="display:none;">Không có dữ liệu</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="desc-section">
+                    <h4 class="desc-section-title">Danh sách ảnh</h4>
+                    <div id="viewProdImagesSkeleton" style="display:none;gap:8px;display:flex;flex-wrap:wrap;">
+                        <div class="skeleton skeleton-lg"></div>
+                        <div class="skeleton skeleton-lg"></div>
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="gallery-view">
+                        <div class="gallery-counter" id="viewProdCounter" style="display:none;">0 / 0</div>
+                        <div class="gallery-main">
+                            <img id="viewProdMain" src="" alt="main" style="display:none;"/>
+                        </div>
+                        <div class="gallery-thumbs" id="viewProdThumbsStrip"></div>
+                    </div>
+                    <div id="viewProdImagesEmpty" class="empty-state" style="display:none;">Không có dữ liệu</div>
+                </div>
+            </div>
+            <div class="drawer-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDrawer('productDrawer')">Đóng</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+

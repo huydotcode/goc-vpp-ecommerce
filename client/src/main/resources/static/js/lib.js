@@ -36,10 +36,15 @@ function closeDrawer(drawerId) {
     }
 }
 
-// Close modal when clicking outside
+// Optional: DO NOT close modal when clicking outside if data-static=true
 document.addEventListener('click', function(e) {
-    if (e.target.classList && e.target.classList.contains('modal')) {
-        closeModal(e.target.id);
+    const target = e.target;
+    if (target.classList && target.classList.contains('modal')) {
+        if (target.getAttribute('data-static') === 'true') {
+            // ignore outside click
+            return;
+        }
+        closeModal(target.id);
     }
 });
 
@@ -64,6 +69,7 @@ function hideContainerLoading() {
 function showTableLoading() {
     const overlay = document.getElementById('tableLoadingOverlay');
     if (overlay) {
+        overlay.innerHTML = buildTableSkeletonHTML();
         overlay.style.display = 'flex';
     }
 }
@@ -72,7 +78,48 @@ function hideTableLoading() {
     const overlay = document.getElementById('tableLoadingOverlay');
     if (overlay) {
         overlay.style.display = 'none';
+        overlay.innerHTML = '<div class="loading-spinner"></div>';
     }
+}
+
+function buildTableSkeletonHTML(rows = 5, cols) {
+    if (!cols) {
+        const ths = document.querySelectorAll('table thead th');
+        cols = ths && ths.length > 0 ? ths.length : 6;
+    }
+    let cells = '';
+    for (let r = 0; r < rows; r++) {
+        let row = '<tr>';
+        for (let c = 0; c < cols; c++) {
+            row += '<td><div class="skeleton skeleton-text"></div></td>';
+        }
+        row += '</tr>';
+        cells += row;
+    }
+    return '<div style="width:100%;"><table class="table"><tbody>' + cells + '</tbody></table></div>';
+}
+
+// Form skeleton helpers
+function showFormSkeleton(modalId, show = true) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    let skel = modal.querySelector('.form-skeleton');
+    if (!skel) {
+        skel = document.createElement('div');
+        skel.className = 'form-skeleton';
+        skel.innerHTML = `
+            <div class="skeleton skeleton-text" style="width:40%"></div>
+            <div class="skeleton skeleton-input"></div>
+            <div class="skeleton skeleton-text" style="width:30%;margin-top:12px"></div>
+            <div class="skeleton skeleton-input"></div>
+            <div style="margin-top:16px"><span class="skeleton skeleton-btn"></span></div>
+        `;
+        const body = modal.querySelector('.modal-body') || modal;
+        body.prepend(skel);
+    }
+    skel.classList.toggle('show', show);
+    const form = modal.querySelector('form');
+    if (form) form.style.display = show ? 'none' : '';
 }
 
 // ==================== NOTIFICATIONS ====================
@@ -276,6 +323,33 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// Lightbox: navigate gallery with ArrowLeft/ArrowRight
+let __galleryImages = [];
+let __galleryIndex = -1;
+function initGalleryFromContainer(containerId, currentUrl) {
+    __galleryImages = [];
+    __galleryIndex = -1;
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
+    const imgs = cont.querySelectorAll('img');
+    imgs.forEach((img, idx) => {
+        const url = img.getAttribute('data-image-url') || img.src;
+        __galleryImages.push(url);
+        if (url === currentUrl) __galleryIndex = idx;
+    });
+}
+document.addEventListener('keydown', function(e) {
+    if (!document.getElementById('imagePreviewModal')?.classList.contains('show')) return;
+    if (__galleryImages.length === 0 || __galleryIndex < 0) return;
+    if (e.key === 'ArrowRight') {
+        __galleryIndex = (__galleryIndex + 1) % __galleryImages.length;
+        document.getElementById('previewImage').src = __galleryImages[__galleryIndex];
+    } else if (e.key === 'ArrowLeft') {
+        __galleryIndex = (__galleryIndex - 1 + __galleryImages.length) % __galleryImages.length;
+        document.getElementById('previewImage').src = __galleryImages[__galleryIndex];
+    }
+});
+
 // Setup image click handlers
 function setupImageClickHandlers() {
     console.log('[Image Handler] Setting up image click handlers...');
@@ -437,4 +511,159 @@ function updateUploadProgress(percent, modalId = null) {
 window.addEventListener('load', function() {
     setupDragAndDrop();
     setupImageClickHandlers();
+    initGlobalImageErrorHandling();
+    applyFallbackToExistingImages();
+    observeNewImagesForFallback();
+    enhanceSidebarInteractiveNav();
 });
+
+// Row selection (click to select)
+function initTableRowSelection() {
+    const rows = document.querySelectorAll('table tbody tr');
+    rows.forEach(r => {
+        r.addEventListener('click', function(e){
+            // avoid when clicking buttons or inputs
+            if (e.target.closest('button, a, input, select, textarea')) return;
+            this.classList.toggle('row-selected');
+        });
+    });
+}
+
+// Global image error handling
+function initGlobalImageErrorHandling() {
+    // capture error events on all images
+    document.addEventListener('error', function(e) {
+        const t = e.target;
+        if (!t || t.tagName !== 'IMG') return;
+        if (t.dataset && t.dataset.fallbackApplied === 'true') return;
+        const placeholder = buildImagePlaceholderDataUrl(
+            Math.max(80, t.naturalWidth || t.width || 80),
+            Math.max(80, t.naturalHeight || t.height || 80),
+            'No Image'
+        );
+        t.dataset.fallbackApplied = 'true';
+        t.src = placeholder;
+        t.classList && t.classList.add('img-error');
+    }, true);
+}
+
+function buildImagePlaceholderDataUrl(w, h, text) {
+    const bg = '%23e6e6e6';
+    const fg = '%23999';
+    const safeText = encodeURIComponent(text || 'No Image');
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'%3E%3Crect fill='${bg}' width='100%25' height='100%25'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='${fg}' font-size='12'%3E${safeText}%3C/text%3E%3C/svg%3E`;
+}
+
+function applyFallbackToExistingImages() {
+    const imgs = document.querySelectorAll('img');
+    imgs.forEach(img => {
+        // attach onerror if not yet
+        if (!img.dataset || img.dataset.fallbackBound !== 'true') {
+            img.onerror = function() {
+                if (this.dataset && this.dataset.fallbackApplied === 'true') return;
+                this.dataset.fallbackApplied = 'true';
+                this.src = buildImagePlaceholderDataUrl(
+                    Math.max(80, this.naturalWidth || this.width || 80),
+                    Math.max(80, this.naturalHeight || this.height || 80),
+                    'No Image'
+                );
+                this.classList.add('img-error');
+            };
+            img.dataset.fallbackBound = 'true';
+        }
+        // if already failed before load handler
+        const isBroken = (img.complete && img.naturalWidth === 0);
+        if (isBroken) {
+            img.onerror && img.onerror();
+        }
+    });
+}
+
+function observeNewImagesForFallback() {
+    const mo = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+            m.addedNodes && m.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    if (node.tagName === 'IMG') {
+                        // bind fallback and check broken
+                        if (!node.dataset || node.dataset.fallbackBound !== 'true') {
+                            node.onerror = function() {
+                                if (this.dataset && this.dataset.fallbackApplied === 'true') return;
+                                this.dataset.fallbackApplied = 'true';
+                                this.src = buildImagePlaceholderDataUrl(
+                                    Math.max(80, this.naturalWidth || this.width || 80),
+                                    Math.max(80, this.naturalHeight || this.height || 80),
+                                    'No Image'
+                                );
+                                this.classList.add('img-error');
+                            };
+                            node.dataset.fallbackBound = 'true';
+                        }
+                        if (node.complete && node.naturalWidth === 0) {
+                            node.onerror && node.onerror();
+                        }
+                    } else {
+                        // check any child imgs
+                        const imgs = node.querySelectorAll && node.querySelectorAll('img');
+                        imgs && imgs.forEach(img => {
+                            if (!img.dataset || img.dataset.fallbackBound !== 'true') {
+                                img.onerror = function() {
+                                    if (this.dataset && this.dataset.fallbackApplied === 'true') return;
+                                    this.dataset.fallbackApplied = 'true';
+                                    this.src = buildImagePlaceholderDataUrl(
+                                        Math.max(80, this.naturalWidth || this.width || 80),
+                                        Math.max(80, this.naturalHeight || this.height || 80),
+                                        'No Image'
+                                    );
+                                    this.classList.add('img-error');
+                                };
+                                img.dataset.fallbackBound = 'true';
+                            }
+                            if (img.complete && img.naturalWidth === 0) {
+                                img.onerror && img.onerror();
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+}
+
+// Sidebar interactive nav: ripple + active by location
+function enhanceSidebarInteractiveNav() {
+    try {
+        const links = document.querySelectorAll('.sidebar-menu a');
+        const setActiveByPath = () => {
+            const path = (location.pathname || '') + (location.search || '');
+            links.forEach(a => {
+                const href = a.getAttribute('href');
+                if (!href) return;
+                if (path.startsWith(new URL(href, location.origin).pathname)) {
+                    a.classList.add('active');
+                } else {
+                    a.classList.remove('active');
+                }
+            });
+        };
+        setActiveByPath();
+        links.forEach(a => {
+            a.addEventListener('click', function(e){
+                // ripple
+                try {
+                    this.classList.remove('rippling');
+                    let ripple = this.querySelector('.ripple');
+                    if (!ripple) { ripple = document.createElement('span'); ripple.className = 'ripple'; this.appendChild(ripple); }
+                    const rect = this.getBoundingClientRect();
+                    ripple.style.left = (e.clientX - rect.left) + 'px';
+                    ripple.style.top = (e.clientY - rect.top) + 'px';
+                    this.classList.add('rippling');
+                    setTimeout(() => this.classList.remove('rippling'), 400);
+                } catch(err) {}
+                // allow navigation; active will be set after load
+            });
+        });
+        window.addEventListener('popstate', setActiveByPath);
+    } catch (err) {}
+}

@@ -124,7 +124,8 @@
                             <img th:if="${c.thumbnailUrl}" th:src="${c.thumbnailUrl}" alt="thumb" 
                                  class="clickable-image" 
                                  th:attr="data-image-url=${c.thumbnailUrl}"
-                                 style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;"/>
+                                 style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;"
+                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\'%3E%3Crect fill=\'%23e6e6e6\' width=\'48\' height=\'48\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\' font-size=\'10\'%3ENo Image%3C/text%3E%3C/svg%3E'; this.classList.add('img-error');"/>
                             <span th:if="${c.thumbnailUrl == null || c.thumbnailUrl.isEmpty()}">-</span>
                         </span>
                         <div class="cell-edit" style="display:none;">
@@ -203,7 +204,7 @@
             </div>
 
             <!-- Create Category Modal -->
-            <div id="createCategoryModal" class="modal">
+            <div id="createCategoryModal" class="modal" data-static="true">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">Thêm Category</h3>
