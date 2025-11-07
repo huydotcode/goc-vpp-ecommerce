@@ -35,6 +35,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="/promotions" th:classappend="${activePage}=='promotions' ? ' active'">
+                        <i class="fas fa-gift"></i>
+                        <span>Quản lý Promotions</span>
+                    </a>
+                </li>
+                <li>
                     <a href="/logout">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Đăng xuất</span>
@@ -49,6 +55,8 @@
                 <h1 class="admin-title">
                     <i th:if="${activePage}=='users'" class="fas fa-users" style="margin-right:8px;"></i>
                     <i th:if="${activePage}=='categories'" class="fas fa-tags" style="margin-right:8px;"></i>
+                    <i th:if="${activePage}=='products'" class="fas fa-box" style="margin-right:8px;"></i>
+                    <i th:if="${activePage}=='promotions'" class="fas fa-gift" style="margin-right:8px;"></i>
                     <i th:if="${activePage}==null or ${activePage}==''" class="fas fa-gauge" style="margin-right:8px;"></i>
                     <span th:text="${pageTitle}">Dashboard</span>
                 </h1>

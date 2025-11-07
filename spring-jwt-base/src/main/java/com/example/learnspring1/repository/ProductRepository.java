@@ -23,27 +23,35 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     Page<Product> findByIsActiveTrue(Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE " +
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN p.categories c WHERE " +
            "(:name IS NULL OR p.name LIKE %:name%) AND " +
            "(:sku IS NULL OR p.sku LIKE %:sku%) AND " +
            "(:brand IS NULL OR p.brand LIKE %:brand%) AND " +
+           "(:categoryId IS NULL OR c.id = :categoryId) AND " +
+           "(:isFeatured IS NULL OR p.isFeatured = :isFeatured) AND " +
            "(:isActive IS NULL OR p.isActive = :isActive) AND " +
            "(p.deletedBy IS NULL)")
     List<Product> findProductsWithFilters(@Param("name") String name,
                                          @Param("sku") String sku,
                                          @Param("brand") String brand,
+                                         @Param("categoryId") Long categoryId,
+                                         @Param("isFeatured") Boolean isFeatured,
                                          @Param("isActive") Boolean isActive);
 
-    @Query("SELECT p FROM Product p WHERE " +
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN p.categories c WHERE " +
            "(:name IS NULL OR p.name LIKE %:name%) AND " +
            "(:sku IS NULL OR p.sku LIKE %:sku%) AND " +
            "(:brand IS NULL OR p.brand LIKE %:brand%) AND " +
+           "(:categoryId IS NULL OR c.id = :categoryId) AND " +
+           "(:isFeatured IS NULL OR p.isFeatured = :isFeatured) AND " +
            "(:isActive IS NULL OR p.isActive = :isActive) AND " +
            "(:search IS NULL OR p.name LIKE %:search% OR p.sku LIKE %:search% OR p.brand LIKE %:search% OR CAST(p.id AS string) LIKE %:search%) AND " +
            "(p.deletedBy IS NULL)")
     Page<Product> findProductsWithFiltersPaged(@Param("name") String name,
                                               @Param("sku") String sku,
                                               @Param("brand") String brand,
+                                              @Param("categoryId") Long categoryId,
+                                              @Param("isFeatured") Boolean isFeatured,
                                               @Param("isActive") Boolean isActive,
                                               @Param("search") String search,
                                               Pageable pageable);

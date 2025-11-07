@@ -1,5 +1,6 @@
 package www.java.client.controller;
 
+import www.java.client.annotation.RequireAdmin;
 import www.java.client.model.Product;
 import www.java.client.model.PaginatedResponse;
 import www.java.client.service.ProductService;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 @RequestMapping("/products")
+@RequireAdmin
 public class ProductController {
 
     private final ProductService productService;
@@ -46,7 +48,7 @@ public class ProductController {
 
         System.out.println("[FE/ProductController] incoming queryString=" + request.getQueryString());
         PaginatedResponse<Product> resp = productService.getProductsWithPagination(
-            page, size, sort, direction, id, name, sku, brand, isActive, search
+            page, size, sort, direction, id, name, sku, brand, null, null, isActive, search
         );
         System.out.println("[FE/ProductController] parsed result size=" + (resp != null && resp.getResult() != null ? resp.getResult().size() : -1));
         if (resp != null && resp.getMetadata() != null) {

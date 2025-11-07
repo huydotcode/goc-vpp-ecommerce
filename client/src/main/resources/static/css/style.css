@@ -1,3 +1,135 @@
+/* Custom Multiselect Component */
+.custom-multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.multiselect-search {
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.multiselect-search input {
+    padding-right: 36px;
+}
+
+.multiselect-search i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.multiselect-dropdown {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+    padding: 8px 0;
+}
+
+.multiselect-loading {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.multiselect-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.multiselect-item:last-child {
+    border-bottom: none;
+}
+
+.multiselect-item:hover {
+    background-color: var(--primary-light);
+}
+
+.multiselect-item.selected {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.multiselect-item input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.multiselect-item-label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.multiselect-item-name {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.multiselect-item.selected .multiselect-item-name {
+    color: var(--primary-color);
+}
+
+.multiselect-item-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.multiselect-selected {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-color);
+}
+
+.multiselect-selected-empty {
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 8px;
+}
+
+.multiselect-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.multiselect-tag-remove {
+    cursor: pointer;
+    padding: 0 4px;
+    font-weight: bold;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.multiselect-tag-remove:hover {
+    opacity: 1;
+}
+
 /* Extracted shared admin styles for Users and Categories pages */
 /* Admin Layout Styles */
 * {

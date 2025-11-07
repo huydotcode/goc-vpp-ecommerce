@@ -1,8 +1,9 @@
 package www.java.client.controller;
 
+import www.java.client.model.User;
 import www.java.client.service.AuthService;
+import www.java.client.service.UserService;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -10,9 +11,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserService userService) {
         this.authService = authService;
+        this.userService = userService;
     }
 
     // Hiển thị trang login
@@ -41,8 +44,8 @@ public class AuthController {
         System.out.println("========================================");
         
         if (response != null && response.getAccessToken() != null) {
-            System.out.println("Redirecting to /users");
-            return "redirect:/users";
+            System.out.println("Redirecting to /user");
+            return "redirect:/user";
         } else {
             System.out.println("Login failed, redirecting to /login with error");
             redirectAttributes.addFlashAttribute("errorMessage", "Username hoặc password không đúng!");
@@ -62,6 +65,72 @@ public class AuthController {
     @GetMapping("/")
     public String home() {
         return "redirect:/login";
+    }
+
+    // Hiển thị trang đăng ký
+    @GetMapping("/register")
+    public String showRegisterForm() {
+        return "register";
+    }
+
+    // Xử lý đăng ký
+    @PostMapping("/register")
+    public String register(
+            @RequestParam("username") String username,
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("confirmPassword") String confirmPassword,
+            @RequestParam(value = "role", defaultValue = "USER") String role,
+            RedirectAttributes redirectAttributes) {
+        
+        // Validation
+        if (username == null || username.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Username là bắt buộc!");
+            return "redirect:/register";
+        }
+        
+        if (email == null || email.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Email là bắt buộc!");
+            return "redirect:/register";
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Password là bắt buộc!");
+            return "redirect:/register";
+        }
+        
+        if (!password.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Password và xác nhận password không khớp!");
+            return "redirect:/register";
+        }
+        
+        try {
+            // Tạo user mới
+            User newUser = new User();
+            newUser.setUsername(username.trim());
+            newUser.setEmail(email.trim());
+            newUser.setPassword(password);
+            newUser.setRole(role.toUpperCase());
+            newUser.setIsActive(true);
+            newUser.setCreatedAt(java.time.Instant.now());
+            newUser.setUpdatedAt(java.time.Instant.now());
+            newUser.setCreatedBy("system");
+            
+            User created = userService.createUser(newUser);
+            
+            if (created != null) {
+                redirectAttributes.addFlashAttribute("successMessage", "Đăng ký thành công! Vui lòng đăng nhập.");
+                return "redirect:/login";
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "Đăng ký thất bại! Vui lòng thử lại.");
+                return "redirect:/register";
+            }
+        } catch (Exception e) {
+            System.err.println("Error during registration: " + e.getMessage());
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi đăng ký: " + (e.getMessage() != null ? e.getMessage() : "Vui lòng thử lại."));
+            return "redirect:/register";
+        }
     }
 
     // API endpoint để lấy token từ session

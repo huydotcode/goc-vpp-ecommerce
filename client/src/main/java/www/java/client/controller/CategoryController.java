@@ -1,5 +1,6 @@
 package www.java.client.controller;
 
+import www.java.client.annotation.RequireAdmin;
 import www.java.client.model.Category;
 import www.java.client.model.PaginatedResponse;
 import www.java.client.service.CategoryService;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 @Controller
 @RequestMapping("/categories")
+@RequireAdmin
 public class CategoryController {
 
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);

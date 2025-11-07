@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giỏ hàng - Văn phòng phẩm</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <link rel="stylesheet" th:href="@{/css/shop.css}" />
+    <link rel="stylesheet" th:href="@{/css/cart.css}" />
+</head>
+<body>
+    <div th:replace="~{client/fragments/header :: client-header(null)}"></div>
+
+    <!-- Breadcrumb -->
+    <div class="cart-breadcrumb">
+        <div class="breadcrumb-container">
+            <a th:href="@{/shop}"><i class="fas fa-home"></i> Trang chủ</a>
+            <span class="separator"><i class="fas fa-chevron-right"></i></span>
+            <span class="current">Giỏ hàng</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="cart-container">
+        <div class="cart-page">
+            <!-- Page Header -->
+            <div class="cart-page-header">
+                <h1 class="cart-page-title">
+                    <i class="fas fa-shopping-cart"></i>
+                    Giỏ hàng của bạn
+                </h1>
+            </div>
+
+            <!-- Empty Cart State -->
+            <div class="empty-cart-state" id="emptyCartState" style="display: none;">
+                <div class="empty-cart-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <h2>Giỏ hàng trống</h2>
+                <p>Bạn chưa có sản phẩm nào trong giỏ hàng</p>
+                <a th:href="@{/shop}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i>
+                    Tiếp tục mua sắm
+                </a>
+            </div>
+
+            <!-- Cart Items & Summary -->
+            <div class="cart-content">
+                <!-- Cart Items List -->
+                <div class="cart-items-section">
+                    <div class="cart-items-header">
+                        <div class="items-count">
+                            Số sản phẩm: <span id="cartItemCount">0</span>
+                        </div>
+                        <button class="btn-clear-cart" onclick="clearEntireCart()" style="display: none;" id="clearCartBtn">
+                            <i class="fas fa-trash"></i>
+                            Xóa tất cả
+                        </button>
+                    </div>
+                    <div class="cart-items-list" id="cartItemsContainer">
+                        <!-- Cart items will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Cart Summary Sidebar -->
+                <div class="cart-summary-section">
+                    <div class="cart-summary-card">
+                        <h2 class="summary-title">
+                            <i class="fas fa-calculator"></i>
+                            Tóm tắt đơn hàng
+                        </h2>
+
+                        <div class="summary-row">
+                            <span class="summary-label">Tạm tính:</span>
+                            <span class="summary-value" id="cartSubtotal">₫0</span>
+                        </div>
+
+                        <div class="summary-row" id="promotionRow" style="display: none;">
+                            <span class="summary-label">Khuyến mãi:</span>
+                            <span class="summary-value savings" id="promotionTotal">₫0</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span class="summary-label">Tiết kiệm:</span>
+                            <span class="summary-value savings" id="cartSavings">₫0</span>
+                        </div>
+
+                        <div class="summary-row divider">
+                            <span class="summary-label">Phí vận chuyển:</span>
+                            <span class="summary-value">Miễn phí</span>
+                        </div>
+
+                        <div class="summary-row total">
+                            <span class="summary-label">Tổng cộng:</span>
+                            <span class="summary-value total-amount" id="cartTotal">₫0</span>
+                        </div>
+
+                        <ul class="promotion-list" id="promotionList"></ul>
+
+                        <button class="btn btn-checkout" onclick="proceedToCheckout()">
+                            <i class="fas fa-lock"></i>
+                            Tiến hành thanh toán
+                        </button>
+
+                        <button class="btn btn-continue" onclick="continueShopping()">
+                            <i class="fas fa-arrow-left"></i>
+                            Tiếp tục mua sắm
+                        </button>
+
+                        <!-- Trust Badges -->
+                        <div class="trust-badges">
+                            <div class="trust-badge">
+                                <i class="fas fa-truck"></i>
+                                <span>Giao hàng nhanh</span>
+                            </div>
+                            <div class="trust-badge">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Thanh toán an toàn</span>
+                            </div>
+                            <div class="trust-badge">
+                                <i class="fas fa-undo"></i>
+                                <span>Hoàn tiền 30 ngày</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations Section -->
+            <div class="cart-recommendations" style="display: none;" id="recommendationsSection">
+                <h2 class="recommendations-title">
+                    <i class="fas fa-lightbulb"></i>
+                    Gợi ý cho bạn
+                </h2>
+                <div class="recommendations-grid" id="recommendationsGrid">
+                    <!-- Recommendations will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 2000;"></div>
+
+    <!-- Scripts -->
+    <script th:src="@{/js/lib.js}"></script>
+    <script th:src="@{/js/cart-manager.js}"></script>
+    <script>
+        // Theme toggle functions
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+        
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+            if (text) {
+                text.textContent = theme === 'dark' ? 'Light' : 'Dark';
+            }
+        }
+
+        // Initialize cart page
+        async function initCartPage() {
+            initTheme();
+            updateCartBadge();
+            
+            const cartItems = getCartItems();
+            const clearBtn = document.getElementById('clearCartBtn');
+            if (clearBtn) {
+                clearBtn.style.display = cartItems.length > 0 ? 'block' : 'none';
+            }
+            
+            await loadActivePromotions();
+            await displayCartItems();
+        }
+
+        // Listen to cart updates
+        document.addEventListener('cart:updated', function() {
+            updateCartBadge();
+            displayCartItems();
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            initCartPage();
+        });
+    </script>
+</body>
+</html>

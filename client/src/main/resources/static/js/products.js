@@ -4,6 +4,179 @@ const productManager = new EntityManager('products', `${BACKEND_URL}/products`, 
 const productThumbUpload = new ImageUploadManager({ resourceType: 'image', module: 'products', fieldName: 'thumbnailUrl' });
 const productGalleryUpload = new ImageUploadManager({ resourceType: 'image', module: 'product-images', fieldName: 'imageUrl' });
 
+let allCategories = [];
+
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+async function loadAllCategories() {
+    try {
+        const res = await apiCall(`${BACKEND_URL}/categories/advanced?page=1&size=1000&isActive=true&sort=name&direction=asc`, { method: 'GET' });
+        if (res.ok && res.data) {
+            const payload = res.data.data || res.data;
+            // PaginatedResponseDTO có structure: { metadata: {...}, result: [...] }
+            if (payload && payload.result && Array.isArray(payload.result)) {
+                allCategories = payload.result;
+            } else if (Array.isArray(payload)) {
+                allCategories = payload;
+            } else {
+                allCategories = [];
+            }
+            return allCategories;
+        }
+        return [];
+    } catch (error) {
+        console.error('[Products] Error loading categories:', error);
+        return [];
+    }
+}
+
+function formatCategoryDate(dateString) {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('vi-VN', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit' 
+        });
+    } catch (error) {
+        return '-';
+    }
+}
+
+function populateCategoriesMultiselect(wrapperId, selectedCategoryIds = []) {
+    const wrapper = document.getElementById(wrapperId);
+    if (!wrapper) return;
+    
+    const dropdown = wrapper.querySelector('.multiselect-dropdown');
+    const searchInput = wrapper.querySelector('.multiselect-search input');
+    const selectedContainer = wrapper.querySelector('.multiselect-selected');
+    const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+    
+    if (!dropdown || !selectedContainer || !hiddenInput) return;
+    
+    let selectedIds = Array.isArray(selectedCategoryIds) ? [...selectedCategoryIds] : [];
+    let searchQuery = '';
+    
+    function renderDropdown() {
+        dropdown.innerHTML = '';
+        
+        if (allCategories.length === 0) {
+            dropdown.innerHTML = '<div class="multiselect-loading">Chưa có danh mục</div>';
+            return;
+        }
+        
+        const filtered = allCategories.filter(cat => {
+            if (!cat || !cat.id || !cat.isActive) return false;
+            if (!searchQuery) return true;
+            const query = searchQuery.toLowerCase();
+            const name = (cat.name || '').toLowerCase();
+            const id = String(cat.id || '');
+            return name.includes(query) || id.includes(query);
+        });
+        
+        if (filtered.length === 0) {
+            dropdown.innerHTML = '<div class="multiselect-loading">Không tìm thấy danh mục</div>';
+            return;
+        }
+        
+        filtered.forEach((cat, index) => {
+            const isSelected = selectedIds.includes(cat.id);
+            const catName = cat.name || `Category #${cat.id}`;
+            const createdAt = formatCategoryDate(cat.createdAt);
+            
+            const item = document.createElement('div');
+            item.className = `multiselect-item ${isSelected ? 'selected' : ''}`;
+            item.innerHTML = `
+                <input type="checkbox" ${isSelected ? 'checked' : ''} data-category-id="${cat.id}" />
+                <div class="multiselect-item-label">
+                    <span class="multiselect-item-name">${cat.id} - ${escapeHtml(catName)}</span>
+                    <span class="multiselect-item-meta">Ngày tạo: ${createdAt}</span>
+                </div>
+            `;
+            
+            item.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') return;
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                checkbox.checked = !checkbox.checked;
+                toggleCategory(cat.id, checkbox.checked);
+            });
+            
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', (e) => {
+                toggleCategory(cat.id, e.target.checked);
+            });
+            
+            dropdown.appendChild(item);
+        });
+    }
+    
+    function toggleCategory(categoryId, isSelected) {
+        if (isSelected) {
+            if (!selectedIds.includes(categoryId)) {
+                selectedIds.push(categoryId);
+            }
+        } else {
+            selectedIds = selectedIds.filter(id => id !== categoryId);
+        }
+        renderSelected();
+        renderDropdown();
+        updateHiddenInput();
+    }
+    
+    function renderSelected() {
+        selectedContainer.innerHTML = '';
+        
+        if (selectedIds.length === 0) {
+            selectedContainer.innerHTML = '<div class="multiselect-selected-empty">Chưa chọn danh mục nào</div>';
+            return;
+        }
+        
+        selectedIds.forEach(categoryId => {
+            const cat = allCategories.find(c => c && c.id === categoryId);
+            if (!cat) return;
+            
+            const tag = document.createElement('div');
+            tag.className = 'multiselect-tag';
+            tag.innerHTML = `
+                <span>${cat.id} - ${escapeHtml(cat.name || `Category #${cat.id}`)}</span>
+                <span class="multiselect-tag-remove" data-category-id="${categoryId}">×</span>
+            `;
+            
+            const removeBtn = tag.querySelector('.multiselect-tag-remove');
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleCategory(categoryId, false);
+            });
+            
+            selectedContainer.appendChild(tag);
+        });
+    }
+    
+    function updateHiddenInput() {
+        hiddenInput.value = JSON.stringify(selectedIds.map(id => ({ id: id })));
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim();
+            renderDropdown();
+        });
+    }
+    
+    renderDropdown();
+    renderSelected();
+    updateHiddenInput();
+}
+
 window.addEventListener('load', function() {
     const filterForm = document.getElementById('filterForm');
     if (filterForm) {
@@ -36,7 +209,12 @@ function resetProductsFilters() {
 }
 
 // CREATE
-function showCreateProductModal() { clearCreateProductForm(); showModal('createProductModal'); }
+async function showCreateProductModal() {
+    clearCreateProductForm();
+    await loadAllCategories();
+    populateCategoriesMultiselect('createCategoriesWrapper', []);
+    showModal('createProductModal');
+}
 function clearCreateProductForm() {
     const form = document.getElementById('createProductForm');
     if (form) {
@@ -54,6 +232,9 @@ function clearCreateProductForm() {
             thumbPreview.innerHTML = '';
             thumbPreview.classList.remove('show');
         }
+        const searchInput = document.getElementById('createCategoriesSearch');
+        if (searchInput) searchInput.value = '';
+        populateCategoriesMultiselect('createCategoriesWrapper', []);
     }
     clearFieldErrors('createProductForm');
 }
@@ -117,6 +298,17 @@ async function submitCreateProduct() {
         isActive: form.querySelector('[name="isActive"]').checked,
         isFeatured: form.querySelector('[name="isFeatured"]').checked
     };
+    const categoriesHidden = document.getElementById('createCategories');
+    if (categoriesHidden && categoriesHidden.value) {
+        try {
+            const selectedCategories = JSON.parse(categoriesHidden.value);
+            if (Array.isArray(selectedCategories) && selectedCategories.length > 0) {
+                data.categories = selectedCategories;
+            }
+        } catch (e) {
+            console.error('[ProductCreate] Error parsing categories:', e);
+        }
+    }
     if (!data.name) { showFieldError('createName', 'Tên là bắt buộc'); showNotification('Vui lòng nhập tên', 'error'); return; }
     if (!data.sku) { showFieldError('createSku', 'SKU là bắt buộc'); showNotification('Vui lòng nhập SKU', 'error'); return; }
 
@@ -383,6 +575,15 @@ function populateProductView(p) {
     document.getElementById('viewProdDimensions').textContent = p.dimensions ?? '-';
     document.getElementById('viewProdSpecifications').textContent = p.specifications ?? '-';
     document.getElementById('viewProdDescription').textContent = p.description ?? '-';
+    const categoriesEl = document.getElementById('viewProdCategories');
+    if (categoriesEl) {
+        if (Array.isArray(p.categories) && p.categories.length > 0) {
+            const categoryNames = p.categories.map(c => c?.name || `Category #${c?.id || ''}`).filter(n => n).join(', ');
+            categoriesEl.textContent = categoryNames || '-';
+        } else {
+            categoriesEl.textContent = '-';
+        }
+    }
     document.getElementById('viewProdActive').textContent = p.isActive ? 'Active' : 'Inactive';
     document.getElementById('viewProdFeatured').textContent = p.isFeatured ? 'Có' : 'Không';
     const thumb = document.getElementById('viewProdThumb');
@@ -554,6 +755,7 @@ window.closeProductGallery = closeProductGallery;
 // EDIT VIA MODAL (FULL FORM)
 async function openEditProductModal(id) {
     try {
+        await loadAllCategories();
         const res = await apiCall(`${BACKEND_URL}/products/${id}`, { method: 'GET' });
         if (!res.ok) { showNotification('Không tải được product', 'error'); return; }
         const p = res.data.data || res.data;
@@ -573,6 +775,10 @@ async function openEditProductModal(id) {
         document.getElementById('editThumbnailUrl').value = p.thumbnailUrl || '';
         document.getElementById('editIsActive').checked = !!p.isActive;
         document.getElementById('editIsFeatured').checked = !!p.isFeatured;
+        const selectedCategoryIds = Array.isArray(p.categories) ? p.categories.map(c => c?.id).filter(id => id != null) : [];
+        const searchInput = document.getElementById('editCategoriesSearch');
+        if (searchInput) searchInput.value = '';
+        populateCategoriesMultiselect('editCategoriesWrapper', selectedCategoryIds);
         // Hiển thị preview thumbnail nếu có
         const previewContainer = document.getElementById('editThumbnailUrlPreviewContainer');
         if (previewContainer && p.thumbnailUrl) {
@@ -619,6 +825,20 @@ async function submitUpdateProduct() {
         isActive: document.getElementById('editIsActive').checked,
         isFeatured: document.getElementById('editIsFeatured').checked
     };
+    const categoriesHidden = document.getElementById('editCategories');
+    if (categoriesHidden) {
+        if (categoriesHidden.value) {
+            try {
+                const selectedCategories = JSON.parse(categoriesHidden.value);
+                body.categories = Array.isArray(selectedCategories) ? selectedCategories : [];
+            } catch (e) {
+                console.error('[ProductEdit] Error parsing categories:', e);
+                body.categories = [];
+            }
+        } else {
+            body.categories = [];
+        }
+    }
     if (!body.name) { showNotification('Tên là bắt buộc', 'error'); return; }
     if (!body.sku) { showNotification('SKU là bắt buộc', 'error'); return; }
     try {

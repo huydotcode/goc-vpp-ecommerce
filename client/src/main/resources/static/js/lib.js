@@ -152,6 +152,37 @@ function hideNotification(notification) {
     }, 300);
 }
 
+function initClientHeaderNav() {
+    const navLinks = document.querySelectorAll('.client-nav a[data-nav]');
+    if (!navLinks || navLinks.length === 0) {
+        return;
+    }
+
+    const path = window.location.pathname.toLowerCase();
+    const query = window.location.search.toLowerCase();
+    let activeKey = 'home';
+
+    if (path.startsWith('/client/home') || path === '/' || path === '') {
+        activeKey = 'home';
+    } else if (path.includes('/user')) {
+        activeKey = 'account';
+    } else if (query.includes('promo') || path.includes('/promotion')) {
+        activeKey = 'promotion';
+    } else if (query.includes('view=categories') || path.includes('/category')) {
+        activeKey = 'categories';
+    } else if (path.includes('/shop')) {
+        activeKey = 'products';
+    }
+
+    navLinks.forEach(link => {
+        if (link.dataset.nav === activeKey) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+
 // ==================== PAGINATION & FILTERING ====================
 
 function changePageSize() {
@@ -449,6 +480,105 @@ function triggerFileInput(uploadArea) {
     }
 }
 
+// ==================== CART STORAGE ====================
+
+const CART_STORAGE_KEY = 'cart';
+
+function getCartItems() {
+    try {
+        const raw = localStorage.getItem(CART_STORAGE_KEY);
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        return parsed
+            .filter(item => item && typeof item.productID !== 'undefined')
+            .map(item => ({
+                productID: String(item.productID),
+                quantity: normalizeCartQuantity(item.quantity)
+            }))
+            .filter(item => item.quantity > 0);
+    } catch (error) {
+        console.warn('Failed to parse cart from localStorage', error);
+        return [];
+    }
+}
+
+function saveCartItems(cartItems) {
+    const safeItems = Array.isArray(cartItems) ? cartItems : [];
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(safeItems));
+    document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart: safeItems }}));
+    return safeItems;
+}
+
+function normalizeCartQuantity(quantity) {
+    const numeric = Number.parseInt(quantity, 10);
+    if (Number.isNaN(numeric) || numeric < 0) {
+        return 0;
+    }
+    return numeric;
+}
+
+function addCartItem(productID, quantity = 1) {
+    if (typeof productID === 'undefined' || productID === null) {
+        throw new Error('productID is required');
+    }
+    const normalizedId = String(productID);
+    const currentCart = getCartItems();
+    const normalizedQuantity = Math.max(1, normalizeCartQuantity(quantity) || 1);
+    const existing = currentCart.find(item => item.productID === normalizedId);
+
+    if (existing) {
+        existing.quantity = Math.max(1, existing.quantity + normalizedQuantity);
+    } else {
+        currentCart.push({ productID: normalizedId, quantity: normalizedQuantity });
+    }
+
+    return saveCartItems(currentCart);
+}
+
+function updateCartItem(productID, quantity) {
+    const normalizedId = String(productID);
+    const normalizedQuantity = normalizeCartQuantity(quantity);
+    const currentCart = getCartItems();
+    const itemIndex = currentCart.findIndex(item => item.productID === normalizedId);
+    if (itemIndex === -1) {
+        return currentCart;
+    }
+
+    if (normalizedQuantity <= 0) {
+        currentCart.splice(itemIndex, 1);
+    } else {
+        currentCart[itemIndex].quantity = normalizedQuantity;
+    }
+
+    return saveCartItems(currentCart);
+}
+
+function removeCartItem(productID) {
+    const normalizedId = String(productID);
+    const currentCart = getCartItems().filter(item => item.productID !== normalizedId);
+    return saveCartItems(currentCart);
+}
+
+function clearCart() {
+    return saveCartItems([]);
+}
+
+function getCartQuantity() {
+    return getCartItems().reduce((total, item) => total + normalizeCartQuantity(item.quantity), 0);
+}
+
+function getCartSummary() {
+    return {
+        items: getCartItems(),
+        totalQuantity: getCartQuantity()
+    };
+}
+
 // ==================== FORM FIELD ERROR HANDLING ====================
 
 function showFieldError(fieldId, message) {
@@ -507,6 +637,10 @@ function updateUploadProgress(percent, modalId = null) {
 }
 
 // ==================== INITIALIZATION ====================
+
+document.addEventListener('DOMContentLoaded', function() {
+    initClientHeaderNav();
+});
 
 window.addEventListener('load', function() {
     setupDragAndDrop();

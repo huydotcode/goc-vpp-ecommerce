@@ -62,12 +62,14 @@ public class ProductController {
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "sku", required = false) String sku,
             @RequestParam(name = "brand", required = false) String brand,
+            @RequestParam(name = "categoryId", required = false) Long categoryId,
+            @RequestParam(name = "isFeatured", required = false) Boolean isFeatured,
             @RequestParam(name = "isActive", required = false) Boolean isActive,
             @RequestParam(name = "search", required = false) String search
     ) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortField);
         Pageable pageable = PageRequest.of(page - 1, size, sort);
-        Page<Product> result = productService.getProductsPageWithFilters(pageable, id, name, sku, brand, isActive, search);
+        Page<Product> result = productService.getProductsPageWithFilters(pageable, id, name, sku, brand, categoryId, isFeatured, isActive, search);
         MetadataDTO metadata = MetadataDTO.builder()
                 .page(page)
                 .size(size)

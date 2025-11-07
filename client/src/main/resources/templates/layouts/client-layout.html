@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title layout:fragment="page-title">Văn phòng phẩm</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <link rel="stylesheet" th:href="@{/css/shop.css}" />
+    <th:block layout:fragment="page-css"></th:block>
+</head>
+<body>
+    <div th:replace="client/fragments/header :: client-header(${search})"></div>
+
+    <main layout:fragment="content"></main>
+
+    <script th:src="@{/js/lib.js}"></script>
+    <script th:src="@{/js/cart-manager.js}"></script>
+    <th:block layout:fragment="page-js"></th:block>
+    <th:block layout:fragment="page-scripts"></th:block>
+</body>
+</html>
+

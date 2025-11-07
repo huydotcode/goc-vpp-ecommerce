@@ -39,16 +39,24 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<Product> getProductsPageWithFilters(Pageable pageable, Long id, String name, String sku, String brand, Boolean isActive, String search) {
+    public Page<Product> getProductsPageWithFilters(Pageable pageable,
+                                                    Long id,
+                                                    String name,
+                                                    String sku,
+                                                    String brand,
+                                                    Long categoryId,
+                                                    Boolean isFeatured,
+                                                    Boolean isActive,
+                                                    String search) {
         if (id != null) {
             return productRepository.findProductsByIdOnly(String.valueOf(id), pageable);
         }
-        return productRepository.findProductsWithFiltersPaged(name, sku, brand, isActive, search, pageable);
+        return productRepository.findProductsWithFiltersPaged(name, sku, brand, categoryId, isFeatured, isActive, search, pageable);
     }
 
     @Override
-    public List<Product> getProductsWithFilters(String name, String sku, String brand, Boolean isActive) {
-        return productRepository.findProductsWithFilters(name, sku, brand, isActive);
+    public List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId, Boolean isFeatured, Boolean isActive) {
+        return productRepository.findProductsWithFilters(name, sku, brand, categoryId, isFeatured, isActive);
     }
 
     @Override
@@ -82,6 +90,9 @@ public class ProductServiceImpl implements ProductService {
             existing.setDimensions(product.getDimensions());
             existing.setSpecifications(product.getSpecifications());
             existing.setThumbnailUrl(product.getThumbnailUrl());
+            if (product.getCategories() != null) {
+                existing.setCategories(product.getCategories());
+            }
             existing.setIsActive(product.getIsActive());
             existing.setIsFeatured(product.getIsFeatured());
             return productRepository.save(existing);

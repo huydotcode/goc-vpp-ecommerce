@@ -36,7 +36,7 @@ public class ProductService {
     public PaginatedResponse<Product> getProductsWithPagination(int page, int size, String sort,
                                                                 String direction, String id,
                                                                 String name, String sku, String brand,
-                                                                Boolean isActive, String search) {
+                                                                Long categoryId, Boolean isFeatured, Boolean isActive, String search) {
         try {
             StringBuilder url = new StringBuilder(BASE_URL + "/advanced");
             url.append("?page=").append(page)
@@ -47,6 +47,8 @@ public class ProductService {
             if (name != null && !name.trim().isEmpty()) url.append("&name=").append(name);
             if (sku != null && !sku.trim().isEmpty()) url.append("&sku=").append(sku);
             if (brand != null && !brand.trim().isEmpty()) url.append("&brand=").append(brand);
+            if (categoryId != null) url.append("&categoryId=").append(categoryId);
+            if (isFeatured != null) url.append("&isFeatured=").append(isFeatured);
             if (isActive != null) url.append("&isActive=").append(isActive);
             if (search != null && !search.trim().isEmpty()) url.append("&search=").append(search);
 
@@ -91,11 +93,51 @@ public class ProductService {
         );
     }
 
+    public Product getProductById(Long id) {
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                BASE_URL + "/" + id, HttpMethod.GET, new HttpEntity<>(createHeaders()), String.class
+            );
+            return extractData(response.getBody(), Product.class);
+        } catch (Exception e) {
+            System.out.println("[FE/ProductService] Error getting product by id: " + e.getMessage());
+            return null;
+        }
+    }
+
     public ProductImage createProductImage(ProductImage image) {
         ResponseEntity<String> response = restTemplate.exchange(
             IMAGE_URL, HttpMethod.POST, new HttpEntity<>(image, createHeaders()), String.class
         );
         return extractData(response.getBody(), ProductImage.class);
+    }
+
+    public java.util.List<ProductImage> getProductImagesByProductId(Long productId) {
+        try {
+            String url = IMAGE_URL + "?productId=" + productId;
+            ResponseEntity<String> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(createHeaders()), String.class
+            );
+            String body = response.getBody();
+            if (body == null || body.isBlank()) return new java.util.ArrayList<>();
+            
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            JsonNode root = mapper.readTree(body);
+            
+            if (root.has("status") && "success".equals(root.get("status").asText())) {
+                JsonNode data = root.get("data");
+                if (data != null && data.isArray()) {
+                    return mapper.readValue(data.toString(), 
+                        mapper.getTypeFactory().constructCollectionType(java.util.List.class, ProductImage.class));
+                }
+            }
+            return new java.util.ArrayList<>();
+        } catch (Exception e) {
+            System.out.println("[FE/ProductService] Error getting product images: " + e.getMessage());
+            return new java.util.ArrayList<>();
+        }
     }
 
     private <T> T extractData(String responseBody, Class<T> clazz) {

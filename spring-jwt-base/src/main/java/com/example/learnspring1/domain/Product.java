@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -60,6 +62,16 @@ public class Product {
     private String specifications;
 
     private String thumbnailUrl;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "product_categories",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @JsonIgnoreProperties(value = {"hibernateLazyInitializer", "handler"})
+    @Builder.Default
+    private List<Category> categories = new ArrayList<>();
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

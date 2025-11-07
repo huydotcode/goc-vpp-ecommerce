@@ -2,6 +2,7 @@ package www.java.client.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 import lombok.Data;
 
@@ -21,6 +22,7 @@ public class Product {
     private String dimensions;
     private String specifications;
     private String thumbnailUrl;
+    private List<Category> categories;
     private Boolean isActive;
     private Boolean isFeatured;
     private Instant createdAt;

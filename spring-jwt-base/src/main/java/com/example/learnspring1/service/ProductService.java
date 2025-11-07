@@ -20,10 +20,12 @@ public interface ProductService {
                                              String name,
                                              String sku,
                                              String brand,
+                                             Long categoryId,
+                                             Boolean isFeatured,
                                              Boolean isActive,
                                              String search);
 
-    List<Product> getProductsWithFilters(String name, String sku, String brand, Boolean isActive);
+    List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId, Boolean isFeatured, Boolean isActive);
 
     Optional<Product> getProductById(Long id);
 
