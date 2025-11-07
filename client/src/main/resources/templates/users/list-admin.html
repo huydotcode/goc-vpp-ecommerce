@@ -180,7 +180,7 @@
                                                 <div class="inline-upload-area" th:attr="data-user-id=${user.id}" onclick="triggerFileInput(this)">
                                                     <i class="fas fa-cloud-upload-alt inline-upload-icon"></i>
                                                     <div class="inline-upload-text">Kéo thả ảnh hoặc click</div>
-                                                    <div class="inline-upload-hint">JPG, PNG, WEBP, AVIF - max 2MB</div>
+                                                    <div class="inline-upload-hint">JPG, PNG, WEBP, AVIF - max 5MB</div>
                                                     <input type="file" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" 
                                                            th:id="'avatarUrlFile' + ${user.id}" th:attr="data-user-id=${user.id}, onchange='handleAvatarUpload(this, ' + ${user.id} + ')'" />
                                                 </div>
@@ -309,7 +309,7 @@
                         <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
                             <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
                             <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
-                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - Tối đa 2MB</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - Tối đa 5MB</div>
                             <input type="file" id="createAvatarUrlFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleAvatarUpload(this)" />
                         </div>
                         <div class="upload-progress-container" id="createProgressContainer">

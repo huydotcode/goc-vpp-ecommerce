@@ -7,7 +7,7 @@ class ImageUploadManager {
     constructor(options = {}) {
         this.resourceType = options.resourceType || 'image'; // 'image', 'video', 'raw'
         this.module = options.module || 'shared'; // 'users', 'categories'
-        this.maxSizeMB = options.maxSizeMB || 2;
+        this.maxSizeMB = options.maxSizeMB || 5;
         this.fieldName = options.fieldName || 'avatarUrl'; // 'avatarUrl', 'thumbnailUrl'
         this.previewSelector = options.previewSelector || '.upload-preview-container';
         

@@ -874,9 +874,54 @@ async function submitUpdateProduct() {
     }
 }
 
+// Mock Data Functions
+function showMockDataMenu() {
+    const container = document.getElementById('mockDataItemsContainer');
+    if (!container) return;
+    
+    // Clear existing items
+    container.innerHTML = '';
+    
+    // Populate mock data items
+    if (window.mockProducts && Array.isArray(window.mockProducts)) {
+        window.mockProducts.forEach((product, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'mock-data-item';
+            itemDiv.style.cssText = 'padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;';
+            itemDiv.onmouseover = function() { this.style.backgroundColor = 'var(--primary-light)'; };
+            itemDiv.onmouseout = function() { this.style.backgroundColor = ''; };
+            itemDiv.onclick = function() { selectMockProduct(index); };
+            
+            const price = product.price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price) : '-';
+            
+            itemDiv.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(product.name || '-')}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">SKU: ${escapeHtml(product.sku || '-')}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Giá: ${price}</div>
+            `;
+            
+            container.appendChild(itemDiv);
+        });
+    }
+    showModal('mockDataMenu');
+}
+
+function selectMockProduct(index) {
+    if (window.fillProductByIndex) {
+        window.fillProductByIndex(index);
+        closeModal('mockDataMenu');
+        // Open create modal if not already open
+        if (!document.getElementById('createProductModal')?.classList.contains('show')) {
+            showCreateProductModal();
+        }
+    }
+}
+
 // expose
 window.openEditProductModal = openEditProductModal;
 window.submitUpdateProduct = submitUpdateProduct;
 window.handleAddEditProductImages = handleAddEditProductImages;
 window.deleteEditProductImage = deleteEditProductImage;
+window.showMockDataMenu = showMockDataMenu;
+window.selectMockProduct = selectMockProduct;
 

@@ -11,6 +11,7 @@
     <script th:src="@{/js/lib.js}"></script>
     <script th:src="@{/js/entity-manager.js}"></script>
     <script th:src="@{/js/image-upload-manager.js}"></script>
+    <script th:src="@{/js/product-mock-data.js}"></script>
     <script th:src="@{/js/products.js}"></script>
     <style>
         .thumb { width:48px; height:48px; object-fit:cover; border-radius:4px; cursor:pointer; }
@@ -38,9 +39,14 @@
                 <div class="admin-card-header">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <h4 style="margin:0;"><i class="fas fa-box"></i> Danh sách Products</h4>
-                        <button type="button" class="btn btn-primary" onclick="showCreateProductModal()">
-                            <i class="fas fa-plus"></i> Thêm Product
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-secondary" onclick="showMockDataMenu()" title="Điền dữ liệu mẫu">
+                                <i class="fas fa-database"></i> Mock Data
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="showCreateProductModal()">
+                                <i class="fas fa-plus"></i> Thêm Product
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="admin-card-body">
@@ -271,7 +277,7 @@
                         <div class="upload-area" onclick="triggerFileInput(this)" data-edit-mode="true">
                             <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
                             <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
-                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 5MB</div>
                             <input type="file" id="editThumbnailUrlFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleEditProductThumbnailUpload(this)" />
                         </div>
                         <div class="upload-progress-container" id="editProductProgressContainer">
@@ -288,7 +294,7 @@
                         <div class="upload-area" onclick="triggerFileInput(this)" data-edit-mode="true">
                             <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
                             <div class="upload-area-text">Kéo thả nhiều ảnh hoặc click để chọn</div>
-                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB/ảnh</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 5MB/ảnh</div>
                             <input type="file" id="editProductImagesFiles" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange="handleAddEditProductImages(this)" />
                         </div>
                         <div id="editProductImagesPreviewContainer" class="upload-preview-container"></div>
@@ -316,7 +322,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Thêm Product</h3>
-                <button class="modal-close" onclick="closeModal('createProductModal')">&times;</button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="fillRandomProduct()" title="Điền dữ liệu mẫu ngẫu nhiên">
+                        <i class="fas fa-dice"></i> Mock Data
+                    </button>
+                    <button class="modal-close" onclick="closeModal('createProductModal')">&times;</button>
+                </div>
             </div>
             <div class="modal-body">
                 <form id="createProductForm" th:action="@{/products}" method="post">
@@ -403,7 +414,7 @@
                         <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
                             <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
                             <div class="upload-area-text">Kéo thả ảnh vào đây hoặc click để chọn</div>
-                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 5MB</div>
                             <input type="file" id="createThumbnailUrlFile" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" onchange="handleProductThumbnailUpload(this)" />
                         </div>
                         <div class="upload-progress-container" id="createProductProgressContainer">
@@ -420,7 +431,7 @@
                         <div class="upload-area" onclick="triggerFileInput(this)" data-create-mode="true">
                             <i class="fas fa-cloud-upload-alt upload-area-icon"></i>
                             <div class="upload-area-text">Kéo thả nhiều ảnh hoặc click để chọn</div>
-                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 2MB/ảnh</div>
+                            <div class="upload-area-hint">JPG, PNG, WEBP, AVIF - tối đa 5MB/ảnh</div>
                             <input type="file" id="createProductImagesFiles" class="upload-area-file-input" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange="handleAddCreateProductImages(this)" />
                         </div>
                         <div id="createProductImagesPreviewContainer" class="upload-preview-container"></div>
@@ -464,6 +475,24 @@
             </div>
             <div class="drawer-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeDrawer('productImagesDrawer')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mock Data Menu -->
+    <div id="mockDataMenu" class="modal" style="z-index: 10001;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Chọn Mock Data</h3>
+                <button class="modal-close" onclick="closeModal('mockDataMenu')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; max-height: 500px; overflow-y: auto;" id="mockDataItemsContainer">
+                    <!-- Mock data items will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('mockDataMenu')">Đóng</button>
             </div>
         </div>
     </div>

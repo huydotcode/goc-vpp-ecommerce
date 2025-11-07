@@ -175,7 +175,7 @@ async function displayCartItems() {
     });
 
     const promotionResult = calculatePromotionDiscount(cartItems, products);
-    const promotionDiscount = promotionResult.discount;
+    const promotionDiscount = promotionResult.discount || 0;
     const finalTotal = Math.max(discountedSubtotal - promotionDiscount, 0);
 
     updateCartSummary(totalQuantity, subtotalBeforeDiscount, totalSavings + promotionDiscount, finalTotal);
@@ -237,54 +237,85 @@ function buildCartItemKey(productId) {
 
 function calculatePromotionDiscount(cartItems, products) {
     if (!Array.isArray(activePromotions) || activePromotions.length === 0) {
-        return { discount: 0, applied: [] };
+        return { discount: 0, applied: [], gifts: [] };
     }
 
     const productMap = new Map();
     cartItems.forEach((item, index) => {
         const product = products[index];
         if (product) {
-            const key = buildCartItemKey(item.productID);
+            // Đảm bảo product ID được convert sang string để so sánh đúng
+            const productId = product.id || product.productId || item.productID;
+            const key = buildCartItemKey(productId);
             productMap.set(key, {
                 product,
                 quantity: item.quantity
             });
-        }
-    });
-
-    let totalPromotionDiscount = 0;
-    const appliedPromotions = [];
-
-    activePromotions.forEach((promotion) => {
-        if (!promotion || promotion.isActive === false) {
-            return;
-        }
-
-        const result = evaluateDiscountPromotion(promotion, productMap);
-        if (result.timesApplied > 0) {
-            const discountValue = result.discountAmount * result.timesApplied;
-            if (discountValue > 0) {
-                totalPromotionDiscount += discountValue;
-                appliedPromotions.push({
-                    name: promotion.name || 'Unnamed promotion',
-                    amount: discountValue,
-                    details: result.details
+            // Cũng thêm với key từ item.productID để đảm bảo match
+            const itemKey = buildCartItemKey(item.productID);
+            if (key !== itemKey) {
+                productMap.set(itemKey, {
+                    product,
+                    quantity: item.quantity
                 });
             }
         }
+    });
+    
+    console.log('[Promotion] Cart items:', cartItems);
+    console.log('[Promotion] Product map:', Array.from(productMap.entries()));
 
-        if (promotion.discountType === 'GIFT' && result.timesApplied > 0) {
-            appliedPromotions.push({
-                name: promotion.name || 'Gift promotion',
-                amount: 0,
-                note: 'Tặng quà'
-            });
+    let totalPromotionDiscount = 0;
+    const appliedPromotions = [];
+    const appliedGifts = [];
+
+    console.log('[Promotion] Active promotions:', activePromotions);
+    
+    activePromotions.forEach((promotion, index) => {
+        if (!promotion || promotion.isActive === false) {
+            console.log(`[Promotion] Promotion ${index} is not active or invalid`);
+            return;
+        }
+
+        console.log(`[Promotion] Processing promotion ${index}:`, promotion.name, 'Type:', promotion.discountType);
+
+        if (promotion.discountType === 'DISCOUNT_AMOUNT') {
+            const result = evaluateDiscountPromotion(promotion, productMap);
+            if (result.timesApplied > 0) {
+                const discountValue = toNumber(promotion.discountAmount) * result.timesApplied;
+                if (discountValue > 0) {
+                    totalPromotionDiscount += discountValue;
+                    appliedPromotions.push({
+                        name: promotion.name || 'Unnamed promotion',
+                        amount: discountValue,
+                        timesApplied: result.timesApplied,
+                        details: result.details,
+                        type: 'DISCOUNT_AMOUNT'
+                    });
+                }
+            }
+        } else if (promotion.discountType === 'GIFT' || promotion.discountType === 'Gift' || String(promotion.discountType).toUpperCase() === 'GIFT') {
+            const result = evaluateGiftPromotion(promotion, productMap);
+            console.log(`[Promotion] Gift promotion result:`, result);
+            if (result.timesApplied > 0 && Array.isArray(result.giftItems) && result.giftItems.length > 0) {
+                appliedGifts.push({
+                    name: promotion.name || 'Gift promotion',
+                    timesApplied: result.timesApplied,
+                    giftItems: result.giftItems,
+                    type: 'GIFT'
+                });
+            }
+        } else {
+            console.log(`[Promotion] Unknown discount type:`, promotion.discountType);
         }
     });
+    
+    console.log('[Promotion] Final result - Discount:', totalPromotionDiscount, 'Applied:', appliedPromotions, 'Gifts:', appliedGifts);
 
     return {
         discount: totalPromotionDiscount,
-        applied: appliedPromotions
+        applied: appliedPromotions,
+        gifts: appliedGifts
     };
 }
 
@@ -293,43 +324,212 @@ function evaluateDiscountPromotion(promotion, productMap) {
         return { timesApplied: 0, discountAmount: 0, details: [] };
     }
 
-    let timesApplied = Infinity;
-    const detailList = [];
-
     if (!Array.isArray(promotion.conditions) || promotion.conditions.length === 0) {
-        promotion.conditions = [];
+        return { timesApplied: 0, discountAmount: 0, details: [] };
     }
 
+    let minTimesApplied = Infinity;
+    const allDetails = [];
+
+    // Mỗi condition group phải được thỏa mãn
     promotion.conditions.forEach((condition) => {
         if (!condition || !Array.isArray(condition.details) || condition.details.length === 0) {
             return;
         }
 
-        condition.details.forEach((detail) => {
-            const item = productMap.get(buildCartItemKey(detail.productId));
-            if (!item || !detail.requiredQuantity) {
-                timesApplied = 0;
-                return;
-            }
-            const applicable = Math.floor(item.quantity / detail.requiredQuantity);
-            timesApplied = Math.min(timesApplied, applicable);
-            detailList.push({
-                productName: detail.productName,
-                requiredQuantity: detail.requiredQuantity,
-                productPrice: detail.productPrice
+        const operator = condition.operator || 'ALL';
+        let conditionTimesApplied = Infinity;
+        const conditionDetails = [];
+
+        if (operator === 'ALL') {
+            // ALL: Tất cả các detail trong condition phải thỏa mãn
+            condition.details.forEach((detail) => {
+                if (!detail || !detail.productId || !detail.requiredQuantity) {
+                    conditionTimesApplied = 0;
+                    return;
+                }
+
+                const key = buildCartItemKey(detail.productId);
+                const item = productMap.get(key);
+                if (!item) {
+                    conditionTimesApplied = 0;
+                    return;
+                }
+
+                const applicable = Math.floor(item.quantity / detail.requiredQuantity);
+                conditionTimesApplied = Math.min(conditionTimesApplied, applicable);
+                conditionDetails.push({
+                    productId: detail.productId,
+                    productName: detail.productName || 'Sản phẩm',
+                    requiredQuantity: detail.requiredQuantity,
+                    productPrice: detail.productPrice,
+                    availableQuantity: item.quantity
+                });
             });
+        } else if (operator === 'ANY') {
+            // ANY: Chỉ cần 1 detail trong condition thỏa mãn
+            let maxApplicable = 0;
+            condition.details.forEach((detail) => {
+                if (!detail || !detail.productId || !detail.requiredQuantity) {
+                    return;
+                }
+
+                const key = buildCartItemKey(detail.productId);
+                const item = productMap.get(key);
+                if (!item) {
+                    return;
+                }
+
+                const applicable = Math.floor(item.quantity / detail.requiredQuantity);
+                if (applicable > maxApplicable) {
+                    maxApplicable = applicable;
+                }
+                conditionDetails.push({
+                    productId: detail.productId,
+                    productName: detail.productName || 'Sản phẩm',
+                    requiredQuantity: detail.requiredQuantity,
+                    productPrice: detail.productPrice,
+                    availableQuantity: item.quantity
+                });
+            });
+            conditionTimesApplied = maxApplicable > 0 ? maxApplicable : 0;
+        }
+
+        if (conditionTimesApplied === Infinity || conditionTimesApplied === 0) {
+            conditionTimesApplied = 0;
+        }
+
+        minTimesApplied = Math.min(minTimesApplied, conditionTimesApplied);
+        allDetails.push({
+            operator: operator,
+            timesApplied: conditionTimesApplied,
+            details: conditionDetails
         });
     });
 
-    if (timesApplied === Infinity) {
-        timesApplied = 0;
+    if (minTimesApplied === Infinity || minTimesApplied === 0) {
+        minTimesApplied = 0;
     }
 
     const discountAmount = toNumber(promotion.discountAmount);
     return {
-        timesApplied,
+        timesApplied: minTimesApplied,
         discountAmount,
-        details: detailList
+        details: allDetails
+    };
+}
+
+function evaluateGiftPromotion(promotion, productMap) {
+    const discountType = String(promotion.discountType || '').toUpperCase();
+    if (discountType !== 'GIFT') {
+        console.log('[GiftPromotion] Not a GIFT promotion:', promotion.discountType, 'normalized:', discountType);
+        return { timesApplied: 0, giftItems: [] };
+    }
+
+    if (!Array.isArray(promotion.conditions) || promotion.conditions.length === 0) {
+        console.log('[GiftPromotion] No conditions found');
+        return { timesApplied: 0, giftItems: [] };
+    }
+
+    if (!Array.isArray(promotion.giftItems) || promotion.giftItems.length === 0) {
+        console.log('[GiftPromotion] No gift items found');
+        return { timesApplied: 0, giftItems: [] };
+    }
+
+    console.log('[GiftPromotion] Evaluating promotion:', promotion.name);
+    console.log('[GiftPromotion] Product map:', Array.from(productMap.entries()));
+    console.log('[GiftPromotion] Conditions:', promotion.conditions);
+    console.log('[GiftPromotion] Gift items:', promotion.giftItems);
+
+    let minTimesApplied = Infinity;
+
+    // Kiểm tra điều kiện (giống như discount promotion)
+    promotion.conditions.forEach((condition, conditionIndex) => {
+        if (!condition || !Array.isArray(condition.details) || condition.details.length === 0) {
+            console.log(`[GiftPromotion] Condition ${conditionIndex} is invalid`);
+            return;
+        }
+
+        const operator = condition.operator || 'ALL';
+        let conditionTimesApplied = Infinity;
+
+        console.log(`[GiftPromotion] Condition ${conditionIndex}, operator: ${operator}`);
+
+        if (operator === 'ALL') {
+            condition.details.forEach((detail, detailIndex) => {
+                if (!detail || !detail.productId || !detail.requiredQuantity) {
+                    console.log(`[GiftPromotion] Detail ${detailIndex} is invalid:`, detail);
+                    conditionTimesApplied = 0;
+                    return;
+                }
+
+                const key = buildCartItemKey(detail.productId);
+                const item = productMap.get(key);
+                console.log(`[GiftPromotion] Checking product ${detail.productId} (key: ${key}):`, item);
+                
+                if (!item) {
+                    console.log(`[GiftPromotion] Product ${detail.productId} not found in cart`);
+                    conditionTimesApplied = 0;
+                    return;
+                }
+
+                const applicable = Math.floor(item.quantity / detail.requiredQuantity);
+                console.log(`[GiftPromotion] Product ${detail.productId}: required=${detail.requiredQuantity}, available=${item.quantity}, applicable=${applicable}`);
+                conditionTimesApplied = Math.min(conditionTimesApplied, applicable);
+            });
+        } else if (operator === 'ANY') {
+            let maxApplicable = 0;
+            condition.details.forEach((detail, detailIndex) => {
+                if (!detail || !detail.productId || !detail.requiredQuantity) {
+                    console.log(`[GiftPromotion] Detail ${detailIndex} is invalid:`, detail);
+                    return;
+                }
+
+                const key = buildCartItemKey(detail.productId);
+                const item = productMap.get(key);
+                console.log(`[GiftPromotion] Checking product ${detail.productId} (key: ${key}):`, item);
+                
+                if (!item) {
+                    console.log(`[GiftPromotion] Product ${detail.productId} not found in cart`);
+                    return;
+                }
+
+                const applicable = Math.floor(item.quantity / detail.requiredQuantity);
+                console.log(`[GiftPromotion] Product ${detail.productId}: required=${detail.requiredQuantity}, available=${item.quantity}, applicable=${applicable}`);
+                if (applicable > maxApplicable) {
+                    maxApplicable = applicable;
+                }
+            });
+            conditionTimesApplied = maxApplicable > 0 ? maxApplicable : 0;
+        }
+
+        if (conditionTimesApplied === Infinity || conditionTimesApplied === 0) {
+            conditionTimesApplied = 0;
+        }
+
+        console.log(`[GiftPromotion] Condition ${conditionIndex} times applied: ${conditionTimesApplied}`);
+        minTimesApplied = Math.min(minTimesApplied, conditionTimesApplied);
+    });
+
+    if (minTimesApplied === Infinity || minTimesApplied === 0) {
+        console.log('[GiftPromotion] No conditions met, times applied: 0');
+        return { timesApplied: 0, giftItems: [] };
+    }
+
+    console.log('[GiftPromotion] Final times applied:', minTimesApplied);
+
+    // Tính toán gift items
+    const giftItems = promotion.giftItems.map((gift) => ({
+        productId: gift.productId,
+        productName: gift.productName || 'Sản phẩm tặng',
+        quantity: (gift.quantity || 1) * minTimesApplied
+    }));
+
+    console.log('[GiftPromotion] Calculated gift items:', giftItems);
+
+    return {
+        timesApplied: minTimesApplied,
+        giftItems: giftItems
     };
 }
 
@@ -342,26 +542,94 @@ function updatePromotionSummary(promotionResult) {
         return;
     }
 
-    if (!promotionResult || !Array.isArray(promotionResult.applied) || promotionResult.applied.length === 0) {
+    const hasDiscounts = promotionResult && Array.isArray(promotionResult.applied) && promotionResult.applied.length > 0;
+    const hasGifts = promotionResult && Array.isArray(promotionResult.gifts) && promotionResult.gifts.length > 0;
+
+    if (!hasDiscounts && !hasGifts) {
         row.style.display = 'none';
         listEl.innerHTML = '';
         return;
     }
 
     row.style.display = 'flex';
-    totalEl.textContent = `- ${formatVND(promotionResult.discount)}`;
-    listEl.innerHTML = promotionResult.applied
-        .map(item => {
-            const base = `${item.name}${item.amount ? ` (${formatVND(item.amount)})` : ''}${item.note ? ` - ${item.note}` : ''}`;
-            if (item.details && item.details.length > 0) {
-                const detailLines = item.details
-                    .map(detail => `+ ${detail.productName || 'Sản phẩm'} × ${detail.requiredQuantity}`)
-                    .join('<br/>');
-                return `<div>${base}<div class="promotion-detail-list">${detailLines}</div></div>`;
+    totalEl.textContent = `- ${formatVND(promotionResult.discount || 0)}`;
+    
+    let html = '';
+
+    // Hiển thị discount promotions
+    if (hasDiscounts) {
+        promotionResult.applied.forEach((item) => {
+            let itemHtml = `<div class="promotion-item">`;
+            itemHtml += `<div class="promotion-item-header">`;
+            itemHtml += `<span class="promotion-name"><i class="fas fa-tag"></i> ${escapeHtml(item.name || 'Khuyến mãi')}</span>`;
+            if (item.amount > 0) {
+                itemHtml += `<span class="promotion-amount">-${formatVND(item.amount)}</span>`;
             }
-            return `<div>${base}</div>`;
-        })
-        .join('');
+            itemHtml += `</div>`;
+            
+            if (item.timesApplied > 1) {
+                itemHtml += `<div class="promotion-times">Áp dụng ${item.timesApplied} lần</div>`;
+            }
+
+            if (item.details && Array.isArray(item.details) && item.details.length > 0) {
+                itemHtml += `<div class="promotion-conditions">`;
+                item.details.forEach((conditionGroup) => {
+                    if (conditionGroup.details && Array.isArray(conditionGroup.details) && conditionGroup.details.length > 0) {
+                        const operatorText = conditionGroup.operator === 'ANY' ? 'Bất kỳ' : 'Tất cả';
+                        itemHtml += `<div class="promotion-condition-group">`;
+                        itemHtml += `<div class="promotion-condition-operator">${operatorText}:</div>`;
+                        conditionGroup.details.forEach((detail) => {
+                            itemHtml += `<div class="promotion-condition-detail">`;
+                            itemHtml += `+ ${escapeHtml(detail.productName || 'Sản phẩm')} × ${detail.requiredQuantity}`;
+                            itemHtml += ` <span class="promotion-condition-status">(${detail.availableQuantity} có sẵn)</span>`;
+                            itemHtml += `</div>`;
+                        });
+                        itemHtml += `</div>`;
+                    }
+                });
+                itemHtml += `</div>`;
+            }
+            itemHtml += `</div>`;
+            html += itemHtml;
+        });
+    }
+
+    // Hiển thị gift promotions
+    if (hasGifts) {
+        promotionResult.gifts.forEach((gift) => {
+            let giftHtml = `<div class="promotion-item promotion-gift">`;
+            giftHtml += `<div class="promotion-item-header">`;
+            giftHtml += `<span class="promotion-name"><i class="fas fa-gift"></i> ${escapeHtml(gift.name || 'Tặng quà')}</span>`;
+            giftHtml += `</div>`;
+            
+            if (gift.timesApplied > 1) {
+                giftHtml += `<div class="promotion-times">Áp dụng ${gift.timesApplied} lần</div>`;
+            }
+
+            if (gift.giftItems && Array.isArray(gift.giftItems) && gift.giftItems.length > 0) {
+                giftHtml += `<div class="promotion-gift-items">`;
+                giftHtml += `<div class="promotion-gift-title">Bạn được tặng:</div>`;
+                gift.giftItems.forEach((giftItem) => {
+                    giftHtml += `<div class="promotion-gift-item">`;
+                    giftHtml += `<i class="fas fa-check-circle"></i> `;
+                    giftHtml += `${escapeHtml(giftItem.productName || 'Sản phẩm')} × ${giftItem.quantity}`;
+                    giftHtml += `</div>`;
+                });
+                giftHtml += `</div>`;
+            }
+            giftHtml += `</div>`;
+            html += giftHtml;
+        });
+    }
+
+    listEl.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Remove item from cart

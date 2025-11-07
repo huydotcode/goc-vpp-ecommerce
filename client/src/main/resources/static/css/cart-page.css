@@ -1,0 +1,114 @@
+/* Cart page specific styles */
+
+/* ==================== PROMOTION LIST ==================== */
+.promotion-list {
+    padding: 0;
+    margin: 12px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.promotion-item {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    font-size: var(--font-sm);
+}
+
+.promotion-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.promotion-name {
+    color: var(--text-color);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.promotion-name i {
+    color: var(--primary-color);
+}
+
+.promotion-amount {
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+.promotion-times {
+    color: var(--text-muted);
+    font-size: var(--font-xs);
+    margin-bottom: 8px;
+    font-style: italic;
+}
+
+.promotion-conditions {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.promotion-condition-group {
+    margin-bottom: 8px;
+}
+
+.promotion-condition-operator {
+    color: var(--text-muted);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.promotion-condition-detail {
+    color: var(--text-secondary);
+    font-size: var(--font-xs);
+    margin-left: 12px;
+    margin-bottom: 2px;
+    line-height: 1.5;
+}
+
+.promotion-condition-status {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.promotion-gift {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.promotion-gift-items {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.promotion-gift-title {
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: var(--font-xs);
+    margin-bottom: 6px;
+}
+
+.promotion-gift-item {
+    color: var(--text-secondary);
+    font-size: var(--font-xs);
+    margin-left: 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.5;
+}
+
+.promotion-gift-item i {
+    color: var(--success-color);
+    font-size: 12px;
+}
+

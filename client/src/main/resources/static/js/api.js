@@ -63,7 +63,7 @@ function validateFileBeforeUpload(file, resourceType = 'image') {
     
     // File size limits (in bytes)
     const limits = {
-        'image': 2 * 1024 * 1024,    // 2MB
+        'image': 5 * 1024 * 1024,    // 5MB
         'video': 50 * 1024 * 1024,   // 50MB
         'raw': 10 * 1024 * 1024      // 10MB
     };
