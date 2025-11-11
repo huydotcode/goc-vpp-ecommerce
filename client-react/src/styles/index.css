@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* Reset và base styles cơ bản */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
