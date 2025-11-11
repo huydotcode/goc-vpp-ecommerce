@@ -8,7 +8,6 @@
 - [Code Conventions](#code-conventions)
 - [Git Workflow](#git-workflow)
 - [Environment Variables](#environment-variables)
-- [Pre-commit Hooks](#pre-commit-hooks)
 - [Công nghệ sử dụng](#công-nghệ-sử-dụng)
 - [Lưu ý quan trọng](#lưu-ý-quan-trọng)
 
@@ -34,15 +33,7 @@ Chỉnh sửa file `.env` theo môi trường của bạn:
 VITE_API_URL=http://localhost:8080
 ```
 
-### 4. Setup Husky (Git Hooks)
-
-```bash
-npm run prepare
-```
-
-Hoặc Husky sẽ tự động setup khi chạy `npm install` (vì có script `prepare`).
-
-### 5. Chạy development server
+### 4. Chạy development server
 
 ```bash
 npm run dev
@@ -77,16 +68,17 @@ git checkout -b fix/bug-description
 
 - ✅ Sử dụng **TypeScript** (không dùng JavaScript)
 - ✅ Tuân thủ **ESLint rules**
-- ✅ Code sẽ tự động được format khi commit (Prettier)
+- ✅ Format code với Prettier trước khi commit khi cần
 - ✅ Sử dụng path aliases `@/` thay vì relative paths
 
 ### 3. Trước khi commit
 
-Code sẽ tự động được kiểm tra và format qua **Husky pre-commit hooks**:
+Chạy thủ công để đảm bảo code sạch:
 
-- ESLint sẽ tự động fix các lỗi có thể fix được
-- Prettier sẽ format code
-- Nếu có lỗi ESLint không thể tự fix, commit sẽ bị chặn
+```bash
+npm run lint:fix
+npm run format
+```
 
 ### 4. Commit message
 
@@ -257,33 +249,6 @@ const apiUrl = import.meta.env.VITE_API_URL;
 - ✅ File `example.env` được commit làm template
 - ✅ Type definitions có trong `src/vite-env.d.ts`
 
-## 🪝 Pre-commit Hooks
-
-### Hoạt động tự động
-
-Khi bạn commit code, **Husky** sẽ tự động:
-
-1. ✅ Chạy ESLint và tự động fix các lỗi có thể fix
-2. ✅ Format code với Prettier
-3. ⚠️ Nếu có lỗi ESLint không thể tự fix → commit bị chặn
-
-### Xử lý khi commit bị chặn
-
-```bash
-# Chạy lệnh này để xem lỗi
-npm run lint
-
-# Tự động fix các lỗi có thể fix
-npm run lint:fix
-
-# Format code
-npm run format
-
-# Commit lại
-git add .
-git commit -m "your message"
-```
-
 ## 🛠️ Công nghệ sử dụng
 
 - **React 19.2** - UI Framework
@@ -294,8 +259,6 @@ git commit -m "your message"
 - **React Router DOM 7.9** - Routing
 - **ESLint** - Code linting
 - **Prettier** - Code formatting
-- **Husky** - Git hooks
-- **lint-staged** - Run linters on staged files
 
 ## ⚠️ Lưu ý quan trọng
 
@@ -338,13 +301,6 @@ npm run build
 ```bash
 # Format thủ công
 npm run format
-```
-
-### Husky không hoạt động
-
-```bash
-# Setup lại Husky
-npm run prepare
 ```
 
 ## 📚 Tài liệu tham khảo
