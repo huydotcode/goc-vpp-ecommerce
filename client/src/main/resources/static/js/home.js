@@ -207,10 +207,23 @@
             ? truncateText(product?.description, 90) || 'Thông tin sản phẩm đang được cập nhật.'
             : '';
 
+        const imageUrl = product?.thumbnailUrl || '/image/placeholder.png';
+        const imageAlt = escapeAttribute(product?.name || 'Product');
+        
         return `
             <div class="${cardClasses.join(' ')}" onclick="handleHomeCardNavigate(event, ${product.id})">
                 <div class="product-image-wrapper">
-                    <img src="${escapeAttribute(product?.thumbnailUrl || '/image/placeholder.png')}" alt="${escapeAttribute(product?.name || 'Product')}" class="product-image" loading="lazy" />
+                    <img 
+                        src="${escapeAttribute(imageUrl)}" 
+                        alt="${imageAlt}" 
+                        class="product-image" 
+                        loading="lazy" 
+                        decoding="async" 
+                        width="260" 
+                        height="260"
+                        fetchpriority="low"
+                        style="aspect-ratio: 1 / 1; object-fit: cover;"
+                    />
                     ${discountLabel ? `<div class="product-badge"><i class="fas fa-tag"></i> <span>${discountLabel}</span></div>` : ''}
                 </div>
                 <div class="product-info">
@@ -250,7 +263,16 @@
                 const link = buildShopUrl({ categoryId: cat?.id });
                 const hasImage = image && image.trim() && image !== '/image/placeholder.png';
                 const thumbContent = hasImage
-                    ? `<img src="${escapeAttribute(image)}" alt="${escapeAttribute(name)}" loading="lazy" />`
+                    ? `<img 
+                        src="${escapeAttribute(image)}" 
+                        alt="${escapeAttribute(name)}" 
+                        loading="lazy" 
+                        decoding="async" 
+                        width="88" 
+                        height="88"
+                        fetchpriority="low"
+                        style="aspect-ratio: 1 / 1; object-fit: cover;"
+                    />`
                     : `<i class="fas fa-folder"></i>`;
                 const thumbClass = hasImage ? 'category-thumb' : 'category-thumb-placeholder';
                 return `

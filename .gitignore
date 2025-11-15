@@ -76,3 +76,5 @@ application.properties
 /.env.local
 .env.*.local
 spring-jwt-base/src/main/resources/application.properties
+client-react/package-lock.json
+client-react/package-lock.json

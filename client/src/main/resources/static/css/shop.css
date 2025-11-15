@@ -469,6 +469,7 @@ html {
     overflow: hidden;
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
+    aspect-ratio: 1 / 1;
 }
 
 .product-image {
@@ -478,6 +479,9 @@ html {
     transition: transform 0.3s ease;
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    content-visibility: auto;
 }
 
 .product-card:hover .product-image {

@@ -93,10 +93,15 @@ main .container {
 .hero-media {
     position: absolute;
     inset: 0;
-    background-image: url('https://images.unsplash.com/photo-1452860606245-08befc0ff44b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+    background-image: url('https://images.unsplash.com/photo-1452860606245-08befc0ff44b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=75');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    will-change: transform;
+    transform: translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    content-visibility: auto;
 }
 
 .hero-overlay {
@@ -348,6 +353,9 @@ main .container {
     height: 100%;
     object-fit: cover;
     display: block;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    content-visibility: auto;
 }
 
 .category-name {
