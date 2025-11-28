@@ -47,11 +47,18 @@ public class User {
     private String email;
 
     @NotBlank(message = "password is required", groups = {CreateValidation.class})
-    @Column(nullable = false)
+    @Column(nullable = true)  // Nullable for OAuth2 users
     private String password;
 
     @Column(nullable = true)
     private String avatarUrl;
+
+    // OAuth2 fields
+    @Column(name = "provider", length = 50)
+    private String provider;  // "LOCAL", "GOOGLE", etc.
+
+    @Column(name = "provider_id", length = 255)
+    private String providerId;  // ID from OAuth2 provider
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

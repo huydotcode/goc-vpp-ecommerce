@@ -14,6 +14,7 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",  // React default
+            "http://localhost:5173",  // Vite default
             "http://localhost:8081",   // Spring Boot Frontend
             "http://localhost:4200"    // Angular default
         ));

@@ -69,16 +69,46 @@ public class SecurityConfiguration {
     }
 
     @Bean
-
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        // 1. Tạo converter để lấy roles từ JWT
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix(""); // bỏ "SCOPE_" nếu bạn muốn
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("truonggiang"); // key trong JWT chứa roles
+        // Custom converter để extract authorities từ nested structure trong JWT
+        org.springframework.core.convert.converter.Converter<org.springframework.security.oauth2.jwt.Jwt, java.util.Collection<org.springframework.security.core.GrantedAuthority>> customConverter = 
+            jwt -> {
+                java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities = 
+                    new java.util.ArrayList<>();
+                
+                try {
+                    // Lấy claim "truonggiang" chứa authentication object
+                    java.util.Map<String, Object> authMap = jwt.getClaimAsMap("truonggiang");
+                    if (authMap != null) {
+                        // Lấy authorities từ nested structure
+                        Object authoritiesObj = authMap.get("authorities");
+                        if (authoritiesObj instanceof java.util.List) {
+                            @SuppressWarnings("unchecked")
+                            java.util.List<Object> authorityList = (java.util.List<Object>) authoritiesObj;
+                            for (Object authObj : authorityList) {
+                                if (authObj instanceof java.util.Map) {
+                                    @SuppressWarnings("unchecked")
+                                    java.util.Map<String, String> authMapItem = (java.util.Map<String, String>) authObj;
+                                    String role = authMapItem.get("role");
+                                    if (role != null) {
+                                        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(role));
+                                    }
+                                } else if (authObj instanceof String) {
+                                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority((String) authObj));
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("[SecurityConfiguration] Error extracting authorities: " + e.getMessage());
+                }
+                
+                return authorities;
+            };
 
-        // 2. Tạo JwtAuthenticationConverter và gán converter
+        // Tạo JwtAuthenticationConverter và gán custom converter
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(customConverter);
 
         return jwtAuthenticationConverter;
     }
@@ -96,6 +126,12 @@ public class SecurityConfiguration {
                                 "/",
                                 "/login",
                                 "/register",
+                                "/refresh",
+                                "/test-refresh",
+                                "/test-quick-refresh",
+                                "/google/redirect",
+                                "/google/test-login",
+                                "/google/auth-url",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
@@ -118,25 +154,5 @@ public class SecurityConfiguration {
                         session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
-
-        
-
-        //      http
-        //     .csrf(c -> c.disable())
-        //     .authorizeHttpRequests(authz -> authz
-        //         .requestMatchers(
-        //             "/",
-        //             "/login",
-        //             "/swagger-ui/**",
-        //             "/swagger-ui.html",
-        //             "/v3/api-docs/**",
-        //             "/api-docs/**",
-        //             "/swagger-resources/**",
-        //             "/webjars/**"
-        //         ).permitAll()
-        //         .anyRequest().permitAll())
-        //     .formLogin(f -> f.disable())
-        //     .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        // return http.build();
     }
 }
