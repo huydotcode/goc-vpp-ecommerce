@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth2 Login Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .login-methods {
+            display: grid;
+            gap: 20px;
+        }
+
+        .login-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-google {
+            background: white;
+            color: #333;
+            border: 2px solid #ea4335;
+        }
+
+        .btn-google:hover {
+            background: #ea4335;
+            color: white;
+        }
+
+        .btn-traditional {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-traditional:hover {
+            background: #764ba2;
+        }
+
+        .btn-test {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-test:hover {
+            background: #059669;
+        }
+
+        .icon {
+            font-size: 1.3em;
+        }
+
+        .divider {
+            text-align: center;
+            color: #999;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #ddd;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 10px;
+            position: relative;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95em;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .test-response {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .test-response h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .test-response pre {
+            background: #fff;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 0.85em;
+            border: 1px solid #ddd;
+        }
+
+        .success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            color: #666;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .qr-code img {
+            max-width: 200px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Login Test</h1>
+            <p>Refresh Token + Google OAuth2</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('oauth')">🔐 Google OAuth2</button>
+            <button class="tab-btn" onclick="switchTab('traditional')">📧 Traditional</button>
+            <button class="tab-btn" onclick="switchTab('test')">🧪 Test Mode</button>
+        </div>
+
+        <!-- Google OAuth2 Tab -->
+        <div id="oauth" class="tab-content active">
+            <div class="info-box">
+                <strong>ℹ️ Google OAuth2 Flow:</strong><br>
+                1. Click "Login with Google"<br>
+                2. Authorize application<br>
+                3. Tự động tạo user + JWT tokens<br>
+                4. Redirect về frontend với tokens
+            </div>
+
+            <div class="login-methods">
+                <button class="login-btn btn-google" onclick="loginWithGoogle()">
+                    <span class="icon">🔗</span>
+                    <span>Login with Google (Real)</span>
+                </button>
+
+                <button class="login-btn btn-google" onclick="testGoogleLogin()">
+                    <span class="icon">🧪</span>
+                    <span>Login with Google (Test)</span>
+                </button>
+            </div>
+
+            <div class="info-box" style="margin-top: 20px; background: #fef3c7; border-left-color: #f59e0b;">
+                <strong>📝 Test Accounts:</strong><br>
+                • testuser@gmail.com<br>
+                • admin@gmail.com<br>
+                • user123@gmail.com
+            </div>
+        </div>
+
+        <!-- Traditional Login Tab -->
+        <div id="traditional" class="tab-content">
+            <div class="info-box">
+                <strong>ℹ️ Traditional Login:</strong><br>
+                Username: root_admin@system.local<br>
+                Password: 123123
+            </div>
+
+            <form onsubmit="loginTraditional(event)">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        value="root_admin@system.local" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        value="123123" 
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="login-btn btn-traditional">
+                    <span class="icon">📧</span>
+                    <span>Login</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Test Mode Tab -->
+        <div id="test" class="tab-content">
+            <div class="info-box">
+                <strong>🧪 Test Mode:</strong><br>
+                Mô phỏng Google OAuth2 login mà không cần browser redirect
+            </div>
+
+            <form onsubmit="testLoginWithParams(event)">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        value="testuser@gmail.com" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        value="Test User" 
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="login-btn btn-test">
+                    <span class="icon">🧪</span>
+                    <span>Test Login</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Test Response -->
+        <div id="testResponse" class="test-response">
+            <h3>📊 Response:</h3>
+            <pre id="responseContent"></pre>
+        </div>
+
+        <!-- Token Info -->
+        <div id="tokenInfo" class="test-response success" style="display: none; margin-top: 20px;">
+            <h3>✅ Login Successful!</h3>
+            <div id="tokenContent"></div>
+            <button class="login-btn btn-test" onclick="copyTokens()" style="margin-top: 15px;">
+                📋 Copy Tokens
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentTokens = {};
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function loginWithGoogle() {
+            // Real Google OAuth2 flow
+            const clientId = '272996239871-gcq0c8j1jhmlbgh7eodo2luuckm3tvuq.apps.googleusercontent.com';
+            const redirectUri = encodeURIComponent('http://localhost:8080/api/v1/google/redirect');
+            const scope = encodeURIComponent('openid email profile');
+            const responseType = 'code';
+
+            const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${clientId}` +
+                `&redirect_uri=${redirectUri}` +
+                `&response_type=${responseType}` +
+                `&scope=${scope}`;
+
+            window.location.href = googleAuthUrl;
+        }
+
+        async function testGoogleLogin() {
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/google/test-login', {
+                    method: 'GET'
+                });
+
+                const data = await response.json();
+                showResponse(data);
+
+                if (data.status === 'success') {
+                    currentTokens = data.data;
+                    showTokenInfo(data.data);
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function loginTraditional(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                showResponse(data);
+
+                if (data.status === 'success') {
+                    currentTokens = data.data;
+                    showTokenInfo(data.data);
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function testLoginWithParams(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
+
+            try {
+                const response = await fetch(
+                    `http://localhost:8080/api/v1/google/test-login?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                    {
+                        method: 'GET'
+                    }
+                );
+
+                const data = await response.json();
+                showResponse(data);
+
+                if (data.status === 'success') {
+                    currentTokens = data.data;
+                    showTokenInfo(data.data);
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        function showResponse(data) {
+            const testResponse = document.getElementById('testResponse');
+            const responseContent = document.getElementById('responseContent');
+            responseContent.textContent = JSON.stringify(data, null, 2);
+            testResponse.style.display = 'block';
+        }
+
+        function showError(message) {
+            const testResponse = document.getElementById('testResponse');
+            const responseContent = document.getElementById('responseContent');
+            responseContent.textContent = message;
+            testResponse.style.display = 'block';
+        }
+
+        function showTokenInfo(data) {
+            const tokenInfo = document.getElementById('tokenInfo');
+            const tokenContent = document.getElementById('tokenContent');
+
+            const accessTokenPreview = data.accessToken.substring(0, 50) + '...';
+            const refreshTokenPreview = data.refreshToken.substring(0, 50) + '...';
+
+            tokenContent.innerHTML = `
+                <div style="margin: 15px 0;">
+                    <strong>👤 User:</strong> ${data.user.username}<br>
+                    <strong>📝 Name:</strong> ${data.user.fullname}<br>
+                    <strong>🔑 Provider:</strong> ${data.user.provider}
+                </div>
+
+                <div style="margin: 15px 0; background: #fff; padding: 10px; border-radius: 3px; border: 1px solid #ddd;">
+                    <strong>🎫 Access Token:</strong><br>
+                    <code style="font-size: 0.85em; word-break: break-all;">${accessTokenPreview}</code>
+                </div>
+
+                <div style="margin: 15px 0; background: #fff; padding: 10px; border-radius: 3px; border: 1px solid #ddd;">
+                    <strong>🔄 Refresh Token:</strong><br>
+                    <code style="font-size: 0.85em; word-break: break-all;">${refreshTokenPreview}</code>
+                </div>
+
+                <div style="margin: 15px 0; background: #fff; padding: 10px; border-radius: 3px; border: 1px solid #ddd;">
+                    <strong>📋 Full Tokens:</strong><br>
+                    <button onclick="viewFullTokens()" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        View Full Tokens
+                    </button>
+                </div>
+            `;
+
+            tokenInfo.style.display = 'block';
+        }
+
+        function viewFullTokens() {
+            alert('Access Token:\n\n' + currentTokens.accessToken + '\n\n---\n\nRefresh Token:\n\n' + currentTokens.refreshToken);
+        }
+
+        function copyTokens() {
+            const allTokens = `Access Token: ${currentTokens.accessToken}\n\nRefresh Token: ${currentTokens.refreshToken}`;
+            navigator.clipboard.writeText(allTokens);
+            alert('✅ Tokens copied to clipboard!');
+        }
+
+        // Check if redirected from Google OAuth2
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('accessToken')) {
+                const accessToken = params.get('accessToken');
+                const refreshToken = params.get('refreshToken');
+                const user = params.get('user');
+
+                currentTokens = {
+                    accessToken,
+                    refreshToken,
+                    user: { username: user }
+                };
+
+                showTokenInfo(currentTokens);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    </script>
+</body>
+</html>
