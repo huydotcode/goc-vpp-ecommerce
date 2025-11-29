@@ -17,6 +17,7 @@ import java.util.NoSuchElementException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.learnspring1.domain.Category;
@@ -47,9 +48,12 @@ public class CategoryController {
         @ApiResponse(responseCode = "200", description = "Tạo category thành công",
             content = @Content(schema = @Schema(implementation = Category.class))),
         @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ",
+            content = @Content(schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Không có quyền",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
     })
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryDTO createNewCategory(@Validated(CreateValidation.class) @RequestBody Category input) {
         Category category = this.categoryService.createCategory(input);
         return toDTO(category);
@@ -137,7 +141,10 @@ public class CategoryController {
         content = @Content(schema = @Schema(implementation = CategoryDTO.class)))
     @ApiResponse(responseCode = "404", description = "Không tìm thấy category",
         content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = APIResponse.class)))
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryDTO updateCategory(@Parameter(description = "ID của category", example = "1") @PathVariable("id") Long id,
                               @Valid @RequestBody Category category) {
         Category updatedCategory = categoryService.updateCategory(id, category);
@@ -148,7 +155,10 @@ public class CategoryController {
     @ApiResponse(responseCode = "200", description = "Xóa thành công")
     @ApiResponse(responseCode = "404", description = "Không tìm thấy category",
         content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = APIResponse.class)))
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteCategory(@Parameter(description = "ID của category", example = "1") @PathVariable("id") Long id) {
         categoryService.deleteCategory(id);
     }

@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,7 +48,10 @@ public class PromotionController {
     @Operation(summary = "Create a promotion program")
     @ApiResponse(responseCode = "200", description = "Promotion created successfully",
             content = @Content(schema = @Schema(implementation = Promotion.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+            content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Promotion createPromotion(@Valid @RequestBody PromotionRequestDTO request) {
         return promotionService.createPromotion(request);
     }
@@ -54,7 +59,10 @@ public class PromotionController {
     @Operation(summary = "Update a promotion program")
     @ApiResponse(responseCode = "200", description = "Promotion updated successfully",
             content = @Content(schema = @Schema(implementation = Promotion.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+            content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Promotion updatePromotion(@PathVariable("id") Long id, @Valid @RequestBody PromotionRequestDTO request) {
         return promotionService.updatePromotion(id, request);
     }
@@ -70,7 +78,11 @@ public class PromotionController {
             @Parameter(description = "Tên để filter", example = "Promotion") @RequestParam(name = "name", required = false) String name,
             @Parameter(description = "Trạng thái active", example = "true") @RequestParam(name = "isActive", required = false) Boolean isActive,
             @Parameter(description = "Search term", example = "promotion") @RequestParam(name = "search", required = false) String search) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortField);
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+        if (direction == null) {
+            direction = Sort.Direction.ASC;
+        }
+        Sort sort = Sort.by(direction, sortField);
         Pageable pageable = PageRequest.of(page - 1, size, sort);
         Page<Promotion> result = promotionService.getPromotionsPageWithFilters(pageable, id, name, isActive, search);
         MetadataDTO metadata = MetadataDTO.builder()
@@ -103,6 +115,18 @@ public class PromotionController {
         return promotionService.getActivePromotions().stream()
                 .map(PromotionResponseDTO::fromEntity)
                 .toList();
+    }
+
+    @Operation(summary = "Xóa promotion (soft delete)")
+    @ApiResponse(responseCode = "200", description = "Xóa thành công")
+    @ApiResponse(responseCode = "404", description = "Không tìm thấy promotion",
+            content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+            content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deletePromotion(@Parameter(description = "ID của promotion", example = "1") @PathVariable("id") Long id) {
+        promotionService.deletePromotion(id);
     }
 }
 

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,6 +25,26 @@ public class GlobalException {
 		APIResponse<?> result = new APIResponse<>(HttpStatus.UNAUTHORIZED,
 				"Username hoặc password không đúng", null, ex.getMessage());
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+	}
+
+	// Lỗi không có quyền truy cập
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<APIResponse<?>> handleAccessDenied(AccessDeniedException ex) {
+		String errorMessage = ex.getMessage();
+		String userFriendlyMessage = "Bạn không có quyền thực hiện thao tác này";
+		
+		// Tùy chỉnh thông báo dựa trên message từ exception
+		if (errorMessage != null) {
+			if (errorMessage.contains("own profile") || errorMessage.contains("chính mình")) {
+				userFriendlyMessage = "Bạn chỉ có thể xem thông tin của chính mình";
+			} else if (errorMessage.contains("Access denied") || errorMessage.contains("không có quyền")) {
+				userFriendlyMessage = "Bạn không có quyền truy cập tài nguyên này";
+			}
+		}
+		
+		APIResponse<?> result = new APIResponse<>(HttpStatus.FORBIDDEN,
+				userFriendlyMessage, null, errorMessage);
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
 	}
 
 	// Xử lý tất cả lỗi không xác định

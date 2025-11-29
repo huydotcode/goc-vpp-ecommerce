@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Descriptions, Drawer, Tag, Image } from 'antd';
-import type { UserDTO } from '../../../services/user.service';
+import type { CategoryDTO } from '../../../services/category.service';
 
-interface UserDetailProps {
+interface CategoryDetailProps {
   isOpenDetailModal: boolean;
   setIsOpenDetailModal: (v: boolean) => void;
-  dataDetailModal: UserDTO | null;
-  setDataDetailModal: (v: UserDTO | null) => void;
+  dataDetailModal: CategoryDTO | null;
+  setDataDetailModal: (v: CategoryDTO | null) => void;
 }
 
-const UserDetail: React.FC<UserDetailProps> = ({
+const CategoryDetail: React.FC<CategoryDetailProps> = ({
   isOpenDetailModal,
   setIsOpenDetailModal,
   dataDetailModal,
@@ -17,7 +17,7 @@ const UserDetail: React.FC<UserDetailProps> = ({
 }) => {
   return (
     <Drawer
-      title="Chi tiết người dùng"
+      title="Chi tiết danh mục"
       open={isOpenDetailModal}
       onClose={() => {
         setIsOpenDetailModal(false);
@@ -25,26 +25,29 @@ const UserDetail: React.FC<UserDetailProps> = ({
       width="60%"
     >
       {dataDetailModal && (
-        <Descriptions title="Thông Tin Người Dùng" bordered column={2}>
+        <Descriptions title="Thông Tin Danh Mục" bordered column={2}>
           <Descriptions.Item label="ID">{dataDetailModal.id}</Descriptions.Item>
-          <Descriptions.Item label="Tên">{dataDetailModal.username}</Descriptions.Item>
-          <Descriptions.Item label="Email">{dataDetailModal.email}</Descriptions.Item>
-          <Descriptions.Item label="Vai trò">
-            <Tag color={dataDetailModal.role === 'ADMIN' ? 'red' : 'blue'}>
-              {dataDetailModal.role}
-            </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Trạng thái">
+          <Descriptions.Item label="Tên">{dataDetailModal.name}</Descriptions.Item>
+          <Descriptions.Item label="Trạng thái" span={2}>
             <Tag color={dataDetailModal.isActive ? 'green' : 'red'}>
               {dataDetailModal.isActive ? 'Active' : 'Inactive'}
             </Tag>
           </Descriptions.Item>
-          {dataDetailModal.avatarUrl && (
-            <Descriptions.Item label="Avatar" span={2}>
+          {dataDetailModal.description && (
+            <Descriptions.Item label="Mô tả" span={2}>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: dataDetailModal.description,
+                }}
+              />
+            </Descriptions.Item>
+          )}
+          {dataDetailModal.thumbnailUrl && (
+            <Descriptions.Item label="Thumbnail" span={2}>
               <Image
                 width={200}
-                src={dataDetailModal.avatarUrl}
-                alt="Avatar"
+                src={dataDetailModal.thumbnailUrl}
+                alt="Thumbnail"
                 style={{ borderRadius: '8px' }}
               />
             </Descriptions.Item>
@@ -71,5 +74,5 @@ const UserDetail: React.FC<UserDetailProps> = ({
   );
 };
 
-export default UserDetail;
+export default CategoryDetail;
 

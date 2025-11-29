@@ -236,6 +236,35 @@ public class SecurityUtil {
         return java.util.Optional.ofNullable(extractPrincipal(securityContext.getAuthentication()));
     }
 
+    /**
+     * Get current user role from SecurityContext
+     */
+    public static java.util.Optional<String> getCurrentUserRole() {
+        org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        org.springframework.security.core.Authentication authentication = securityContext.getAuthentication();
+        
+        if (authentication == null) {
+            return java.util.Optional.empty();
+        }
+        
+        // Get authorities from authentication
+        java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities = authentication.getAuthorities();
+        if (authorities != null && !authorities.isEmpty()) {
+            // Get first authority (role)
+            org.springframework.security.core.GrantedAuthority firstAuthority = authorities.iterator().next();
+            String authority = firstAuthority.getAuthority();
+            
+            // Remove ROLE_ prefix if present
+            if (authority.startsWith("ROLE_")) {
+                authority = authority.substring(5);
+            }
+            
+            return java.util.Optional.of(authority);
+        }
+        
+        return java.util.Optional.empty();
+    }
+
     private static String extractPrincipal(org.springframework.security.core.Authentication authentication) {
         if (authentication == null) {
             return null;

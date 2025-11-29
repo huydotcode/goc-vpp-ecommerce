@@ -30,7 +30,11 @@ const Login: React.FC = () => {
     try {
       await login(values);
       message.success('Đăng nhập thành công!');
-      navigate('/admin');
+      // Đợi một chút để đảm bảo user info đã được load
+      setTimeout(() => {
+        // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
+        navigate('/');
+      }, 100);
     } catch (error: any) {
       message.error(error?.message || 'Đăng nhập thất bại');
     } finally {
@@ -58,9 +62,12 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       const response = await authService.testGoogleLogin('test@gmail.com', 'Test User');
-      localStorage.setItem('accessToken', response.accessToken);
+      // Clean token trước khi lưu
+      const cleanToken = response.accessToken.trim().replace(/^["']|["']$/g, '');
+      localStorage.setItem('accessToken', cleanToken);
       message.success('Mock login thành công!');
-      navigate('/admin');
+      // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
+      navigate('/');
     } catch (error: any) {
       message.error(error?.message || 'Mock login thất bại');
     } finally {

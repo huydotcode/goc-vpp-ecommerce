@@ -16,5 +16,7 @@ public interface PromotionService {
     java.util.List<Promotion> getActivePromotions();
 
     Page<Promotion> getPromotionsPageWithFilters(Pageable pageable, Long id, String name, Boolean isActive, String search);
+
+    void deletePromotion(Long id);
 }
 

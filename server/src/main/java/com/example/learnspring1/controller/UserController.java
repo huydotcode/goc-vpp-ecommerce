@@ -19,10 +19,12 @@ import java.util.NoSuchElementException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.learnspring1.domain.User;
+import com.example.learnspring1.utils.SecurityUtil;
 import com.example.learnspring1.domain.dto.UserDTO;
 import com.example.learnspring1.domain.dto.PaginatedResponseDTO;
 import com.example.learnspring1.domain.dto.MetadataDTO;
@@ -48,14 +50,35 @@ public class UserController {
     }
 
 
+    @Operation(summary = "Lấy thông tin user hiện tại", description = "Trả về thông tin user đang đăng nhập.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Thành công",
+            content = @Content(schema = @Schema(implementation = UserDTO.class))),
+        @ApiResponse(responseCode = "401", description = "Chưa đăng nhập",
+            content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    })
+    @GetMapping("/me")
+    public UserDTO getCurrentUser() {
+        String currentUserEmail = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("User not authenticated"));
+        User user = userService.getUserByEmail(currentUserEmail);
+        if (user == null) {
+            throw new NoSuchElementException("User not found");
+        }
+        return toDTO(user);
+    }
+
     @Operation(summary = "Tạo mới user", description = "Tạo mới một user với thông tin hợp lệ.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Tạo user thành công",
             content = @Content(schema = @Schema(implementation = User.class))),
         @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ",
+            content = @Content(schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Không có quyền",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
     })
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public UserDTO createNewUser(@Validated(CreateValidation.class) @RequestBody User input) {
         User user = this.userService.createUser(input, encoder);
         return toDTO(user);
@@ -68,6 +91,7 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "Thành công",
         content = @Content(schema = @Schema(implementation = User.class)))
     @GetMapping("/page")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<UserDTO> getUsersPage(
             @Parameter(description = "Trang hiện tại", example = "1") @RequestParam(name = "page", defaultValue = "1") int page,
             @Parameter(description = "Số lượng mỗi trang", example = "10") @RequestParam(name = "size", defaultValue = "10") int size) 
@@ -80,6 +104,7 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "Thành công",
         content = @Content(schema = @Schema(implementation = PaginatedResponseDTO.class)))
     @GetMapping("/advanced")
+    @PreAuthorize("hasRole('ADMIN')")
     public PaginatedResponseDTO<UserDTO> getUsersAdvanced(
             @Parameter(description = "Trang hiện tại", example = "1") @RequestParam(name = "page", defaultValue = "1") int page,
             @Parameter(description = "Số lượng mỗi trang", example = "10") @RequestParam(name = "size", defaultValue = "10") int size,
@@ -134,6 +159,7 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "Thành công",
         content = @Content(schema = @Schema(implementation = User.class)))
     @GetMapping("/filter")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserDTO> getUsersByRole(
             @Parameter(description = "Role để filter", example = "ADMIN") @RequestParam(name = "role", required = false) String role,
             @Parameter(description = "Username để filter", example = "admin") @RequestParam(name = "username", required = false) String username,
@@ -149,13 +175,38 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "Thành công",
             content = @Content(schema = @Schema(implementation = User.class))),
         @ApiResponse(responseCode = "404", description = "Không tìm thấy user",
+            content = @Content(schema = @Schema(implementation = APIResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Không có quyền",
             content = @Content(schema = @Schema(implementation = APIResponse.class)))
     })
     @GetMapping("/{id}")
     public UserDTO getUserById(@Parameter(description = "ID của user", example = "1") @PathVariable("id") Long id) {
-        User user = userService.getUserById(id)
-                .orElseThrow(() -> new NoSuchElementException("User not found with id " + id));
-        return toDTO(user);
+        String currentUserEmail = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("User not authenticated"));
+        String currentUserRole = SecurityUtil.getCurrentUserRole()
+                .orElseThrow(() -> new RuntimeException("Cannot get user role"));
+        
+        // ADMIN có thể xem tất cả
+        if ("ADMIN".equals(currentUserRole)) {
+            User user = userService.getUserById(id)
+                    .orElseThrow(() -> new NoSuchElementException("User not found with id " + id));
+            return toDTO(user);
+        }
+        
+        // EMPLOYEE chỉ có thể xem chính mình
+        if ("EMPLOYEE".equals(currentUserRole)) {
+            User currentUser = userService.getUserByEmail(currentUserEmail);
+            if (currentUser == null) {
+                throw new RuntimeException("Current user not found");
+            }
+            if (!currentUser.getId().equals(id)) {
+                throw new org.springframework.security.access.AccessDeniedException("You can only view your own profile");
+            }
+            return toDTO(currentUser);
+        }
+        
+        // USER không có quyền xem
+        throw new org.springframework.security.access.AccessDeniedException("Access denied");
     }
 
     @Operation(summary = "Cập nhật user", description = "Cập nhật thông tin user theo id.")
@@ -163,7 +214,10 @@ public class UserController {
         content = @Content(schema = @Schema(implementation = UserDTO.class)))
     @ApiResponse(responseCode = "404", description = "Không tìm thấy user",
         content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = APIResponse.class)))
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserDTO updateUser(@Parameter(description = "ID của user", example = "1") @PathVariable("id") Long id,
                               @Valid @RequestBody User user) {
         User updatedUser = userService.updateUser(id, user);
@@ -174,7 +228,10 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "Xóa thành công")
     @ApiResponse(responseCode = "404", description = "Không tìm thấy user",
         content = @Content(schema = @Schema(implementation = APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = APIResponse.class)))
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(@Parameter(description = "ID của user", example = "1") @PathVariable("id") Long id) {
         userService.deleteUser(id);
     }

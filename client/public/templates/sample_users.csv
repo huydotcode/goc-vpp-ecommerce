@@ -1,0 +1,6 @@
+username,email,password,role,isActive
+user1,user1@example.com,123456,USER,true
+user2,user2@example.com,123456,USER,true
+admin1,admin1@example.com,123456,ADMIN,true
+user3,user3@example.com,123456,USER,false
+

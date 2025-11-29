@@ -27,7 +27,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.util.Base64;
 
 @Configuration
-@EnableMethodSecurity(securedEnabled = true)
+@EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
 public class SecurityConfiguration {
 
     @Value("${spring.jwt.base64-secret}")

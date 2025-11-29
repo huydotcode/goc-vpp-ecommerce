@@ -24,9 +24,12 @@ const GoogleCallback: React.FC = () => {
 
     // Case 1: Direct redirect from server with accessToken
     if (accessToken) {
-      localStorage.setItem('accessToken', accessToken);
+      // Clean token trước khi lưu
+      const cleanToken = accessToken.trim().replace(/^["']|["']$/g, '');
+      localStorage.setItem('accessToken', cleanToken);
       message.success('Đăng nhập Google thành công!');
-      navigate('/admin');
+      // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
+      navigate('/');
       setLoading(false);
       return;
     }
@@ -46,9 +49,12 @@ const GoogleCallback: React.FC = () => {
         )) as unknown as { accessToken: string; user?: unknown };
         
         if (response && response.accessToken) {
-          localStorage.setItem('accessToken', response.accessToken);
+          // Clean token trước khi lưu
+          const cleanToken = response.accessToken.trim().replace(/^["']|["']$/g, '');
+          localStorage.setItem('accessToken', cleanToken);
           message.success('Đăng nhập Google thành công!');
-          navigate('/admin');
+          // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
+          navigate('/');
         } else {
           throw new Error('Không nhận được access token');
         }

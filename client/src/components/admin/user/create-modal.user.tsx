@@ -168,7 +168,7 @@ const UserCreate: React.FC<UserCreateProps> = ({
           >
             <Select placeholder="Chọn vai trò">
               <Select.Option value="USER">USER</Select.Option>
-              <Select.Option value="ADMIN">ADMIN</Select.Option>
+              <Select.Option value="EMPLOYEE">EMPLOYEE</Select.Option>
             </Select>
           </Form.Item>
 

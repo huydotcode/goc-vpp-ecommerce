@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import {
   PieChartOutlined,
   UserOutlined,
-  LockOutlined,
   LogoutOutlined,
+  AppstoreOutlined,
+  ShoppingOutlined,
+  GiftOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { ConfigProvider, Layout, Menu, theme } from 'antd';
@@ -34,7 +36,7 @@ function getItem(
 const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, userRole } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -42,13 +44,21 @@ const AdminLayout: React.FC = () => {
     getItem('Tổng quan', '1', <PieChartOutlined />, () => {
       navigate('/admin');
     }),
-    getItem('Người dùng', '2', <UserOutlined />, () => {
-      navigate('/admin/users');
+    ...(userRole !== 'EMPLOYEE' ? [
+      getItem('Người dùng', '2', <UserOutlined />, () => {
+        navigate('/admin/users');
+      }),
+    ] : []),
+    getItem('Danh mục', '3', <AppstoreOutlined />, () => {
+      navigate('/admin/categories');
     }),
-    getItem('Phân quyền', '3', <LockOutlined />, () => {
-      navigate('/admin/permissions');
+    getItem('Sản phẩm', '4', <ShoppingOutlined />, () => {
+      navigate('/admin/products');
     }),
-    getItem('Đăng xuất', '4', <LogoutOutlined />, () => {
+    getItem('Khuyến mãi', '5', <GiftOutlined />, () => {
+      navigate('/admin/promotions');
+    }),
+    getItem('Đăng xuất', '6', <LogoutOutlined />, () => {
       logout();
     }),
   ];
@@ -56,7 +66,9 @@ const AdminLayout: React.FC = () => {
   const menuKeyMap: Record<string, string> = {
     '/admin': '1',
     '/admin/users': '2',
-    '/admin/permissions': '3',
+    '/admin/categories': '3',
+    '/admin/products': '4',
+    '/admin/promotions': '5',
   };
 
   const selectedKey = menuKeyMap[location.pathname] || '1';
