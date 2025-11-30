@@ -181,9 +181,12 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
             name="role"
             rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
           >
-            <Select placeholder="Chọn vai trò">
+            <Select placeholder="Chọn vai trò" disabled={dataDetailModal?.role === 'ADMIN'}>
               <Select.Option value="USER">USER</Select.Option>
-              <Select.Option value="ADMIN">ADMIN</Select.Option>
+              <Select.Option value="EMPLOYEE">EMPLOYEE</Select.Option>
+              {dataDetailModal?.role === 'ADMIN' && (
+                <Select.Option value="ADMIN">ADMIN</Select.Option>
+              )}
             </Select>
           </Form.Item>
 

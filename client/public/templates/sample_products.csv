@@ -1,0 +1,6 @@
+name,sku,price,discountPrice,stockQuantity,brand,description,isActive,isFeatured,categoryIds
+Sản phẩm 1,SKU001,100000,90000,100,Thương hiệu A,Mô tả sản phẩm 1,true,false,1
+Sản phẩm 2,SKU002,200000,180000,50,Thương hiệu B,Mô tả sản phẩm 2,true,true,1,2
+Sản phẩm 3,SKU003,300000,,200,Thương hiệu C,Mô tả sản phẩm 3,true,false,2
+Sản phẩm 4,SKU004,150000,120000,75,Thương hiệu A,Mô tả sản phẩm 4,true,true,1
+

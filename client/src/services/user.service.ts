@@ -11,7 +11,7 @@ export interface UserDTO {
   createdBy?: string;
   updatedBy?: string;
   deletedBy?: string;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'USER' | 'EMPLOYEE';
 }
 
 export interface CreateUserRequest {
@@ -20,7 +20,7 @@ export interface CreateUserRequest {
   password: string;
   avatarUrl?: string;
   isActive?: boolean;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'USER' | 'EMPLOYEE';
 }
 
 export interface UpdateUserRequest {
@@ -127,6 +127,31 @@ export const userService = {
 
   deleteUser: async (id: number): Promise<void> => {
     await axiosInstance.delete(`/users/${id}`);
+  },
+
+  getCurrentUser: async (): Promise<UserDTO> => {
+    console.log('[userService] Calling /users/me...');
+    // Axios interceptor đã unwrap response.data, nên response sẽ là dữ liệu trực tiếp từ server
+    // Backend trả về { status, message, data: UserDTO, errorCode, timestamp }
+    const response = await axiosInstance.get('/users/me') as unknown as { status: string; message: string; data: UserDTO; errorCode: string | null; timestamp: string } | UserDTO;
+    console.log('[userService] Response from /users/me:', response);
+    
+    // Response có format { status, message, data: UserDTO, ... }
+    if (response && typeof response === 'object') {
+      // Nếu có field 'data' và 'data' là UserDTO
+      if ('data' in response && response.data && typeof response.data === 'object' && 'id' in response.data && 'email' in response.data && 'role' in response.data) {
+        console.log('[userService] UserDTO extracted from response.data:', { id: response.data.id, email: response.data.email, role: response.data.role });
+        return response.data;
+      }
+      // Nếu response chính là UserDTO (có id, email, role trực tiếp) - fallback
+      if ('id' in response && 'email' in response && 'role' in response && !('status' in response)) {
+        console.log('[userService] Response is UserDTO directly:', { id: (response as UserDTO).id, email: (response as UserDTO).email, role: (response as UserDTO).role });
+        return response as UserDTO;
+      }
+    }
+    
+    console.error('[userService] Unexpected response format:', response);
+    throw new Error('Unexpected response format from /users/me');
   },
 
   uploadAvatar: async (

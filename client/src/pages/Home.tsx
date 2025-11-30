@@ -1,0 +1,295 @@
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Input, Select, Button, Image, Tag, Space, Pagination, Spin, Empty } from 'antd';
+import { SearchOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { productService } from '../services/product.service';
+import { categoryService } from '../services/category.service';
+import { promotionService } from '../services/promotion.service';
+import type { ProductDTO } from '../services/product.service';
+import type { CategoryDTO } from '../services/category.service';
+import type { PromotionResponseDTO } from '../services/promotion.service';
+
+const { Search } = Input;
+const { Option } = Select;
+
+const Home: React.FC = () => {
+  const [products, setProducts] = useState<ProductDTO[]>([]);
+  const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  const [promotions, setPromotions] = useState<PromotionResponseDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [total, setTotal] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    loadCategories();
+    loadPromotions();
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [currentPage, searchTerm, selectedCategory]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await categoryService.getAllCategories({
+        page: 1,
+        size: 100,
+        isActive: true,
+      });
+      setCategories(response.result || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  };
+
+  const loadPromotions = async () => {
+    try {
+      const activePromotions = await promotionService.getActivePromotions();
+      setPromotions(activePromotions || []);
+    } catch (error) {
+      console.error('Failed to load promotions:', error);
+    }
+  };
+
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await productService.getAllProducts({
+        page: currentPage,
+        size: pageSize,
+        isActive: true,
+        categoryId: selectedCategory,
+        search: searchTerm || undefined,
+      });
+      setProducts(response.result || []);
+      setTotal(response.metadata?.totalElements || 0);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (value: number | undefined) => {
+    setSelectedCategory(value);
+    setCurrentPage(1);
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(price);
+  };
+
+  return (
+    <div style={{ padding: '24px', background: '#f5f5f5', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{ marginBottom: '24px', textAlign: 'center' }}>Cửa hàng</h1>
+
+        {promotions.length > 0 && (
+          <Card style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)', color: 'white' }}>
+            <h2 style={{ color: 'white', marginBottom: '16px' }}>Khuyến mãi đang diễn ra</h2>
+            <Row gutter={[16, 16]}>
+              {promotions.slice(0, 3).map((promo) => (
+                <Col xs={24} sm={12} md={8} key={promo.id}>
+                  <Card
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      color: 'white',
+                    }}
+                  >
+                    <h3 style={{ color: 'white', marginBottom: '8px' }}>{promo.name}</h3>
+                    <p style={{ color: 'rgba(255, 255, 255, 0.9)', margin: 0 }}>
+                      {promo.discountType === 'PERCENTAGE'
+                        ? `Giảm ${promo.discountAmount}%`
+                        : `Giảm ${formatPrice(promo.discountAmount)}`}
+                    </p>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        )}
+
+        <Card style={{ marginBottom: '24px' }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={12} md={8}>
+              <Search
+                placeholder="Tìm kiếm sản phẩm..."
+                allowClear
+                enterButton={<SearchOutlined />}
+                size="large"
+                onSearch={handleSearch}
+                onChange={(e) => {
+                  if (!e.target.value) {
+                    handleSearch('');
+                  }
+                }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <Select
+                placeholder="Chọn danh mục"
+                allowClear
+                size="large"
+                style={{ width: '100%' }}
+                onChange={handleCategoryChange}
+                value={selectedCategory}
+              >
+                {categories.map((cat) => (
+                  <Option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} sm={24} md={8} style={{ textAlign: 'right' }}>
+              <Button
+                type="default"
+                size="large"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory(undefined);
+                  setCurrentPage(1);
+                }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+
+        <Spin spinning={loading}>
+          {products.length === 0 && !loading ? (
+            <Empty description="Không tìm thấy sản phẩm nào" />
+          ) : (
+            <>
+              <Row gutter={[16, 16]}>
+                {products.map((product) => {
+                  const discountPrice = product.discountPrice || product.price;
+                  const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+
+                  return (
+                    <Col xs={12} sm={8} md={6} key={product.id}>
+                      <Card
+                        hoverable
+                        cover={
+                          product.images && product.images.length > 0 ? (
+                            <Image
+                              src={product.images[0].imageUrl}
+                              alt={product.name}
+                              height={200}
+                              style={{ objectFit: 'cover' }}
+                              preview={false}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                height: 200,
+                                background: '#f0f0f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#999',
+                              }}
+                            >
+                              Không có ảnh
+                            </div>
+                          )
+                        }
+                        actions={[
+                          <Button
+                            type="primary"
+                            icon={<ShoppingCartOutlined />}
+                            block
+                            onClick={() => {
+                              // TODO: Thêm vào giỏ hàng
+                              console.log('Add to cart:', product.id);
+                            }}
+                          >
+                            Thêm vào giỏ
+                          </Button>,
+                        ]}
+                      >
+                        <Card.Meta
+                          title={
+                            <div>
+                              <div style={{ marginBottom: '8px' }}>{product.name}</div>
+                              {product.brand && (
+                                <Tag color="blue" style={{ marginBottom: '8px' }}>
+                                  {product.brand}
+                                </Tag>
+                              )}
+                            </div>
+                          }
+                          description={
+                            <div>
+                              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <div>
+                                  {hasDiscount ? (
+                                    <>
+                                      <span
+                                        style={{
+                                          textDecoration: 'line-through',
+                                          color: '#999',
+                                          marginRight: '8px',
+                                        }}
+                                      >
+                                        {formatPrice(product.price)}
+                                      </span>
+                                      <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                                        {formatPrice(discountPrice)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span style={{ fontWeight: 'bold' }}>{formatPrice(product.price)}</span>
+                                  )}
+                                </div>
+                                <div style={{ color: product.stockQuantity > 0 ? '#52c41a' : '#ff4d4f' }}>
+                                  {product.stockQuantity > 0
+                                    ? `Còn ${product.stockQuantity} sản phẩm`
+                                    : 'Hết hàng'}
+                                </div>
+                              </Space>
+                            </div>
+                          }
+                        />
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
+
+              {total > pageSize && (
+                <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                  <Pagination
+                    current={currentPage}
+                    total={total}
+                    pageSize={pageSize}
+                    onChange={(page) => setCurrentPage(page)}
+                    showSizeChanger={false}
+                    showTotal={(total, range) =>
+                      `${range[0]}-${range[1]} của ${total} sản phẩm`
+                    }
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </Spin>
+      </div>
+    </div>
+  );
+};
+
+export default Home;
+

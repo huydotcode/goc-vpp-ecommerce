@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.learnspring1.domain.Product;
@@ -37,7 +38,10 @@ public class ProductController {
     @Operation(summary = "Tạo mới product")
     @ApiResponse(responseCode = "200", description = "Tạo product thành công",
         content = @Content(schema = @Schema(implementation = Product.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Product create(@Valid @RequestBody Product input) {
         return productService.createProduct(input);
     }
@@ -67,7 +71,11 @@ public class ProductController {
             @RequestParam(name = "isActive", required = false) Boolean isActive,
             @RequestParam(name = "search", required = false) String search
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortField);
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+        if (direction == null) {
+            direction = Sort.Direction.ASC;
+        }
+        Sort sort = Sort.by(direction, sortField);
         Pageable pageable = PageRequest.of(page - 1, size, sort);
         Page<Product> result = productService.getProductsPageWithFilters(pageable, id, name, sku, brand, categoryId, isFeatured, isActive, search);
         MetadataDTO metadata = MetadataDTO.builder()
@@ -92,13 +100,19 @@ public class ProductController {
     }
 
     @Operation(summary = "Cập nhật product")
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Product update(@PathVariable("id") Long id, @Valid @RequestBody Product input) {
         return productService.updateProduct(id, input);
     }
 
     @Operation(summary = "Xóa product (soft delete)")
+    @ApiResponse(responseCode = "403", description = "Không có quyền",
+        content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable("id") Long id) {
         productService.deleteProduct(id);
     }

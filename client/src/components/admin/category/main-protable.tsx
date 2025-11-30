@@ -2,138 +2,72 @@ import React, { useRef, useState } from 'react';
 import {
   DeleteOutlined,
   EditOutlined,
-  ExportOutlined,
-  ImportOutlined,
   MoreOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import { Button, Space, Tag, notification, Popconfirm, Image } from 'antd';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { userService } from '../../../services/user.service';
-import type { UserDTO } from '../../../services/user.service';
+import { categoryService } from '../../../services/category.service';
+import type { CategoryDTO } from '../../../services/category.service';
 import { extractErrorMessage } from '../../../utils/errorHandler';
-import { exportToExcel, type ExportColumn } from '../../../utils/exportExcel';
-import UserDetail from './detail.user';
-import UserCreate from './create-modal.user';
-import UserUpdate from './update.user';
-import ImportUserModal from './import-modal.user';
+import { useAuth } from '../../../contexts/AuthContext';
+import CategoryDetail from './detail.category';
+import CategoryCreate from './create-modal.category';
+import CategoryUpdate from './update.category';
 
-const UserAdminMain: React.FC = () => {
+const CategoryAdminMain: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [api, contextHolder] = notification.useNotification();
   const requestIdRef = useRef<number>(0);
+  const { userRole } = useAuth();
 
   const reload = async () => {
-    console.log('🔄 [User Table] Reloading table...');
+    console.log('🔄 [Category Table] Reloading table...');
     await actionRef.current?.reload();
   };
 
-  // Detail component
   const [isOpenDetailModal, setIsOpenDetailModal] = useState<boolean>(false);
-  const [dataDetailModal, setDataDetailModal] = useState<UserDTO | null>(null);
+  const [dataDetailModal, setDataDetailModal] = useState<CategoryDTO | null>(null);
 
-  const handleOpenDetailModal = (record: UserDTO) => {
+  const handleOpenDetailModal = (record: CategoryDTO) => {
     setIsOpenDetailModal(true);
     setDataDetailModal(record);
   };
 
-  // Create component
   const [isOpenCreateModal, setIsOpenCreateModal] = useState<boolean>(false);
 
   const handleOpenCreateModal = () => {
     setIsOpenCreateModal(true);
   };
 
-  // Update component
   const [isOpenUpdateModal, setIsOpenUpdateModal] = useState<boolean>(false);
 
   const handleOpenUpdateModal = () => {
     setIsOpenUpdateModal(true);
   };
 
-  // Import component
-  const [isOpenImportModal, setIsOpenImportModal] = useState<boolean>(false);
-
-  const handleOpenImportModal = () => {
-    setIsOpenImportModal(true);
-  };
-
-  // Export function
-  const handleExport = async () => {
-    try {
-      api.info({
-        message: 'Đang xuất dữ liệu...',
-        description: 'Vui lòng đợi trong giây lát',
-        placement: 'topRight',
-      });
-
-      // Lấy tất cả users (không phân trang)
-      const response = await userService.getAllUsers({
-        page: 1,
-        size: 10000, // Lấy tất cả
-      });
-
-      const users = response.result || [];
-
-      // Định nghĩa columns cho export
-      const columns: ExportColumn[] = [
-        { header: 'ID', key: 'id', width: 10 },
-        { header: 'Username', key: 'username', width: 20 },
-        { header: 'Email', key: 'email', width: 30 },
-        { header: 'Role', key: 'role', width: 15 },
-        { header: 'Active', key: 'isActive', width: 15 },
-        { header: 'Created At', key: 'createdAt', width: 20 },
-      ];
-
-      // Format data for export
-      const exportData = users.map((user) => ({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive ? 'Yes' : 'No',
-        createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString('vi-VN') : '',
-      }));
-
-      await exportToExcel(exportData, columns, `users_export_${new Date().getTime()}.xlsx`);
-
-      api.success({
-        message: 'Xuất Excel thành công',
-        description: `Đã xuất ${users.length} người dùng`,
-        placement: 'topRight',
-      });
-    } catch (error) {
-      const { message } = extractErrorMessage(error);
-      api.error({
-        message: 'Lỗi xuất Excel',
-        description: message,
-        placement: 'topRight',
-      });
-    }
-  };
-
   const handleDelete = async (id: number) => {
     try {
-      await userService.deleteUser(id);
+      await categoryService.deleteCategory(id);
       api.success({
         message: 'Xóa thành công',
-        description: 'User đã được xóa thành công',
+        description: 'Danh mục đã được xóa thành công',
         placement: 'topRight',
       });
       reload();
     } catch (error: unknown) {
-      const { message, errorCode, isAccessDenied } = extractErrorMessage(error);
+      const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: isAccessDenied ? 'Không có quyền' : (errorCode || 'Lỗi'),
+        message: errorCode || 'Lỗi',
         description: message,
         placement: 'topRight',
-        duration: isAccessDenied ? 6 : 5,
+        duration: 5,
       });
     }
   };
 
-  const columns: ProColumns<UserDTO>[] = [
+  const columns: ProColumns<CategoryDTO>[] = [
     {
       dataIndex: 'index',
       valueType: 'indexBorder',
@@ -158,16 +92,16 @@ const UserAdminMain: React.FC = () => {
       ),
     },
     {
-      title: 'Avatar',
-      dataIndex: 'avatarUrl',
-      key: 'avatarUrl',
+      title: 'Thumbnail',
+      dataIndex: 'thumbnailUrl',
+      key: 'thumbnailUrl',
       width: 100,
       hideInSearch: true,
       render: (_, record) =>
-        record.avatarUrl ? (
+        record.thumbnailUrl ? (
           <Image
-            src={record.avatarUrl}
-            alt="Avatar"
+            src={record.thumbnailUrl}
+            alt="Thumbnail"
             width={50}
             height={50}
             style={{ objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }}
@@ -189,32 +123,30 @@ const UserAdminMain: React.FC = () => {
         ),
     },
     {
-      title: 'Username',
-      dataIndex: 'username',
-      key: 'username',
+      title: 'Tên',
+      dataIndex: 'name',
+      key: 'name',
       ellipsis: true,
       copyable: true,
       sorter: true,
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
       ellipsis: true,
-      copyable: true,
-      sorter: true,
-    },
-    {
-      title: 'Vai trò',
-      dataIndex: 'role',
-      key: 'role',
-      valueType: 'select',
-      valueEnum: {
-        ADMIN: { text: 'ADMIN' },
-        USER: { text: 'USER' },
-      },
+      hideInSearch: true,
       render: (_, record) => (
-        <Tag color={record.role === 'ADMIN' ? 'red' : 'blue'}>{record.role}</Tag>
+        <div
+          style={{
+            maxWidth: 300,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {record.description || 'N/A'}
+        </div>
       ),
     },
     {
@@ -256,17 +188,19 @@ const UserAdminMain: React.FC = () => {
             }}
             style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
           />
-          <Popconfirm
-            title="Xóa user"
-            description="Bạn có chắc chắn muốn xóa user này?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <DeleteOutlined
-              style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
-            />
-          </Popconfirm>
+          {userRole !== 'EMPLOYEE' && (
+            <Popconfirm
+              title="Xóa danh mục"
+              description="Bạn có chắc chắn muốn xóa danh mục này?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Xóa"
+              cancelText="Hủy"
+            >
+              <DeleteOutlined
+                style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+              />
+            </Popconfirm>
+          )}
           <MoreOutlined
             style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
             onClick={() => handleOpenDetailModal(record)}
@@ -279,35 +213,29 @@ const UserAdminMain: React.FC = () => {
   return (
     <>
       {contextHolder}
-      <h1 style={{ padding: '20px' }}>Quản lý người dùng</h1>
-      <UserDetail
+      <h1 style={{ padding: '20px' }}>Quản lý danh mục</h1>
+      <CategoryDetail
         isOpenDetailModal={isOpenDetailModal}
         setIsOpenDetailModal={setIsOpenDetailModal}
         dataDetailModal={dataDetailModal}
         setDataDetailModal={setDataDetailModal}
       />
 
-      <UserCreate
+      <CategoryCreate
         isOpenCreateModal={isOpenCreateModal}
         setIsOpenCreateModal={setIsOpenCreateModal}
         reload={reload}
       />
 
-      <UserUpdate
+      <CategoryUpdate
         isOpenUpdateModal={isOpenUpdateModal}
         setIsOpenUpdateModal={setIsOpenUpdateModal}
         reload={reload}
         dataDetailModal={dataDetailModal}
       />
 
-      <ImportUserModal
-        isOpenImportModal={isOpenImportModal}
-        setIsOpenImportModal={setIsOpenImportModal}
-        reload={reload}
-      />
-
       <div style={{ padding: '0 20px 20px 20px' }}>
-        <ProTable<UserDTO>
+        <ProTable<CategoryDTO>
           actionRef={actionRef}
           columns={columns}
           request={async (params, sort) => {
@@ -331,10 +259,9 @@ const UserAdminMain: React.FC = () => {
                     sort?: string;
                     direction?: string;
                     id?: number;
-                    username?: string;
-                    email?: string;
-                    role?: string;
+                    name?: string;
                     isActive?: boolean;
+                    search?: string;
                   } = {
                     page: params.current || 1,
                     size: params.pageSize || 10,
@@ -343,7 +270,7 @@ const UserAdminMain: React.FC = () => {
                   };
 
                   // Log để debug
-                  console.log(`🔍 [User Table #${currentRequestId}] Request params:`, {
+                  console.log(`🔍 [Category Table #${currentRequestId}] Request params:`, {
                     params,
                     sort,
                     queryParams: { ...queryParams },
@@ -352,27 +279,21 @@ const UserAdminMain: React.FC = () => {
                   if (params.id) {
                     queryParams.id = Number(params.id);
                   }
-                  if (params.username) {
-                    queryParams.username = params.username;
-                  }
-                  if (params.email) {
-                    queryParams.email = params.email;
-                  }
-                  if (params.role) {
-                    queryParams.role = params.role;
+                  if (params.name) {
+                    queryParams.name = params.name;
                   }
                   if (params.isActive !== undefined) {
                     queryParams.isActive = params.isActive;
                   }
 
-                  console.log(`📤 [User Table #${currentRequestId}] Sending request:`, queryParams);
+                  console.log(`📤 [Category Table #${currentRequestId}] Sending request:`, queryParams);
                   const startTime = Date.now();
                   
-                  const response = await userService.getAllUsers(queryParams);
+                  const response = await categoryService.getAllCategories(queryParams);
                   
                   // Kiểm tra nếu request này đã bị override bởi request mới hơn
                   if (currentRequestId !== requestIdRef.current) {
-                    console.log(`⚠️ [User Table #${currentRequestId}] Request bị hủy, có request mới hơn`);
+                    console.log(`⚠️ [Category Table #${currentRequestId}] Request bị hủy, có request mới hơn`);
                     return {
                       data: [],
                       success: false,
@@ -381,7 +302,7 @@ const UserAdminMain: React.FC = () => {
                   }
                   
                   const endTime = Date.now();
-                  console.log(`📥 [User Table #${currentRequestId}] Response:`, {
+                  console.log(`📥 [Category Table #${currentRequestId}] Response:`, {
                     duration: `${endTime - startTime}ms`,
                     total: response?.metadata?.totalElements || 0,
                     dataCount: response?.result?.length || 0,
@@ -400,12 +321,12 @@ const UserAdminMain: React.FC = () => {
                 };
               }
             } catch (error: unknown) {
-              const { message, errorCode } = extractErrorMessage(error);
+              const { message, errorCode, isAccessDenied } = extractErrorMessage(error);
               api.error({
-                message: errorCode || 'Lỗi',
+                message: isAccessDenied ? 'Không có quyền' : (errorCode || 'Lỗi'),
                 description: message,
                 placement: 'topRight',
-                duration: 5,
+                duration: isAccessDenied ? 6 : 5,
               });
               return {
                 data: [],
@@ -425,10 +346,10 @@ const UserAdminMain: React.FC = () => {
           pagination={{
             defaultPageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `Tổng ${total} người dùng`,
+            showTotal: (total) => `Tổng ${total} danh mục`,
           }}
           dateFormatter="string"
-          headerTitle="Danh sách người dùng"
+          headerTitle="Danh sách danh mục"
           toolBarRender={() => [
             <Button
               key="button"
@@ -436,23 +357,7 @@ const UserAdminMain: React.FC = () => {
               onClick={handleOpenCreateModal}
               type="primary"
             >
-              Thêm user
-            </Button>,
-            <Button
-              key="import"
-              icon={<ImportOutlined />}
-              onClick={handleOpenImportModal}
-              type="primary"
-            >
-              Import Excel
-            </Button>,
-            <Button
-              key="export"
-              icon={<ExportOutlined />}
-              onClick={handleExport}
-              type="default"
-            >
-              Export Excel
+              Thêm danh mục
             </Button>,
           ]}
           scroll={{ x: 'max-content' }}
@@ -464,5 +369,5 @@ const UserAdminMain: React.FC = () => {
   );
 };
 
-export default UserAdminMain;
+export default CategoryAdminMain;
 

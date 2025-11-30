@@ -34,12 +34,34 @@ axiosInstance.interceptors.request.use(
     const url = config.url || '';
     const isPublicEndpoint = url.includes('/login') || 
                             url.includes('/refresh') || 
-                            url.includes('/google/');
+                            url.includes('/google/auth-url') ||
+                            url.includes('/google/test-login');
     
     if (!isPublicEndpoint) {
-      const token = localStorage.getItem('accessToken');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      let token = localStorage.getItem('accessToken');
+      
+      // Clean và validate token
+      if (token) {
+        // Loại bỏ khoảng trắng và dấu ngoặc kép thừa
+        token = token.trim().replace(/^["']|["']$/g, '');
+        
+        // Kiểm tra token có hợp lệ không (JWT thường có 3 phần được phân cách bởi dấu chấm)
+        if (token && token.split('.').length === 3) {
+          // Đảm bảo headers object tồn tại
+          if (!config.headers) {
+            config.headers = {} as any;
+          }
+          config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          console.error('Invalid token format detected. Token length:', token?.length || 0);
+          // Xóa token không hợp lệ
+          localStorage.removeItem('accessToken');
+          // Không reject ở đây, để response interceptor xử lý 401
+          // Chỉ log warning
+        }
+      } else {
+        // Nếu không có token và không phải public endpoint
+        // Không làm gì ở đây, để server trả về 401 và response interceptor xử lý
       }
     }
     return config;
@@ -62,7 +84,10 @@ axiosInstance.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            if (originalRequest.headers && token) {
+            if (token) {
+              if (!originalRequest.headers) {
+                originalRequest.headers = {};
+              }
               originalRequest.headers.Authorization = `Bearer ${token}`;
             }
             return axiosInstance(originalRequest);
@@ -89,13 +114,17 @@ axiosInstance.interceptors.response.use(
           throw new Error('Không nhận được access token từ refresh endpoint');
         }
         
-        localStorage.setItem('accessToken', accessToken);
+        // Clean token trước khi lưu
+        const cleanToken = accessToken.trim().replace(/^["']|["']$/g, '');
+        localStorage.setItem('accessToken', cleanToken);
 
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        // Đảm bảo headers tồn tại và cập nhật token
+        if (!originalRequest.headers) {
+          originalRequest.headers = {} as any;
         }
+        originalRequest.headers.Authorization = `Bearer ${cleanToken}`;
 
-        processQueue(null, accessToken);
+        processQueue(null, cleanToken);
         isRefreshing = false;
 
         return axiosInstance(originalRequest);
@@ -112,6 +141,20 @@ axiosInstance.interceptors.response.use(
 
         return Promise.reject(refreshError);
       }
+    }
+
+    // Xử lý lỗi 403 (Forbidden - Không có quyền)
+    if (error.response?.status === 403) {
+      const errorData = error.response.data as any;
+      const errorMessage = errorData?.message || 'Bạn không có quyền thực hiện thao tác này';
+      
+      // Trả về error với thông tin đầy đủ để component có thể xử lý
+      return Promise.reject({
+        ...errorData,
+        status: '403 FORBIDDEN',
+        message: errorMessage,
+        isAccessDenied: true,
+      });
     }
 
     return Promise.reject(error.response?.data || error);

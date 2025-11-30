@@ -116,6 +116,15 @@ public class PromotionServiceImpl implements PromotionService {
         return promotionRepository.findPromotionsWithFilters(id, name, isActive, search, pageable);
     }
 
+    @Override
+    @Transactional
+    public void deletePromotion(Long id) {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Promotion not found with id " + id));
+        promotion.softDelete();
+        promotionRepository.save(promotion);
+    }
+
     private void initializePromotion(Promotion promotion) {
         if (promotion == null) {
             return;
