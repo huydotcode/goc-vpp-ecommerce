@@ -1,18 +1,12 @@
-import React, { useState } from 'react';
-import {
-  Modal,
-  notification,
-  Space,
-  Table,
-  Upload,
-} from 'antd';
-import type { TableProps } from 'antd/es/table';
-import type { UploadProps } from 'antd/es/upload';
-import { InboxOutlined } from '@ant-design/icons';
-import Exceljs from 'exceljs';
-import { productService } from '../../../services/product.service';
-import type { CreateProductRequest } from '../../../services/product.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import { InboxOutlined } from "@ant-design/icons";
+import { Modal, notification, Space, Table, Upload } from "antd";
+import type { TableProps } from "antd/es/table";
+import type { UploadProps } from "antd/es/upload";
+import Exceljs from "exceljs";
+import React, { useState } from "react";
+import type { CreateProductRequest } from "../../../services/product.service";
+import { productService } from "../../../services/product.service";
+import { extractErrorMessage } from "../../../utils/error";
 
 const { Dragger } = Upload;
 
@@ -31,65 +25,77 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
   const [dataImport, setDataImport] = useState<CreateProductRequest[]>([]);
 
   // Table columns
-  const columns: TableProps<CreateProductRequest>['columns'] = [
+  const columns: TableProps<CreateProductRequest>["columns"] = [
     {
-      title: 'Tên',
-      dataIndex: 'name',
-      key: 'name',
+      title: "Tên",
+      dataIndex: "name",
+      key: "name",
     },
     {
-      title: 'SKU',
-      dataIndex: 'sku',
-      key: 'sku',
+      title: "SKU",
+      dataIndex: "sku",
+      key: "sku",
     },
     {
-      title: 'Giá',
-      dataIndex: 'price',
-      key: 'price',
-      render: (price: number) => price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price) : 'N/A',
+      title: "Giá",
+      dataIndex: "price",
+      key: "price",
+      render: (price: number) =>
+        price
+          ? new Intl.NumberFormat("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            }).format(price)
+          : "N/A",
     },
     {
-      title: 'Giá giảm',
-      dataIndex: 'discountPrice',
-      key: 'discountPrice',
-      render: (price: number) => price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price) : 'N/A',
+      title: "Giá giảm",
+      dataIndex: "discountPrice",
+      key: "discountPrice",
+      render: (price: number) =>
+        price
+          ? new Intl.NumberFormat("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            }).format(price)
+          : "N/A",
     },
     {
-      title: 'Số lượng',
-      dataIndex: 'stockQuantity',
-      key: 'stockQuantity',
+      title: "Số lượng",
+      dataIndex: "stockQuantity",
+      key: "stockQuantity",
     },
     {
-      title: 'Thương hiệu',
-      dataIndex: 'brand',
-      key: 'brand',
+      title: "Thương hiệu",
+      dataIndex: "brand",
+      key: "brand",
     },
     {
-      title: 'Mô tả',
-      dataIndex: 'description',
-      key: 'description',
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
       ellipsis: true,
     },
   ];
 
   const propsUpload: UploadProps = {
-    name: 'file',
+    name: "file",
     multiple: false,
     maxCount: 1,
     accept:
-      '.csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel',
+      ".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel",
     customRequest: ({ onSuccess }) => {
       if (onSuccess) {
-        onSuccess('ok');
+        onSuccess("ok");
       }
     },
     async onChange(info) {
       const { status } = info.file;
-      if (status !== 'uploading') {
+      if (status !== "uploading") {
         console.log(info.file, info.fileList);
       }
 
-      if (status === 'done') {
+      if (status === "done") {
         if (info.fileList && info.fileList.length > 0) {
           // Lấy file
           const file = info.fileList[0].originFileObj!;
@@ -97,62 +103,112 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
           try {
             const jsonData: CreateProductRequest[] = [];
             const fileName = file.name.toLowerCase();
-            const isCSV = fileName.endsWith('.csv');
+            const isCSV = fileName.endsWith(".csv");
 
             if (isCSV) {
               // Parse CSV file
               const text = await file.text();
-              const lines = text.split('\n').filter(line => line.trim());
-              
+              const lines = text.split("\n").filter((line) => line.trim());
+
               if (lines.length < 2) {
-                throw new Error('File CSV phải có ít nhất 1 dòng header và 1 dòng dữ liệu');
+                throw new Error(
+                  "File CSV phải có ít nhất 1 dòng header và 1 dòng dữ liệu"
+                );
               }
 
               // Parse header
-              const headers = lines[0].split(',').map(h => h.trim());
-              
+              const headers = lines[0].split(",").map((h) => h.trim());
+
               // Parse data rows
               for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
+                const values = lines[i].split(",").map((v) => v.trim());
                 const obj: Record<string, string> = {};
-                
+
                 headers.forEach((header, index) => {
-                  obj[header] = values[index] || '';
+                  obj[header] = values[index] || "";
                 });
 
                 // Map CSV columns to CreateProductRequest
-                const isActiveValue = obj.isActive || obj['Trạng thái'];
-                const isActive = isActiveValue === 'true' || isActiveValue === true || isActiveValue === undefined || isActiveValue === '';
-                const isFeaturedValue = obj.isFeatured || obj['Nổi bật'];
-                const isFeatured = isFeaturedValue === 'true' || isFeaturedValue === true;
-                
+                const isActiveValue = obj.isActive || obj["Trạng thái"];
+                const isActive =
+                  isActiveValue === "true" ||
+                  isActiveValue === "True" ||
+                  isActiveValue === undefined ||
+                  isActiveValue === "";
+                const isFeaturedValue = obj.isFeatured || obj["Nổi bật"];
+                const isFeatured =
+                  isFeaturedValue === "true" || isFeaturedValue === "True";
+
                 const productData: CreateProductRequest = {
-                  name: String(obj.name || obj['Tên'] || obj['Name'] || ''),
-                  description: String(obj.description || obj['Mô tả'] || obj['Description'] || ''),
-                  price: obj.price ? Number(obj.price) : obj['Giá'] ? Number(obj['Giá']) : obj['Price'] ? Number(obj['Price']) : undefined,
-                  discountPrice: obj.discountPrice ? Number(obj.discountPrice) : obj['Giá giảm'] ? Number(obj['Giá giảm']) : obj['Discount Price'] ? Number(obj['Discount Price']) : undefined,
-                  stockQuantity: obj.stockQuantity ? Number(obj.stockQuantity) : obj['Số lượng'] ? Number(obj['Số lượng']) : obj['Stock Quantity'] ? Number(obj['Stock Quantity']) : 0,
-                  sku: String(obj.sku || obj['SKU'] || obj['Mã SKU'] || ''),
-                  brand: String(obj.brand || obj['Thương hiệu'] || obj['Brand'] || ''),
-                  color: String(obj.color || obj['Màu sắc'] || obj['Color'] || ''),
-                  size: String(obj.size || obj['Kích thước'] || obj['Size'] || ''),
-                  weight: String(obj.weight || obj['Trọng lượng'] || obj['Weight'] || ''),
-                  dimensions: String(obj.dimensions || obj['Kích thước'] || obj['Dimensions'] || ''),
-                  specifications: String(obj.specifications || obj['Thông số'] || obj['Specifications'] || ''),
+                  name: String(obj.name || obj["Tên"] || obj["Name"] || ""),
+                  description: String(
+                    obj.description || obj["Mô tả"] || obj["Description"] || ""
+                  ),
+                  price: obj.price
+                    ? Number(obj.price)
+                    : obj["Giá"]
+                      ? Number(obj["Giá"])
+                      : obj["Price"]
+                        ? Number(obj["Price"])
+                        : undefined,
+                  discountPrice: obj.discountPrice
+                    ? Number(obj.discountPrice)
+                    : obj["Giá giảm"]
+                      ? Number(obj["Giá giảm"])
+                      : obj["Discount Price"]
+                        ? Number(obj["Discount Price"])
+                        : undefined,
+                  stockQuantity: obj.stockQuantity
+                    ? Number(obj.stockQuantity)
+                    : obj["Số lượng"]
+                      ? Number(obj["Số lượng"])
+                      : obj["Stock Quantity"]
+                        ? Number(obj["Stock Quantity"])
+                        : 0,
+                  sku: String(obj.sku || obj["SKU"] || obj["Mã SKU"] || ""),
+                  brand: String(
+                    obj.brand || obj["Thương hiệu"] || obj["Brand"] || ""
+                  ),
+                  color: String(
+                    obj.color || obj["Màu sắc"] || obj["Color"] || ""
+                  ),
+                  size: String(
+                    obj.size || obj["Kích thước"] || obj["Size"] || ""
+                  ),
+                  weight: String(
+                    obj.weight || obj["Trọng lượng"] || obj["Weight"] || ""
+                  ),
+                  dimensions: String(
+                    obj.dimensions ||
+                      obj["Kích thước"] ||
+                      obj["Dimensions"] ||
+                      ""
+                  ),
+                  specifications: String(
+                    obj.specifications ||
+                      obj["Thông số"] ||
+                      obj["Specifications"] ||
+                      ""
+                  ),
                   isActive,
                   isFeatured,
                 };
 
                 // Parse categoryIds if exists
-                if (obj.categoryIds || obj['Danh mục'] || obj['Category IDs']) {
-                  const categoryIdsStr = obj.categoryIds || obj['Danh mục'] || obj['Category IDs'];
-                  if (typeof categoryIdsStr === 'string') {
+                if (obj.categoryIds || obj["Danh mục"] || obj["Category IDs"]) {
+                  const categoryIdsStr =
+                    obj.categoryIds ||
+                    obj["Danh mục"] ||
+                    (obj["Category IDs"] as string | number[]);
+                  if (typeof categoryIdsStr === "string") {
                     productData.categoryIds = categoryIdsStr
-                      .split(',')
+                      .split(",")
                       .map((id: string) => Number(id.trim()))
                       .filter((id: number) => !isNaN(id));
                   } else if (Array.isArray(categoryIdsStr)) {
-                    productData.categoryIds = categoryIdsStr.map((id: any) => Number(id)).filter((id: number) => !isNaN(id));
+                    productData.categoryIds = categoryIdsStr
+                      .map((id: string | number) => Number(id))
+                      .filter((id: number) => !isNaN(id));
                   }
                 }
 
@@ -177,25 +233,77 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                   const values = row.values as (string | number)[];
                   const obj: Record<string, string | number> = {};
                   for (let i = 0; i < keys.length; i++) {
-                    obj[keys[i]] = values[i] || '';
+                    obj[keys[i]] = values[i] || "";
                   }
 
                   // Map Excel columns to CreateProductRequest
-                  const name = String(obj.name || obj['Tên'] || obj['Name'] || '');
-                  const description = String(obj.description || obj['Mô tả'] || obj['Description'] || '');
-                  const price = obj.price ? Number(obj.price) : obj['Giá'] ? Number(obj['Giá']) : obj['Price'] ? Number(obj['Price']) : undefined;
-                  const discountPrice = obj.discountPrice ? Number(obj.discountPrice) : obj['Giá giảm'] ? Number(obj['Giá giảm']) : obj['Discount Price'] ? Number(obj['Discount Price']) : undefined;
-                  const stockQuantity = obj.stockQuantity ? Number(obj.stockQuantity) : obj['Số lượng'] ? Number(obj['Số lượng']) : obj['Stock Quantity'] ? Number(obj['Stock Quantity']) : 0;
-                  const sku = String(obj.sku || obj['SKU'] || obj['Mã SKU'] || '');
-                  const brand = String(obj.brand || obj['Thương hiệu'] || obj['Brand'] || '');
-                  const color = String(obj.color || obj['Màu sắc'] || obj['Color'] || '');
-                  const size = String(obj.size || obj['Kích thước'] || obj['Size'] || '');
-                  const weight = String(obj.weight || obj['Trọng lượng'] || obj['Weight'] || '');
-                  const dimensions = String(obj.dimensions || obj['Kích thước'] || obj['Dimensions'] || '');
-                  const specifications = String(obj.specifications || obj['Thông số'] || obj['Specifications'] || '');
-                  const isActive = obj.isActive !== undefined ? Boolean(obj.isActive) : obj['Trạng thái'] !== undefined ? Boolean(obj['Trạng thái']) : true;
-                  const isFeatured = obj.isFeatured !== undefined ? Boolean(obj.isFeatured) : obj['Nổi bật'] !== undefined ? Boolean(obj['Nổi bật']) : false;
-                  
+                  const name = String(
+                    obj.name || obj["Tên"] || obj["Name"] || ""
+                  );
+                  const description = String(
+                    obj.description || obj["Mô tả"] || obj["Description"] || ""
+                  );
+                  const price = obj.price
+                    ? Number(obj.price)
+                    : obj["Giá"]
+                      ? Number(obj["Giá"])
+                      : obj["Price"]
+                        ? Number(obj["Price"])
+                        : undefined;
+                  const discountPrice = obj.discountPrice
+                    ? Number(obj.discountPrice)
+                    : obj["Giá giảm"]
+                      ? Number(obj["Giá giảm"])
+                      : obj["Discount Price"]
+                        ? Number(obj["Discount Price"])
+                        : undefined;
+                  const stockQuantity = obj.stockQuantity
+                    ? Number(obj.stockQuantity)
+                    : obj["Số lượng"]
+                      ? Number(obj["Số lượng"])
+                      : obj["Stock Quantity"]
+                        ? Number(obj["Stock Quantity"])
+                        : 0;
+                  const sku = String(
+                    obj.sku || obj["SKU"] || obj["Mã SKU"] || ""
+                  );
+                  const brand = String(
+                    obj.brand || obj["Thương hiệu"] || obj["Brand"] || ""
+                  );
+                  const color = String(
+                    obj.color || obj["Màu sắc"] || obj["Color"] || ""
+                  );
+                  const size = String(
+                    obj.size || obj["Kích thước"] || obj["Size"] || ""
+                  );
+                  const weight = String(
+                    obj.weight || obj["Trọng lượng"] || obj["Weight"] || ""
+                  );
+                  const dimensions = String(
+                    obj.dimensions ||
+                      obj["Kích thước"] ||
+                      obj["Dimensions"] ||
+                      ""
+                  );
+                  const specifications = String(
+                    obj.specifications ||
+                      obj["Thông số"] ||
+                      obj["Specifications"] ||
+                      ""
+                  );
+                  const isActive =
+                    obj.isActive !== undefined
+                      ? Boolean(obj.isActive)
+                      : obj["Trạng thái"] !== undefined
+                        ? Boolean(obj["Trạng thái"])
+                        : true;
+                  const isFeatured =
+                    obj.isFeatured !== undefined
+                      ? Boolean(obj.isFeatured)
+                      : obj["Nổi bật"] !== undefined
+                        ? Boolean(obj["Nổi bật"])
+                        : false;
+
                   const productData: CreateProductRequest = {
                     name,
                     description,
@@ -214,15 +322,22 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                   };
 
                   // Parse categoryIds if exists
-                  if (obj.categoryIds || obj['Danh mục'] || obj['Category IDs']) {
-                    const categoryIdsStr = obj.categoryIds || obj['Danh mục'] || obj['Category IDs'];
-                    if (typeof categoryIdsStr === 'string') {
+                  if (
+                    obj.categoryIds ||
+                    obj["Danh mục"] ||
+                    obj["Category IDs"]
+                  ) {
+                    const categoryIdsStr =
+                      obj.categoryIds || obj["Danh mục"] || obj["Category IDs"];
+                    if (typeof categoryIdsStr === "string") {
                       productData.categoryIds = categoryIdsStr
-                        .split(',')
+                        .split(",")
                         .map((id: string) => Number(id.trim()))
                         .filter((id: number) => !isNaN(id));
                     } else if (Array.isArray(categoryIdsStr)) {
-                      productData.categoryIds = categoryIdsStr.map((id: any) => Number(id)).filter((id: number) => !isNaN(id));
+                      productData.categoryIds = categoryIdsStr
+                        .map((id: string) => Number(id))
+                        .filter((id: number) => !isNaN(id));
                     }
                   }
 
@@ -235,26 +350,26 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
 
             setDataImport(jsonData);
             api.success({
-              message: 'Thành công',
+              message: "Thành công",
               description: `${info.file.name} đã được tải lên thành công.`,
             });
           } catch (error) {
             const { message } = extractErrorMessage(error);
             api.error({
-              message: 'Lỗi',
+              message: "Lỗi",
               description: `Không thể đọc file: ${message}`,
             });
           }
         }
-      } else if (status === 'error') {
+      } else if (status === "error") {
         api.error({
-          message: 'Thất bại',
+          message: "Thất bại",
           description: `${info.file.name} tải lên thất bại.`,
         });
       }
     },
     onDrop(e) {
-      console.log('Dropped files', e.dataTransfer.files);
+      console.log("Dropped files", e.dataTransfer.files);
     },
   };
 
@@ -270,8 +385,8 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
 
     if (length === 0) {
       api.warning({
-        message: 'Thất bại',
-        description: 'Dữ liệu trống.',
+        message: "Thất bại",
+        description: "Dữ liệu trống.",
       });
       return;
     }
@@ -284,13 +399,13 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
             successCount++;
           } catch (error) {
             failCount++;
-            console.error('Error creating product:', error);
+            console.error("Error creating product:", error);
           }
         })
       );
 
       api.info({
-        message: 'Thông báo',
+        message: "Thông báo",
         description: `Đã tải lên ${successCount} sản phẩm. Thất bại ${failCount}`,
       });
 
@@ -300,7 +415,7 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
     } catch (error) {
       const { message } = extractErrorMessage(error);
       api.error({
-        message: 'Lỗi',
+        message: "Lỗi",
         description: `Có lỗi xảy ra: ${message}`,
       });
     }
@@ -339,7 +454,7 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
         <Space style={{ marginTop: 16 }} />
         {dataImport.length > 0 && (
           <Table
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: "max-content" }}
             dataSource={dataImport.map((item, index) => ({
               ...item,
               key: index,
@@ -354,4 +469,3 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
 };
 
 export default ImportProductModal;
-

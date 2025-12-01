@@ -1,11 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Drawer, Form, Input, InputNumber, notification, Select, Space, Upload } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { productService } from '../../../services/product.service';
-import { categoryService } from '../../../services/category.service';
-import type { UpdateProductRequest, ProductDTO, CategoryDTO } from '../../../services/product.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useEffect, useState } from "react";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  InputNumber,
+  notification,
+  Select,
+  Space,
+  Upload,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import { productService } from "../../../services/product.service";
+import {
+  categoryService,
+  type CategoryDTO,
+} from "../../../services/category.service";
+import type {
+  UpdateProductRequest,
+  ProductDTO,
+} from "../../../services/product.service";
+import { extractErrorMessage } from "../../../utils/error";
 
 interface ProductUpdateProps {
   isOpenUpdateModal: boolean;
@@ -50,7 +66,7 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
           setCategories(response.result);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error("Error fetching categories:", error);
       } finally {
         setLoadingCategories(false);
       }
@@ -80,22 +96,22 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
         categoryIds: dataDetailModal.categories?.map((cat) => cat.id) || [],
         thumbnailUrl: dataDetailModal.thumbnailUrl,
       });
-      
+
       // Load images từ images array hoặc thumbnailUrl
       const allImages: string[] = [];
       if (dataDetailModal.images && dataDetailModal.images.length > 0) {
-        allImages.push(...dataDetailModal.images.map(img => img.imageUrl));
+        allImages.push(...dataDetailModal.images.map((img) => img.imageUrl));
       } else if (dataDetailModal.thumbnailUrl) {
         allImages.push(dataDetailModal.thumbnailUrl);
       }
-      
+
       setImageUrls(allImages);
-      
+
       // Set fileList cho Upload component
       const uploadFiles: UploadFile[] = allImages.map((url, index) => ({
         uid: `-${index}`,
         name: `image-${index}.png`,
-        status: 'done' as const,
+        status: "done" as const,
         url: url,
       }));
       setFileList(uploadFiles);
@@ -104,18 +120,21 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
 
   const handleUpload = async (file: File): Promise<string | null> => {
     try {
-      const response = await productService.uploadThumbnail(file, dataDetailModal?.id);
-      if (response.data?.secureUrl) {
-        return response.data.secureUrl;
+      const response = await productService.uploadThumbnail(
+        file,
+        dataDetailModal?.id
+      );
+      if (response?.secureUrl) {
+        return response.secureUrl;
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
       return null;
@@ -124,30 +143,30 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
 
   const uploadProps = {
     beforeUpload: async (file: File) => {
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type.startsWith("image/");
       if (!isImage) {
         api.error({
-          message: 'Lỗi',
-          description: 'Chỉ chấp nhận file ảnh',
+          message: "Lỗi",
+          description: "Chỉ chấp nhận file ảnh",
         });
         return false;
       }
       const isLt5M = file.size / 1024 / 1024 < 5;
       if (!isLt5M) {
         api.error({
-          message: 'Lỗi',
-          description: 'Kích thước file phải nhỏ hơn 5MB',
+          message: "Lỗi",
+          description: "Kích thước file phải nhỏ hơn 5MB",
         });
         return false;
       }
-      
+
       setUploading(true);
       const url = await handleUpload(file);
       if (url) {
         setImageUrls((prev) => [...prev, url]);
         api.success({
-          message: 'Upload thành công',
-          description: 'Ảnh đã được upload thành công',
+          message: "Upload thành công",
+          description: "Ảnh đã được upload thành công",
         });
       }
       setUploading(false);
@@ -158,8 +177,8 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
       setFileList(newFileList);
       // Cập nhật imageUrls từ fileList
       const urls = newFileList
-        .filter(file => file.status === 'done' && file.url)
-        .map(file => file.url!);
+        .filter((file) => file.status === "done" && file.url)
+        .map((file) => file.url!);
       setImageUrls(urls);
     },
     onRemove: (file: UploadFile) => {
@@ -182,14 +201,14 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
         categoryIds: values.categoryIds || [],
       };
       await productService.updateProduct(dataDetailModal.id, productData);
-      
+
       // Sau khi update product thành công, upload các ảnh còn lại vào images array
       // (Nếu BE hỗ trợ upload images sau khi update product)
-      
+
       api.success({
-        message: 'Thành công',
-        description: 'Cập nhật sản phẩm thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Cập nhật sản phẩm thành công",
+        placement: "topRight",
       });
       setIsOpenUpdateModal(false);
       form.resetFields();
@@ -199,9 +218,9 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -217,11 +236,16 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
         width="60%"
         placement="left"
       >
-        <Form {...layout} form={form} name="update-product-form" onFinish={onFinish}>
+        <Form
+          {...layout}
+          form={form}
+          name="update-product-form"
+          onFinish={onFinish}
+        >
           <Form.Item
             label="Tên"
             name="name"
-            rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm' }]}
+            rules={[{ required: true, message: "Vui lòng nhập tên sản phẩm" }]}
           >
             <Input />
           </Form.Item>
@@ -239,25 +263,35 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
           </Form.Item>
 
           <Form.Item label="Giá" name="price">
-            <InputNumber
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+            <InputNumber<number>
+              style={{ width: "100%" }}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => {
+                const cleaned = value?.replace(/\$\s?|(,*)/g, "") || "";
+                return cleaned ? Number(cleaned) : 0;
+              }}
               min={0}
             />
           </Form.Item>
 
           <Form.Item label="Giá giảm" name="discountPrice">
-            <InputNumber
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+            <InputNumber<number>
+              style={{ width: "100%" }}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => {
+                const cleaned = value?.replace(/\$\s?|(,*)/g, "") || "";
+                return cleaned ? Number(cleaned) : 0;
+              }}
               min={0}
             />
           </Form.Item>
 
           <Form.Item label="Số lượng" name="stockQuantity">
-            <InputNumber style={{ width: '100%' }} min={0} />
+            <InputNumber<number> style={{ width: "100%" }} min={0} />
           </Form.Item>
 
           <Form.Item label="Màu sắc" name="color">
@@ -301,8 +335,9 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
                 </div>
               )}
             </Upload>
-            <div style={{ marginTop: 8, color: '#999', fontSize: '12px' }}>
-              Có thể upload nhiều ảnh (tối đa 10 ảnh). Ảnh đầu tiên sẽ được dùng làm thumbnail.
+            <div style={{ marginTop: 8, color: "#999", fontSize: "12px" }}>
+              Có thể upload nhiều ảnh (tối đa 10 ảnh). Ảnh đầu tiên sẽ được dùng
+              làm thumbnail.
             </div>
           </Form.Item>
 
@@ -316,7 +351,7 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
           <Form.Item
             label="Trạng thái"
             name="isActive"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
           >
             <Select placeholder="Chọn trạng thái">
               <Select.Option value={true}>Active</Select.Option>
@@ -341,4 +376,3 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
 };
 
 export default ProductUpdate;
-

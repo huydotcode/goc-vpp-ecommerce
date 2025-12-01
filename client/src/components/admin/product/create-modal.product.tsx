@@ -1,11 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Drawer, Form, Input, InputNumber, notification, Select, Space, Upload, Progress } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { productService } from '../../../services/product.service';
-import { categoryService } from '../../../services/category.service';
-import type { CreateProductRequest, CategoryDTO } from '../../../services/product.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  InputNumber,
+  notification,
+  Select,
+  Space,
+  Upload,
+  Progress,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import { productService } from "../../../services/product.service";
+import { categoryService } from "../../../services/category.service";
+import type { CreateProductRequest } from "../../../services/product.service";
+import { extractErrorMessage } from "../../../utils/error";
+import type { Category } from "@/types/category.types";
+import type { RcFile } from "antd/es/upload";
 
 interface ProductCreateProps {
   isOpenCreateModal: boolean;
@@ -33,8 +46,8 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  // const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
   useEffect(() => {
@@ -50,7 +63,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
           setCategories(response.result);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error("Error fetching categories:", error);
       } finally {
         setLoadingCategories(false);
       }
@@ -61,23 +74,23 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
   }, [isOpenCreateModal]);
 
   const handleFileSelect = (file: File): boolean => {
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     if (!isImage) {
       api.error({
-        message: 'Lỗi',
-        description: 'Chỉ chấp nhận file ảnh',
+        message: "Lỗi",
+        description: "Chỉ chấp nhận file ảnh",
       });
       return false;
     }
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
       api.error({
-        message: 'Lỗi',
-        description: 'Kích thước file phải nhỏ hơn 5MB',
+        message: "Lỗi",
+        description: "Kích thước file phải nhỏ hơn 5MB",
       });
       return false;
     }
-    
+
     // Tạo preview từ local
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -86,9 +99,9 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       const uploadFile: UploadFile = {
         uid: `-${Date.now()}-${Math.random()}`,
         name: file.name,
-        status: 'done',
+        status: "done",
         url: result,
-        originFileObj: file,
+        originFileObj: file as RcFile,
       };
       setFileList((prev) => [...prev, uploadFile]);
     };
@@ -99,17 +112,17 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
   const handleUpload = async (file: File): Promise<string | null> => {
     try {
       const response = await productService.uploadThumbnail(file);
-      if (response.data?.secureUrl) {
-        return response.data.secureUrl;
+      if (response?.secureUrl) {
+        return response.secureUrl;
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
       return null;
@@ -129,7 +142,9 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
     },
     onRemove: (file: UploadFile) => {
       if (file.originFileObj) {
-        setSelectedFiles((prev) => prev.filter((f) => f !== file.originFileObj));
+        setSelectedFiles((prev) =>
+          prev.filter((f) => f !== file.originFileObj)
+        );
       }
       return true;
     },
@@ -141,7 +156,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       setUploading(true);
       setUploadProgress(0);
       const uploadedUrls: string[] = [];
-      
+
       // Upload tất cả ảnh lên server
       if (selectedFiles.length > 0) {
         const totalFiles = selectedFiles.length;
@@ -163,31 +178,30 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       // Lấy ảnh đầu tiên làm thumbnail
       const productData: CreateProductRequest = {
         ...values,
-        thumbnailUrl: uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl,
-        imageUrls: uploadedUrls.length > 1 ? uploadedUrls.slice(1) : [],
+        thumbnailUrl:
+          uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl,
         isActive: values.isActive ?? true,
         isFeatured: values.isFeatured ?? false,
         categoryIds: values.categoryIds || [],
       };
       await productService.createProduct(productData);
-      
+
       api.success({
-        message: 'Thành công',
-        description: 'Tạo mới sản phẩm thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Tạo mới sản phẩm thành công",
+        placement: "topRight",
       });
       setIsOpenCreateModal(false);
       form.resetFields();
       setFileList([]);
       setSelectedFiles([]);
-      setImageUrls([]);
       reload();
     } catch (error: unknown) {
       const { message, errorCode, isAccessDenied } = extractErrorMessage(error);
       api.error({
-        message: isAccessDenied ? 'Không có quyền' : (errorCode || 'Lỗi'),
+        message: isAccessDenied ? "Không có quyền" : errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: isAccessDenied ? 6 : 5,
       });
     } finally {
@@ -200,7 +214,6 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
     form.resetFields();
     setFileList([]);
     setSelectedFiles([]);
-    setImageUrls([]);
   };
 
   return (
@@ -218,7 +231,9 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
           <Form.Item
             label="Tên"
             name="name"
-            rules={[{ required: true, message: 'Tên sản phẩm không được để trống' }]}
+            rules={[
+              { required: true, message: "Tên sản phẩm không được để trống" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -236,25 +251,35 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
           </Form.Item>
 
           <Form.Item label="Giá" name="price">
-            <InputNumber
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+            <InputNumber<number>
+              style={{ width: "100%" }}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => {
+                const cleaned = value?.replace(/\$\s?|(,*)/g, "") || "";
+                return cleaned ? Number(cleaned) : 0;
+              }}
               min={0}
             />
           </Form.Item>
 
           <Form.Item label="Giá giảm" name="discountPrice">
-            <InputNumber
-              style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+            <InputNumber<number>
+              style={{ width: "100%" }}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => {
+                const cleaned = value?.replace(/\$\s?|(,*)/g, "") || "";
+                return cleaned ? Number(cleaned) : 0;
+              }}
               min={0}
             />
           </Form.Item>
 
           <Form.Item label="Số lượng" name="stockQuantity">
-            <InputNumber style={{ width: '100%' }} min={0} />
+            <InputNumber style={{ width: "100%" }} min={0} />
           </Form.Item>
 
           <Form.Item label="Màu sắc" name="color">
@@ -277,10 +302,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
             <Input.TextArea rows={4} />
           </Form.Item>
 
-          <Form.Item
-            label="Danh mục"
-            name="categoryIds"
-          >
+          <Form.Item label="Danh mục" name="categoryIds">
             <Select
               mode="multiple"
               placeholder="Chọn danh mục"
@@ -304,13 +326,15 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
             {uploading && (
               <div style={{ marginTop: 16 }}>
                 <Progress percent={uploadProgress} status="active" />
-                <p style={{ marginTop: 8, color: '#666' }}>
-                  Đang upload {selectedFiles.length} ảnh lên server... ({uploadProgress}%)
+                <p style={{ marginTop: 8, color: "#666" }}>
+                  Đang upload {selectedFiles.length} ảnh lên server... (
+                  {uploadProgress}%)
                 </p>
               </div>
             )}
-            <div style={{ marginTop: 8, color: '#999', fontSize: '12px' }}>
-              Có thể upload nhiều ảnh (tối đa 10 ảnh). Ảnh đầu tiên sẽ được dùng làm thumbnail.
+            <div style={{ marginTop: 8, color: "#999", fontSize: "12px" }}>
+              Có thể upload nhiều ảnh (tối đa 10 ảnh). Ảnh đầu tiên sẽ được dùng
+              làm thumbnail.
             </div>
           </Form.Item>
 
@@ -330,7 +354,12 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
 
           <Form.Item {...tailLayout}>
             <Space>
-              <Button type="primary" htmlType="submit" loading={uploading} disabled={uploading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={uploading}
+                disabled={uploading}
+              >
                 Tạo
               </Button>
               <Button htmlType="button" onClick={onReset} disabled={uploading}>
@@ -345,4 +374,3 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
 };
 
 export default ProductCreate;
-
