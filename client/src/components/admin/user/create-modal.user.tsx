@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
-import { Button, Drawer, Form, Input, notification, Select, Space, Upload } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { userService } from '../../../services/user.service';
-import type { CreateUserRequest } from '../../../services/user.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useState } from "react";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  notification,
+  Select,
+  Space,
+  Upload,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import { userService } from "../../../services/user.service";
+import type { CreateUserRequest } from "../../../services/user.service";
+import { extractErrorMessage } from "../../../utils/error";
 
 interface UserCreateProps {
   isOpenCreateModal: boolean;
@@ -30,28 +39,28 @@ const UserCreate: React.FC<UserCreateProps> = ({
   const [api, contextHolder] = notification.useNotification();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
 
   const handleUpload = async (file: File) => {
     setUploading(true);
     try {
       const response = await userService.uploadAvatar(file);
-      if (response.data?.secureUrl) {
-        setAvatarUrl(response.data.secureUrl);
-        form.setFieldsValue({ avatarUrl: response.data.secureUrl });
+      if (response?.secureUrl) {
+        setAvatarUrl(response.secureUrl);
+        form.setFieldsValue({ avatarUrl: response.secureUrl });
         api.success({
-          message: 'Upload thành công',
-          description: 'Avatar đã được upload thành công',
+          message: "Upload thành công",
+          description: "Avatar đã được upload thành công",
         });
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     } finally {
@@ -61,19 +70,19 @@ const UserCreate: React.FC<UserCreateProps> = ({
 
   const uploadProps = {
     beforeUpload: (file: File) => {
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type.startsWith("image/");
       if (!isImage) {
         api.error({
-          message: 'Lỗi',
-          description: 'Chỉ chấp nhận file ảnh',
+          message: "Lỗi",
+          description: "Chỉ chấp nhận file ảnh",
         });
         return false;
       }
       const isLt5M = file.size / 1024 / 1024 < 5;
       if (!isLt5M) {
         api.error({
-          message: 'Lỗi',
-          description: 'Kích thước file phải nhỏ hơn 5MB',
+          message: "Lỗi",
+          description: "Kích thước file phải nhỏ hơn 5MB",
         });
         return false;
       }
@@ -96,21 +105,21 @@ const UserCreate: React.FC<UserCreateProps> = ({
       };
       await userService.createUser(userData);
       api.success({
-        message: 'Thành công',
-        description: 'Tạo mới user thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Tạo mới user thành công",
+        placement: "topRight",
       });
       setIsOpenCreateModal(false);
       form.resetFields();
       setFileList([]);
-      setAvatarUrl('');
+      setAvatarUrl("");
       reload();
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -119,7 +128,7 @@ const UserCreate: React.FC<UserCreateProps> = ({
   const onReset = () => {
     form.resetFields();
     setFileList([]);
-    setAvatarUrl('');
+    setAvatarUrl("");
   };
 
   return (
@@ -137,7 +146,9 @@ const UserCreate: React.FC<UserCreateProps> = ({
           <Form.Item
             label="Tên"
             name="username"
-            rules={[{ required: true, message: 'Username không được để trống' }]}
+            rules={[
+              { required: true, message: "Username không được để trống" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -146,8 +157,8 @@ const UserCreate: React.FC<UserCreateProps> = ({
             label="Email"
             name="email"
             rules={[
-              { required: true, message: 'Email không được để trống' },
-              { type: 'email', message: 'Email không đúng định dạng' },
+              { required: true, message: "Email không được để trống" },
+              { type: "email", message: "Email không đúng định dạng" },
             ]}
           >
             <Input />
@@ -156,7 +167,9 @@ const UserCreate: React.FC<UserCreateProps> = ({
           <Form.Item
             label="Mật khẩu"
             name="password"
-            rules={[{ required: true, message: 'Password không được để trống' }]}
+            rules={[
+              { required: true, message: "Password không được để trống" },
+            ]}
           >
             <Input.Password />
           </Form.Item>
@@ -164,7 +177,7 @@ const UserCreate: React.FC<UserCreateProps> = ({
           <Form.Item
             label="Vai trò"
             name="role"
-            rules={[{ required: true, message: 'Role không được để trống' }]}
+            rules={[{ required: true, message: "Role không được để trống" }]}
           >
             <Select placeholder="Chọn vai trò">
               <Select.Option value="USER">USER</Select.Option>
@@ -186,7 +199,12 @@ const UserCreate: React.FC<UserCreateProps> = ({
                 <img
                   src={avatarUrl}
                   alt="Avatar preview"
-                  style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '8px' }}
+                  style={{
+                    width: 100,
+                    height: 100,
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                  }}
                 />
               </div>
             )}
@@ -216,4 +234,3 @@ const UserCreate: React.FC<UserCreateProps> = ({
 };
 
 export default UserCreate;
-

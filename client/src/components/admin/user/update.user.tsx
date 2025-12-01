@@ -1,10 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Drawer, Form, Input, notification, Select, Space, Upload } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { userService } from '../../../services/user.service';
-import type { UpdateUserRequest, UserDTO } from '../../../services/user.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useEffect, useState } from "react";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  notification,
+  Select,
+  Space,
+  Upload,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import { userService } from "../../../services/user.service";
+import type {
+  UpdateUserRequest,
+  UserDTO,
+} from "../../../services/user.service";
+import { extractErrorMessage } from "../../../utils/error";
 
 interface UserUpdateProps {
   isOpenUpdateModal: boolean;
@@ -32,7 +44,7 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
   const [api, contextHolder] = notification.useNotification();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
 
   useEffect(() => {
     if (dataDetailModal) {
@@ -43,13 +55,13 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
         isActive: dataDetailModal.isActive,
         avatarUrl: dataDetailModal.avatarUrl,
       });
-      setAvatarUrl(dataDetailModal.avatarUrl || '');
+      setAvatarUrl(dataDetailModal.avatarUrl || "");
       if (dataDetailModal.avatarUrl) {
         setFileList([
           {
-            uid: '-1',
-            name: 'avatar.png',
-            status: 'done',
+            uid: "-1",
+            name: "avatar.png",
+            status: "done",
             url: dataDetailModal.avatarUrl,
           },
         ]);
@@ -60,23 +72,26 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
   const handleUpload = async (file: File) => {
     setUploading(true);
     try {
-      const response = await userService.uploadAvatar(file, dataDetailModal?.id);
-      if (response.data?.secureUrl) {
-        setAvatarUrl(response.data.secureUrl);
-        form.setFieldsValue({ avatarUrl: response.data.secureUrl });
+      const response = await userService.uploadAvatar(
+        file,
+        dataDetailModal?.id
+      );
+      if (response?.secureUrl) {
+        setAvatarUrl(response.secureUrl);
+        form.setFieldsValue({ avatarUrl: response.secureUrl });
         api.success({
-          message: 'Upload thành công',
-          description: 'Avatar đã được upload thành công',
+          message: "Upload thành công",
+          description: "Avatar đã được upload thành công",
         });
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     } finally {
@@ -86,19 +101,19 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
 
   const uploadProps = {
     beforeUpload: (file: File) => {
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type.startsWith("image/");
       if (!isImage) {
         api.error({
-          message: 'Lỗi',
-          description: 'Chỉ chấp nhận file ảnh',
+          message: "Lỗi",
+          description: "Chỉ chấp nhận file ảnh",
         });
         return false;
       }
       const isLt5M = file.size / 1024 / 1024 < 5;
       if (!isLt5M) {
         api.error({
-          message: 'Lỗi',
-          description: 'Kích thước file phải nhỏ hơn 5MB',
+          message: "Lỗi",
+          description: "Kích thước file phải nhỏ hơn 5MB",
         });
         return false;
       }
@@ -122,21 +137,21 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
       };
       await userService.updateUser(dataDetailModal.id, userData);
       api.success({
-        message: 'Thành công',
-        description: 'Cập nhật user thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Cập nhật user thành công",
+        placement: "topRight",
       });
       setIsOpenUpdateModal(false);
       form.resetFields();
       setFileList([]);
-      setAvatarUrl('');
+      setAvatarUrl("");
       reload();
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -152,11 +167,16 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
         width="60%"
         placement="left"
       >
-        <Form {...layout} form={form} name="update-user-form" onFinish={onFinish}>
+        <Form
+          {...layout}
+          form={form}
+          name="update-user-form"
+          onFinish={onFinish}
+        >
           <Form.Item
             label="Tên"
             name="username"
-            rules={[{ required: true, message: 'Vui lòng nhập tên' }]}
+            rules={[{ required: true, message: "Vui lòng nhập tên" }]}
           >
             <Input />
           </Form.Item>
@@ -165,8 +185,8 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
             label="Email"
             name="email"
             rules={[
-              { required: true, message: 'Vui lòng nhập email' },
-              { type: 'email', message: 'Email không hợp lệ' },
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
             ]}
           >
             <Input />
@@ -179,12 +199,15 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
           <Form.Item
             label="Vai trò"
             name="role"
-            rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+            rules={[{ required: true, message: "Vui lòng chọn vai trò" }]}
           >
-            <Select placeholder="Chọn vai trò" disabled={dataDetailModal?.role === 'ADMIN'}>
+            <Select
+              placeholder="Chọn vai trò"
+              disabled={dataDetailModal?.role === "ADMIN"}
+            >
               <Select.Option value="USER">USER</Select.Option>
               <Select.Option value="EMPLOYEE">EMPLOYEE</Select.Option>
-              {dataDetailModal?.role === 'ADMIN' && (
+              {dataDetailModal?.role === "ADMIN" && (
                 <Select.Option value="ADMIN">ADMIN</Select.Option>
               )}
             </Select>
@@ -204,7 +227,12 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
                 <img
                   src={avatarUrl}
                   alt="Avatar preview"
-                  style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '8px' }}
+                  style={{
+                    width: 100,
+                    height: 100,
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                  }}
                 />
               </div>
             )}
@@ -234,4 +262,3 @@ const UserUpdate: React.FC<UserUpdateProps> = ({
 };
 
 export default UserUpdate;
-

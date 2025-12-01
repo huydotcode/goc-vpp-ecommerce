@@ -1,18 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   DeleteOutlined,
   EditOutlined,
   MoreOutlined,
   PlusOutlined,
-} from '@ant-design/icons';
-import { Button, Table, Space, Tag, notification, Popconfirm, Image } from 'antd';
-import type { ColumnsType, TableProps } from 'antd/es/table';
-import { userService } from '../../../services/user.service';
-import type { UserDTO } from '../../../services/user.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
-import UserDetail from './detail.user';
-import UserCreate from './create-modal.user';
-import UserUpdate from './update.user';
+} from "@ant-design/icons";
+import {
+  Button,
+  Table,
+  Space,
+  Tag,
+  notification,
+  Popconfirm,
+  Image,
+} from "antd";
+import type { ColumnsType, TableProps } from "antd/es/table";
+import { userService } from "../../../services/user.service";
+import type { UserDTO } from "../../../services/user.service";
+import { extractErrorMessage } from "../../../utils/error";
+import UserDetail from "./detail.user";
+import UserCreate from "./create-modal.user";
+import UserUpdate from "./update.user";
 
 const UserAdminMain: React.FC = () => {
   const [api, contextHolder] = notification.useNotification();
@@ -52,11 +60,11 @@ const UserAdminMain: React.FC = () => {
   };
 
   const fetchUsers = async (page: number, pageSize: number) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     if (!token) {
       api.warning({
-        message: 'Chưa đăng nhập',
-        description: 'Vui lòng đăng nhập để tiếp tục',
+        message: "Chưa đăng nhập",
+        description: "Vui lòng đăng nhập để tiếp tục",
       });
       return;
     }
@@ -66,8 +74,8 @@ const UserAdminMain: React.FC = () => {
       const params = {
         page,
         size: pageSize,
-        sort: 'id',
-        direction: 'desc' as const,
+        sort: "id",
+        direction: "desc" as const,
       };
 
       const response = await userService.getAllUsers(params);
@@ -79,27 +87,27 @@ const UserAdminMain: React.FC = () => {
           total: response.metadata.totalElements,
         });
       } else {
-        throw new Error('Response không đúng định dạng');
+        throw new Error("Response không đúng định dạng");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       const errorObj = error as { status?: string };
-      
-      if (errorObj.status === '401 UNAUTHORIZED' || message.includes('401')) {
+
+      if (errorObj.status === "401 UNAUTHORIZED" || message.includes("401")) {
         api.error({
-          message: 'Phiên đăng nhập đã hết hạn',
-          description: 'Vui lòng đăng nhập lại',
-          placement: 'topRight',
+          message: "Phiên đăng nhập đã hết hạn",
+          description: "Vui lòng đăng nhập lại",
+          placement: "topRight",
           duration: 3,
         });
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.href = "/login";
         }, 2000);
       } else {
         api.error({
-          message: errorCode || 'Lỗi',
+          message: errorCode || "Lỗi",
           description: message,
-          placement: 'topRight',
+          placement: "topRight",
           duration: 5,
         });
       }
@@ -112,17 +120,17 @@ const UserAdminMain: React.FC = () => {
     try {
       await userService.deleteUser(id);
       api.success({
-        message: 'Xóa thành công',
-        description: 'User đã được xóa thành công',
-        placement: 'topRight',
+        message: "Xóa thành công",
+        description: "User đã được xóa thành công",
+        placement: "topRight",
       });
       reload();
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -130,9 +138,9 @@ const UserAdminMain: React.FC = () => {
 
   const columns: ColumnsType<UserDTO> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
       width: 80,
       render: (_, record) => (
         <a
@@ -145,9 +153,9 @@ const UserAdminMain: React.FC = () => {
       ),
     },
     {
-      title: 'Avatar',
-      dataIndex: 'avatarUrl',
-      key: 'avatarUrl',
+      title: "Avatar",
+      dataIndex: "avatarUrl",
+      key: "avatarUrl",
       width: 100,
       render: (url: string) =>
         url ? (
@@ -156,7 +164,7 @@ const UserAdminMain: React.FC = () => {
             alt="Avatar"
             width={50}
             height={50}
-            style={{ objectFit: 'cover', borderRadius: '8px' }}
+            style={{ objectFit: "cover", borderRadius: "8px" }}
             preview={false}
           />
         ) : (
@@ -164,11 +172,11 @@ const UserAdminMain: React.FC = () => {
             style={{
               width: 50,
               height: 50,
-              backgroundColor: '#f0f0f0',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              backgroundColor: "#f0f0f0",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             N/A
@@ -176,43 +184,45 @@ const UserAdminMain: React.FC = () => {
         ),
     },
     {
-      title: 'Username',
-      dataIndex: 'username',
-      key: 'username',
+      title: "Username",
+      dataIndex: "username",
+      key: "username",
       ellipsis: true,
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
       ellipsis: true,
     },
     {
-      title: 'Vai trò',
-      dataIndex: 'role',
-      key: 'role',
+      title: "Vai trò",
+      dataIndex: "role",
+      key: "role",
       render: (role: string) => (
-        <Tag color={role === 'ADMIN' ? 'red' : 'blue'}>{role}</Tag>
+        <Tag color={role === "ADMIN" ? "red" : "blue"}>{role}</Tag>
       ),
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'isActive',
-      key: 'isActive',
+      title: "Trạng thái",
+      dataIndex: "isActive",
+      key: "isActive",
       render: (isActive: boolean) => (
-        <Tag color={isActive ? 'green' : 'red'}>{isActive ? 'Active' : 'Inactive'}</Tag>
+        <Tag color={isActive ? "green" : "red"}>
+          {isActive ? "Active" : "Inactive"}
+        </Tag>
       ),
     },
     {
-      title: 'Ngày tạo',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (date: string) =>
-        date ? new Date(date).toLocaleDateString('vi-VN') : 'N/A',
+        date ? new Date(date).toLocaleDateString("vi-VN") : "N/A",
     },
     {
-      title: 'Hành động',
-      key: 'action',
+      title: "Hành động",
+      key: "action",
       width: 150,
       render: (_, record) => (
         <Space size="middle">
@@ -221,7 +231,7 @@ const UserAdminMain: React.FC = () => {
               handleOpenUpdateModal();
               setDataDetailModal(record);
             }}
-            style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
           />
           <Popconfirm
             title="Xóa user"
@@ -231,11 +241,11 @@ const UserAdminMain: React.FC = () => {
             cancelText="Hủy"
           >
             <DeleteOutlined
-              style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+              style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
             />
           </Popconfirm>
           <MoreOutlined
-            style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
             onClick={() => handleOpenDetailModal(record)}
           />
         </Space>
@@ -243,7 +253,9 @@ const UserAdminMain: React.FC = () => {
     },
   ];
 
-  const handleTableChange: TableProps<UserDTO>['onChange'] = (paginationInfo) => {
+  const handleTableChange: TableProps<UserDTO>["onChange"] = (
+    paginationInfo
+  ) => {
     const newPage = paginationInfo.current || 1;
     const newPageSize = paginationInfo.pageSize || 10;
     fetchUsers(newPage, newPageSize);
@@ -257,12 +269,11 @@ const UserAdminMain: React.FC = () => {
   return (
     <>
       {contextHolder}
-      <h1 style={{ padding: '20px' }}>Quản lý người dùng</h1>
+      <h1 style={{ padding: "20px" }}>Quản lý người dùng</h1>
       <UserDetail
         isOpenDetailModal={isOpenDetailModal}
         setIsOpenDetailModal={setIsOpenDetailModal}
         dataDetailModal={dataDetailModal}
-        setDataDetailModal={setDataDetailModal}
       />
 
       <UserCreate
@@ -278,7 +289,7 @@ const UserAdminMain: React.FC = () => {
         dataDetailModal={dataDetailModal}
       />
 
-      <div style={{ padding: '0 20px 20px 20px' }}>
+      <div style={{ padding: "0 20px 20px 20px" }}>
         <div style={{ marginBottom: 16 }}>
           <Button
             type="primary"
@@ -311,4 +322,3 @@ const UserAdminMain: React.FC = () => {
 };
 
 export default UserAdminMain;
-

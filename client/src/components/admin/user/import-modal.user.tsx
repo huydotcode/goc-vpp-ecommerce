@@ -1,18 +1,12 @@
-import React, { useState } from 'react';
-import {
-  Modal,
-  notification,
-  Space,
-  Table,
-  Upload,
-} from 'antd';
-import type { TableProps } from 'antd/es/table';
-import type { UploadProps } from 'antd/es/upload';
-import { InboxOutlined } from '@ant-design/icons';
-import Exceljs from 'exceljs';
-import { userService } from '../../../services/user.service';
-import type { CreateUserRequest } from '../../../services/user.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useState } from "react";
+import { Modal, notification, Space, Table, Upload } from "antd";
+import type { TableProps } from "antd/es/table";
+import type { UploadProps } from "antd/es/upload";
+import { InboxOutlined } from "@ant-design/icons";
+import Exceljs from "exceljs";
+import { userService } from "../../../services/user.service";
+import type { CreateUserRequest } from "../../../services/user.service";
+import { extractErrorMessage } from "../../../utils/error";
 
 const { Dragger } = Upload;
 
@@ -31,54 +25,54 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
   const [dataImport, setDataImport] = useState<CreateUserRequest[]>([]);
 
   // Table columns
-  const columns: TableProps<CreateUserRequest>['columns'] = [
+  const columns: TableProps<CreateUserRequest>["columns"] = [
     {
-      title: 'Username',
-      dataIndex: 'username',
-      key: 'username',
+      title: "Username",
+      dataIndex: "username",
+      key: "username",
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
     },
     {
-      title: 'Password',
-      dataIndex: 'password',
-      key: 'password',
-      render: () => '******',
+      title: "Password",
+      dataIndex: "password",
+      key: "password",
+      render: () => "******",
     },
     {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
     },
     {
-      title: 'Active',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      render: (isActive: boolean) => (isActive ? 'Yes' : 'No'),
+      title: "Active",
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (isActive: boolean) => (isActive ? "Yes" : "No"),
     },
   ];
 
   const propsUpload: UploadProps = {
-    name: 'file',
+    name: "file",
     multiple: false,
     maxCount: 1,
     accept:
-      '.csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel',
+      ".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel",
     customRequest: ({ onSuccess }) => {
       if (onSuccess) {
-        onSuccess('ok');
+        onSuccess("ok");
       }
     },
     async onChange(info) {
       const { status } = info.file;
-      if (status !== 'uploading') {
+      if (status !== "uploading") {
         console.log(info.file, info.fileList);
       }
 
-      if (status === 'done') {
+      if (status === "done") {
         if (info.fileList && info.fileList.length > 0) {
           // Lấy file
           const file = info.fileList[0].originFileObj!;
@@ -86,49 +80,58 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
           try {
             const jsonData: CreateUserRequest[] = [];
             const fileName = file.name.toLowerCase();
-            const isCSV = fileName.endsWith('.csv');
+            const isCSV = fileName.endsWith(".csv");
 
             if (isCSV) {
               // Parse CSV file
               const text = await file.text();
-              const lines = text.split('\n').filter(line => line.trim());
-              
+              const lines = text.split("\n").filter((line) => line.trim());
+
               if (lines.length < 2) {
-                throw new Error('File CSV phải có ít nhất 1 dòng header và 1 dòng dữ liệu');
+                throw new Error(
+                  "File CSV phải có ít nhất 1 dòng header và 1 dòng dữ liệu"
+                );
               }
 
               // Parse header
-              const headers = lines[0].split(',').map(h => h.trim());
-              
+              const headers = lines[0].split(",").map((h) => h.trim());
+
               // Parse data rows
               for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
+                const values = lines[i].split(",").map((v) => v.trim());
                 const obj: Record<string, string> = {};
-                
+
                 headers.forEach((header, index) => {
-                  obj[header] = values[index] || '';
+                  obj[header] = values[index] || "";
                 });
 
                 // Map CSV columns to CreateUserRequest
-                const isActiveValue = obj.isActive || obj['Trạng thái'];
+                const isActiveValue = obj.isActive || obj["Trạng thái"];
                 let isActive = true; // Default
-                if (isActiveValue !== undefined && isActiveValue !== '') {
-                  if (typeof isActiveValue === 'string') {
-                    isActive = isActiveValue.toLowerCase() === 'true';
-                  } else if (typeof isActiveValue === 'boolean') {
+                if (isActiveValue !== undefined && isActiveValue !== "") {
+                  if (typeof isActiveValue === "string") {
+                    isActive = isActiveValue.toLowerCase() === "true";
+                  } else if (typeof isActiveValue === "boolean") {
                     isActive = isActiveValue;
                   }
                 }
-                
-                const roleValue = String(obj.role || obj['Vai trò'] || 'USER').toUpperCase();
+
+                const roleValue = String(
+                  obj.role || obj["Vai trò"] || "USER"
+                ).toUpperCase();
                 // Không cho phép ADMIN, chuyển thành EMPLOYEE nếu là ADMIN
-                const validRole = roleValue === 'ADMIN' ? 'EMPLOYEE' : (roleValue === 'EMPLOYEE' ? 'EMPLOYEE' : 'USER');
-                
+                const validRole =
+                  roleValue === "ADMIN"
+                    ? "EMPLOYEE"
+                    : roleValue === "EMPLOYEE"
+                      ? "EMPLOYEE"
+                      : "USER";
+
                 const userData: CreateUserRequest = {
-                  username: String(obj.username || obj['Tên đăng nhập'] || ''),
-                  email: String(obj.email || obj['Email'] || ''),
-                  password: String(obj.password || obj['Mật khẩu'] || '123456'), // Default password
-                  role: validRole as 'USER' | 'EMPLOYEE',
+                  username: String(obj.username || obj["Tên đăng nhập"] || ""),
+                  email: String(obj.email || obj["Email"] || ""),
+                  password: String(obj.password || obj["Mật khẩu"] || "123456"), // Default password
+                  role: validRole as "USER" | "EMPLOYEE",
                   isActive: isActive,
                 };
 
@@ -153,23 +156,39 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
                   const values = row.values as (string | number)[];
                   const obj: Record<string, string | number> = {};
                   for (let i = 0; i < keys.length; i++) {
-                    obj[keys[i]] = values[i] || '';
+                    obj[keys[i]] = values[i] || "";
                   }
 
                   // Map Excel columns to CreateUserRequest
-                  const username = String(obj.username || obj['Tên đăng nhập'] || '');
-                  const email = String(obj.email || obj['Email'] || '');
-                  const password = String(obj.password || obj['Mật khẩu'] || '123456');
-                  const roleValue = String(obj.role || obj['Vai trò'] || 'USER').toUpperCase();
+                  const username = String(
+                    obj.username || obj["Tên đăng nhập"] || ""
+                  );
+                  const email = String(obj.email || obj["Email"] || "");
+                  const password = String(
+                    obj.password || obj["Mật khẩu"] || "123456"
+                  );
+                  const roleValue = String(
+                    obj.role || obj["Vai trò"] || "USER"
+                  ).toUpperCase();
                   // Không cho phép ADMIN, chuyển thành EMPLOYEE nếu là ADMIN
-                  const role = roleValue === 'ADMIN' ? 'EMPLOYEE' : (roleValue === 'EMPLOYEE' ? 'EMPLOYEE' : 'USER');
-                  const isActive = obj.isActive !== undefined ? Boolean(obj.isActive) : obj['Trạng thái'] !== undefined ? Boolean(obj['Trạng thái']) : true;
-                  
+                  const role =
+                    roleValue === "ADMIN"
+                      ? "EMPLOYEE"
+                      : roleValue === "EMPLOYEE"
+                        ? "EMPLOYEE"
+                        : "USER";
+                  const isActive =
+                    obj.isActive !== undefined
+                      ? Boolean(obj.isActive)
+                      : obj["Trạng thái"] !== undefined
+                        ? Boolean(obj["Trạng thái"])
+                        : true;
+
                   const userData: CreateUserRequest = {
                     username,
                     email,
                     password,
-                    role: role as 'USER' | 'EMPLOYEE',
+                    role: role as "USER" | "EMPLOYEE",
                     isActive,
                   };
 
@@ -182,26 +201,26 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
 
             setDataImport(jsonData);
             api.success({
-              message: 'Thành công',
+              message: "Thành công",
               description: `${info.file.name} đã được tải lên thành công.`,
             });
           } catch (error) {
             const { message } = extractErrorMessage(error);
             api.error({
-              message: 'Lỗi',
+              message: "Lỗi",
               description: `Không thể đọc file: ${message}`,
             });
           }
         }
-      } else if (status === 'error') {
+      } else if (status === "error") {
         api.error({
-          message: 'Thất bại',
+          message: "Thất bại",
           description: `${info.file.name} tải lên thất bại.`,
         });
       }
     },
     onDrop(e) {
-      console.log('Dropped files', e.dataTransfer.files);
+      console.log("Dropped files", e.dataTransfer.files);
     },
   };
 
@@ -217,8 +236,8 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
 
     if (length === 0) {
       api.warning({
-        message: 'Thất bại',
-        description: 'Dữ liệu trống.',
+        message: "Thất bại",
+        description: "Dữ liệu trống.",
       });
       return;
     }
@@ -231,13 +250,13 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
             successCount++;
           } catch (error) {
             failCount++;
-            console.error('Error creating user:', error);
+            console.error("Error creating user:", error);
           }
         })
       );
 
       api.info({
-        message: 'Thông báo',
+        message: "Thông báo",
         description: `Đã tải lên ${successCount} user. Thất bại ${failCount}`,
       });
 
@@ -247,7 +266,7 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
     } catch (error) {
       const { message } = extractErrorMessage(error);
       api.error({
-        message: 'Lỗi',
+        message: "Lỗi",
         description: `Có lỗi xảy ra: ${message}`,
       });
     }
@@ -286,7 +305,7 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
         <Space style={{ marginTop: 16 }} />
         {dataImport.length > 0 && (
           <Table
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: "max-content" }}
             dataSource={dataImport.map((item, index) => ({
               ...item,
               key: index,
@@ -301,4 +320,3 @@ const ImportUserModal: React.FC<ImportUserModalProps> = ({
 };
 
 export default ImportUserModal;
-
