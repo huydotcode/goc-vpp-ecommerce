@@ -1,14 +1,5 @@
-import axiosInstance from './axios.config';
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken?: string;
-}
+import { authApi } from "@/api/auth.api";
+import type { LoginRequest, LoginResponse } from "@/types/auth.types";
 
 export interface User {
   username: string;
@@ -16,43 +7,53 @@ export interface User {
   provider?: string;
 }
 
+// Re-export types để backward compatibility
+export type { LoginRequest, LoginResponse };
+
 export const authService = {
+  /**
+   * Login with username and password
+   */
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await axiosInstance.post<LoginResponse>('/login', credentials);
-    return response;
+    return authApi.login(credentials);
   },
 
+  /**
+   * Refresh access token
+   */
   refreshToken: async (): Promise<LoginResponse> => {
-    const response = await axiosInstance.post<LoginResponse>('/refresh');
-    return response;
+    return authApi.refreshToken();
   },
 
+  /**
+   * Get Google OAuth authorization URL
+   */
   getGoogleAuthUrl: async (): Promise<{ authUrl: string }> => {
-    const response: any = await axiosInstance.get('/google/auth-url');
-    if (response.authUrl) {
-      return { authUrl: response.authUrl };
-    }
-    if (response.data && response.data.authUrl) {
-      return { authUrl: response.data.authUrl };
-    }
-    throw new Error('Không nhận được authUrl từ server');
+    return authApi.getGoogleAuthUrl();
   },
 
-  testGoogleLogin: async (email: string, name: string): Promise<LoginResponse & { user: User }> => {
-    const response = await axiosInstance.get<LoginResponse & { user: User }>(
-      `/google/test-login?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`
-    );
-    return response;
+  /**
+   * Test Google login (for development)
+   */
+  testGoogleLogin: async (
+    email: string,
+    name: string
+  ): Promise<LoginResponse & { user: User }> => {
+    return authApi.testGoogleLogin(email, name);
   },
 
-  testRefresh: async (): Promise<any> => {
-    const response = await axiosInstance.get('/test-refresh');
-    return response;
+  /**
+   * Test refresh token info
+   */
+  testRefresh: async (): Promise<unknown> => {
+    return authApi.testRefresh();
   },
 
+  /**
+   * Logout - clear token and redirect to login
+   */
   logout: () => {
-    localStorage.removeItem('accessToken');
-    window.location.href = '/login';
+    localStorage.removeItem("accessToken");
+    window.location.href = "/login";
   },
 };
-
