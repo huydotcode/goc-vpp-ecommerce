@@ -1,12 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Drawer, Form, Input, InputNumber, notification, Select, Space, Upload, Progress, Card } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { promotionService } from '../../../services/promotion.service';
-import { productService } from '../../../services/product.service';
-import type { CreatePromotionRequest, ConditionGroupDTO, GiftItemDTO } from '../../../services/promotion.service';
-import type { ProductDTO } from '../../../services/product.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  InputNumber,
+  notification,
+  Select,
+  Space,
+  Upload,
+  Progress,
+  Card,
+} from "antd";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import { promotionService } from "../../../services/promotion.service";
+import { productService } from "../../../services/product.service";
+import type {
+  CreatePromotionRequest,
+  ConditionGroupDTO,
+  GiftItemDTO,
+} from "../../../services/promotion.service";
+import type { ProductDTO } from "../../../services/product.service";
+import { extractErrorMessage } from "../../../utils/error";
+import type { RcFile } from "antd/es/upload";
+import type {
+  PromotionConditionDetailRequest,
+  PromotionConditionOperator,
+} from "@/types/promotion.types";
 
 interface PromotionCreateProps {
   isOpenCreateModal: boolean;
@@ -36,9 +57,13 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [conditionGroups, setConditionGroups] = useState<ConditionGroupDTO[]>([]);
+  const [conditionGroups, setConditionGroups] = useState<ConditionGroupDTO[]>(
+    []
+  );
   const [giftItems, setGiftItems] = useState<GiftItemDTO[]>([]);
-  const [discountType, setDiscountType] = useState<'DISCOUNT_AMOUNT' | 'GIFT' | ''>('');
+  // const [discountType, setDiscountType] = useState<
+  //   "DISCOUNT_AMOUNT" | "GIFT" | ""
+  // >("");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -53,7 +78,7 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
           setProducts(response.result);
         }
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error("Error fetching products:", error);
       } finally {
         setLoadingProducts(false);
       }
@@ -66,34 +91,34 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
   }, [isOpenCreateModal]);
 
   const handleFileSelect = (file: File): boolean => {
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     if (!isImage) {
       api.error({
-        message: 'Lỗi',
-        description: 'Chỉ chấp nhận file ảnh',
+        message: "Lỗi",
+        description: "Chỉ chấp nhận file ảnh",
       });
       return false;
     }
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
       api.error({
-        message: 'Lỗi',
-        description: 'Kích thước file phải nhỏ hơn 5MB',
+        message: "Lỗi",
+        description: "Kích thước file phải nhỏ hơn 5MB",
       });
       return false;
     }
-    
+
     // Tạo preview từ local
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
       setSelectedFile(file);
       const uploadFile: UploadFile = {
-        uid: '-1',
+        uid: "-1",
         name: file.name,
-        status: 'done',
+        status: "done",
         url: result,
-        originFileObj: file,
+        originFileObj: file as RcFile,
       };
       setFileList([uploadFile]);
     };
@@ -119,18 +144,18 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
       const response = await promotionService.uploadThumbnail(file);
       clearInterval(progressInterval);
       setUploadProgress(100);
-      
-      if (response.data?.secureUrl) {
-        return response.data.secureUrl;
+
+      if (response?.secureUrl) {
+        return response.secureUrl;
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
       return null;
@@ -160,7 +185,7 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
     setConditionGroups((prev) => [
       ...prev,
       {
-        operator: 'ALL',
+        operator: "ALL",
         details: [{ productId: 0, requiredQuantity: 1 }],
       },
     ]);
@@ -170,13 +195,26 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
     setConditionGroups((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateConditionGroup = (index: number, field: 'operator' | 'details', value: any) => {
+  const updateConditionGroup = (
+    index: number,
+    field: "operator" | "details",
+    value:
+      | PromotionConditionOperator
+      | PromotionConditionDetailRequest[]
+      | undefined
+  ) => {
     setConditionGroups((prev) => {
       const newGroups = [...prev];
-      if (field === 'operator') {
-        newGroups[index] = { ...newGroups[index], operator: value };
+      if (field === "operator") {
+        newGroups[index] = {
+          ...newGroups[index],
+          operator: value as PromotionConditionOperator,
+        };
       } else {
-        newGroups[index] = { ...newGroups[index], details: value };
+        newGroups[index] = {
+          ...newGroups[index],
+          details: value as PromotionConditionDetailRequest[],
+        };
       }
       return newGroups;
     });
@@ -187,7 +225,10 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
       const newGroups = [...prev];
       newGroups[groupIndex] = {
         ...newGroups[groupIndex],
-        details: [...newGroups[groupIndex].details, { productId: 0, requiredQuantity: 1 }],
+        details: [
+          ...newGroups[groupIndex].details,
+          { productId: 0, requiredQuantity: 1 },
+        ],
       };
       return newGroups;
     });
@@ -198,13 +239,20 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
       const newGroups = [...prev];
       newGroups[groupIndex] = {
         ...newGroups[groupIndex],
-        details: newGroups[groupIndex].details.filter((_, i) => i !== detailIndex),
+        details: newGroups[groupIndex].details.filter(
+          (_, i) => i !== detailIndex
+        ),
       };
       return newGroups;
     });
   };
 
-  const updateConditionDetail = (groupIndex: number, detailIndex: number, field: 'productId' | 'requiredQuantity', value: number) => {
+  const updateConditionDetail = (
+    groupIndex: number,
+    detailIndex: number,
+    field: "productId" | "requiredQuantity",
+    value: number
+  ) => {
     setConditionGroups((prev) => {
       const newGroups = [...prev];
       const newDetails = [...newGroups[groupIndex].details];
@@ -222,7 +270,11 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
     setGiftItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateGiftItem = (index: number, field: 'productId' | 'quantity', value: number) => {
+  const updateGiftItem = (
+    index: number,
+    field: "productId" | "quantity",
+    value: number
+  ) => {
     setGiftItems((prev) => {
       const newItems = [...prev];
       newItems[index] = { ...newItems[index], [field]: value };
@@ -234,33 +286,37 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
     try {
       // Validate conditions
       const validConditionGroups = conditionGroups.filter(
-        (group) => group.details.length > 0 && group.details.every((d) => d.productId > 0 && d.requiredQuantity > 0)
+        (group) =>
+          group.details.length > 0 &&
+          group.details.every((d) => d.productId > 0 && d.requiredQuantity > 0)
       );
-      
+
       if (validConditionGroups.length === 0) {
         api.error({
-          message: 'Lỗi',
-          description: 'Vui lòng thêm ít nhất một nhóm điều kiện hợp lệ',
-          placement: 'topRight',
+          message: "Lỗi",
+          description: "Vui lòng thêm ít nhất một nhóm điều kiện hợp lệ",
+          placement: "topRight",
         });
         return;
       }
 
       // Validate gift items if GIFT type
-      if (values.discountType === 'GIFT') {
-        const validGiftItems = giftItems.filter((item) => item.productId > 0 && item.quantity > 0);
+      if (values.discountType === "GIFT") {
+        const validGiftItems = giftItems.filter(
+          (item) => item.productId > 0 && item.quantity > 0
+        );
         if (validGiftItems.length === 0) {
           api.error({
-            message: 'Lỗi',
-            description: 'Vui lòng thêm ít nhất một sản phẩm tặng kèm',
-            placement: 'topRight',
+            message: "Lỗi",
+            description: "Vui lòng thêm ít nhất một sản phẩm tặng kèm",
+            placement: "topRight",
           });
           return;
         }
       }
 
-      let thumbnailUrl = values.thumbnailUrl || '';
-      
+      let thumbnailUrl = values.thumbnailUrl || "";
+
       // Upload ảnh lên server nếu có file được chọn
       if (selectedFile) {
         const uploadedUrl = await handleUpload(selectedFile);
@@ -273,32 +329,41 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
       const promotionData: CreatePromotionRequest = {
         ...values,
         thumbnailUrl,
-        isActive: values.isActive ?? true,
-        discountAmount: values.discountType === 'DISCOUNT_AMOUNT' && values.discountAmount ? Number(values.discountAmount) : undefined,
+        discountType: values.discountType,
+        discountAmount:
+          values.discountType === "DISCOUNT_AMOUNT" && values.discountAmount
+            ? Number(values.discountAmount)
+            : undefined,
         conditions: validConditionGroups,
-        giftItems: values.discountType === 'GIFT' ? giftItems.filter((item) => item.productId > 0 && item.quantity > 0) : undefined,
+        giftItems:
+          values.discountType === "GIFT"
+            ? giftItems.filter(
+                (item) => item.productId > 0 && item.quantity > 0
+              )
+            : [],
       };
-      
+
       await promotionService.createPromotion(promotionData);
       api.success({
-        message: 'Thành công',
-        description: 'Tạo mới khuyến mãi thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Tạo mới khuyến mãi thành công",
+        placement: "topRight",
       });
       setIsOpenCreateModal(false);
       form.resetFields();
       setFileList([]);
       setSelectedFile(null);
-      setConditionGroups([{ operator: 'ALL', details: [{ productId: 0, requiredQuantity: 1 }] }]);
+      setConditionGroups([
+        { operator: "ALL", details: [{ productId: 0, requiredQuantity: 1 }] },
+      ]);
       setGiftItems([]);
-      setDiscountType('');
       reload();
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -308,9 +373,10 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
     form.resetFields();
     setFileList([]);
     setSelectedFile(null);
-    setConditionGroups([{ operator: 'ALL', details: [{ productId: 0, requiredQuantity: 1 }] }]);
+    setConditionGroups([
+      { operator: "ALL", details: [{ productId: 0, requiredQuantity: 1 }] },
+    ]);
     setGiftItems([]);
-    setDiscountType('');
   };
 
   return (
@@ -328,7 +394,9 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
           <Form.Item
             label="Tên"
             name="name"
-            rules={[{ required: true, message: 'Tên khuyến mãi không được để trống' }]}
+            rules={[
+              { required: true, message: "Tên khuyến mãi không được để trống" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -340,13 +408,14 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
           <Form.Item
             label="Loại giảm giá"
             name="discountType"
-            rules={[{ required: true, message: 'Loại giảm giá không được để trống' }]}
+            rules={[
+              { required: true, message: "Loại giảm giá không được để trống" },
+            ]}
           >
-            <Select 
+            <Select
               placeholder="Chọn loại giảm giá"
               onChange={(value) => {
-                setDiscountType(value);
-                if (value === 'GIFT') {
+                if (value === "GIFT") {
                   setGiftItems([{ productId: 0, quantity: 1 }]);
                 } else {
                   setGiftItems([]);
@@ -360,22 +429,34 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
 
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.discountType !== currentValues.discountType}
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues.discountType !== currentValues.discountType
+            }
           >
             {({ getFieldValue }) =>
-              getFieldValue('discountType') === 'DISCOUNT_AMOUNT' ? (
+              getFieldValue("discountType") === "DISCOUNT_AMOUNT" ? (
                 <Form.Item
                   label="Số tiền giảm"
                   name="discountAmount"
                   rules={[
-                    { required: true, message: 'Số tiền giảm là bắt buộc' },
-                    { type: 'number', min: 1, message: 'Số tiền giảm phải lớn hơn 0' },
+                    { required: true, message: "Số tiền giảm là bắt buộc" },
+                    {
+                      type: "number",
+                      min: 1,
+                      message: "Số tiền giảm phải lớn hơn 0",
+                    },
                   ]}
                 >
                   <InputNumber
-                    style={{ width: '100%' }}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                    style={{ width: "100%" }}
+                    formatter={(value) =>
+                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
+                    parser={(displayValue: string | undefined): number => {
+                      const cleaned =
+                        displayValue?.replace(/\$\s?|(,*)/g, "") || "";
+                      return cleaned ? Number(cleaned) : 0;
+                    }}
                     min={0}
                     placeholder="Nhập số tiền giảm (VND)"
                   />
@@ -405,44 +486,81 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
                   <Form.Item label="Toán tử" style={{ marginBottom: 16 }}>
                     <Select
                       value={group.operator}
-                      onChange={(value) => updateConditionGroup(groupIndex, 'operator', value)}
+                      onChange={(value) =>
+                        updateConditionGroup(groupIndex, "operator", value)
+                      }
                     >
                       <Select.Option value="ALL">Tất cả (ALL)</Select.Option>
                       <Select.Option value="ANY">Bất kỳ (ANY)</Select.Option>
                     </Select>
                   </Form.Item>
-                  
+
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ marginBottom: 8, fontWeight: 600 }}>Chi tiết điều kiện:</div>
+                    <div style={{ marginBottom: 8, fontWeight: 600 }}>
+                      Chi tiết điều kiện:
+                    </div>
                     {group.details.map((detail, detailIndex) => (
-                      <div key={detailIndex} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-end' }}>
-                        <Form.Item label="Sản phẩm" style={{ flex: 1, marginBottom: 0 }}>
+                      <div
+                        key={detailIndex}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          marginBottom: 8,
+                          alignItems: "flex-end",
+                        }}
+                      >
+                        <Form.Item
+                          label="Sản phẩm"
+                          style={{ flex: 1, marginBottom: 0 }}
+                        >
                           <Select
                             value={detail.productId || undefined}
-                            onChange={(value) => updateConditionDetail(groupIndex, detailIndex, 'productId', value)}
+                            onChange={(value) =>
+                              updateConditionDetail(
+                                groupIndex,
+                                detailIndex,
+                                "productId",
+                                value
+                              )
+                            }
                             placeholder="Chọn sản phẩm"
                             loading={loadingProducts}
                           >
                             {products.map((product) => (
-                              <Select.Option key={product.id} value={product.id}>
+                              <Select.Option
+                                key={product.id}
+                                value={product.id}
+                              >
                                 {product.id} - {product.name}
                               </Select.Option>
                             ))}
                           </Select>
                         </Form.Item>
-                        <Form.Item label="Số lượng" style={{ width: 150, marginBottom: 0 }}>
+                        <Form.Item
+                          label="Số lượng"
+                          style={{ width: 150, marginBottom: 0 }}
+                        >
                           <InputNumber
                             value={detail.requiredQuantity}
-                            onChange={(value) => updateConditionDetail(groupIndex, detailIndex, 'requiredQuantity', value || 1)}
+                            onChange={(value) =>
+                              updateConditionDetail(
+                                groupIndex,
+                                detailIndex,
+                                "requiredQuantity",
+                                value || 1
+                              )
+                            }
                             min={1}
-                            style={{ width: '100%' }}
+                            style={{ width: "100%" }}
                           />
                         </Form.Item>
                         <Button
                           type="text"
                           danger
                           icon={<DeleteOutlined />}
-                          onClick={() => removeConditionDetail(groupIndex, detailIndex)}
+                          onClick={() =>
+                            removeConditionDetail(groupIndex, detailIndex)
+                          }
                         >
                           Xóa
                         </Button>
@@ -473,10 +591,12 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
 
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.discountType !== currentValues.discountType}
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues.discountType !== currentValues.discountType
+            }
           >
             {({ getFieldValue }) =>
-              getFieldValue('discountType') === 'GIFT' ? (
+              getFieldValue("discountType") === "GIFT" ? (
                 <Form.Item label="Quà tặng">
                   <div>
                     {giftItems.map((item, index) => (
@@ -495,27 +615,46 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
                         }
                         style={{ marginBottom: 16 }}
                       >
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-                          <Form.Item label="Sản phẩm" style={{ flex: 1, marginBottom: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "flex-end",
+                          }}
+                        >
+                          <Form.Item
+                            label="Sản phẩm"
+                            style={{ flex: 1, marginBottom: 0 }}
+                          >
                             <Select
                               value={item.productId || undefined}
-                              onChange={(value) => updateGiftItem(index, 'productId', value)}
+                              onChange={(value) =>
+                                updateGiftItem(index, "productId", value)
+                              }
                               placeholder="Chọn sản phẩm"
                               loading={loadingProducts}
                             >
                               {products.map((product) => (
-                                <Select.Option key={product.id} value={product.id}>
+                                <Select.Option
+                                  key={product.id}
+                                  value={product.id}
+                                >
                                   {product.id} - {product.name}
                                 </Select.Option>
                               ))}
                             </Select>
                           </Form.Item>
-                          <Form.Item label="Số lượng" style={{ width: 150, marginBottom: 0 }}>
+                          <Form.Item
+                            label="Số lượng"
+                            style={{ width: 150, marginBottom: 0 }}
+                          >
                             <InputNumber
                               value={item.quantity}
-                              onChange={(value) => updateGiftItem(index, 'quantity', value || 1)}
+                              onChange={(value) =>
+                                updateGiftItem(index, "quantity", value || 1)
+                              }
                               min={1}
-                              style={{ width: '100%' }}
+                              style={{ width: "100%" }}
                             />
                           </Form.Item>
                         </div>
@@ -548,7 +687,9 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
             {uploading && (
               <div style={{ marginTop: 16 }}>
                 <Progress percent={uploadProgress} status="active" />
-                <p style={{ marginTop: 8, color: '#666' }}>Đang upload ảnh lên server...</p>
+                <p style={{ marginTop: 8, color: "#666" }}>
+                  Đang upload ảnh lên server...
+                </p>
               </div>
             )}
           </Form.Item>
@@ -562,7 +703,12 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
 
           <Form.Item {...tailLayout}>
             <Space>
-              <Button type="primary" htmlType="submit" loading={uploading} disabled={uploading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={uploading}
+                disabled={uploading}
+              >
                 Tạo
               </Button>
               <Button htmlType="button" onClick={onReset} disabled={uploading}>
