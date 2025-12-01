@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import { Button, Drawer, Form, Input, notification, Select, Space, Upload, Progress } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { categoryService } from '../../../services/category.service';
-import type { CreateCategoryRequest } from '../../../services/category.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import { PlusOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  notification,
+  Progress,
+  Select,
+  Space,
+  Upload,
+} from "antd";
+import type { RcFile } from "antd/es/upload";
+import React, { useState } from "react";
+import type { CreateCategoryRequest } from "../../../services/category.service";
+import { categoryService } from "../../../services/category.service";
+import { extractErrorMessage } from "../../../utils/error";
 
 interface CategoryCreateProps {
   isOpenCreateModal: boolean;
@@ -32,38 +43,36 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   const handleFileSelect = (file: File): boolean => {
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     if (!isImage) {
       api.error({
-        message: 'Lỗi',
-        description: 'Chỉ chấp nhận file ảnh',
+        message: "Lỗi",
+        description: "Chỉ chấp nhận file ảnh",
       });
       return false;
     }
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
       api.error({
-        message: 'Lỗi',
-        description: 'Kích thước file phải nhỏ hơn 5MB',
+        message: "Lỗi",
+        description: "Kích thước file phải nhỏ hơn 5MB",
       });
       return false;
     }
-    
+
     // Tạo preview từ local
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setPreviewUrl(result);
       setSelectedFile(file);
       const uploadFile: UploadFile = {
-        uid: '-1',
+        uid: "-1",
         name: file.name,
-        status: 'done',
+        status: "done",
         url: result,
-        originFileObj: file,
+        originFileObj: file as RcFile,
       };
       setFileList([uploadFile]);
     };
@@ -89,18 +98,18 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
       const response = await categoryService.uploadThumbnail(file);
       clearInterval(progressInterval);
       setUploadProgress(100);
-      
-      if (response.data?.secureUrl) {
-        return response.data.secureUrl;
+
+      if (response?.secureUrl) {
+        return response.secureUrl;
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
       return null;
@@ -116,12 +125,10 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
     onChange: ({ fileList: newFileList }: { fileList: UploadFile[] }) => {
       setFileList(newFileList);
       if (newFileList.length === 0) {
-        setPreviewUrl('');
         setSelectedFile(null);
       }
     },
     onRemove: () => {
-      setPreviewUrl('');
       setSelectedFile(null);
       return true;
     },
@@ -130,8 +137,8 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
 
   const onFinish = async (values: CreateCategoryRequest) => {
     try {
-      let thumbnailUrl = values.thumbnailUrl || '';
-      
+      let thumbnailUrl = values.thumbnailUrl || "";
+
       // Upload ảnh lên server nếu có file được chọn
       if (selectedFile) {
         const uploadedUrl = await handleUpload(selectedFile);
@@ -148,22 +155,21 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
       };
       await categoryService.createCategory(categoryData);
       api.success({
-        message: 'Thành công',
-        description: 'Tạo mới danh mục thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Tạo mới danh mục thành công",
+        placement: "topRight",
       });
       setIsOpenCreateModal(false);
       form.resetFields();
       setFileList([]);
-      setPreviewUrl('');
       setSelectedFile(null);
       reload();
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -172,7 +178,6 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
   const onReset = () => {
     form.resetFields();
     setFileList([]);
-    setPreviewUrl('');
     setSelectedFile(null);
   };
 
@@ -191,7 +196,9 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
           <Form.Item
             label="Tên"
             name="name"
-            rules={[{ required: true, message: 'Tên danh mục không được để trống' }]}
+            rules={[
+              { required: true, message: "Tên danh mục không được để trống" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -212,7 +219,9 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
             {uploading && (
               <div style={{ marginTop: 16 }}>
                 <Progress percent={uploadProgress} status="active" />
-                <p style={{ marginTop: 8, color: '#666' }}>Đang upload ảnh lên server...</p>
+                <p style={{ marginTop: 8, color: "#666" }}>
+                  Đang upload ảnh lên server...
+                </p>
               </div>
             )}
           </Form.Item>
@@ -226,7 +235,12 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
 
           <Form.Item {...tailLayout}>
             <Space>
-              <Button type="primary" htmlType="submit" loading={uploading} disabled={uploading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={uploading}
+                disabled={uploading}
+              >
                 Tạo
               </Button>
               <Button htmlType="button" onClick={onReset} disabled={uploading}>
@@ -241,4 +255,3 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
 };
 
 export default CategoryCreate;
-

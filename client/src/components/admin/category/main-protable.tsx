@@ -1,20 +1,20 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from "react";
 import {
   DeleteOutlined,
   EditOutlined,
   MoreOutlined,
   PlusOutlined,
-} from '@ant-design/icons';
-import { Button, Space, Tag, notification, Popconfirm, Image } from 'antd';
-import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { ProTable } from '@ant-design/pro-components';
-import { categoryService } from '../../../services/category.service';
-import type { CategoryDTO } from '../../../services/category.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
-import { useAuth } from '../../../contexts/AuthContext';
-import CategoryDetail from './detail.category';
-import CategoryCreate from './create-modal.category';
-import CategoryUpdate from './update.category';
+} from "@ant-design/icons";
+import { Button, Space, Tag, notification, Popconfirm, Image } from "antd";
+import type { ActionType, ProColumns } from "@ant-design/pro-components";
+import { ProTable } from "@ant-design/pro-components";
+import { categoryService } from "../../../services/category.service";
+import type { CategoryDTO } from "../../../services/category.service";
+import { extractErrorMessage } from "../../../utils/error";
+import { useAuth } from "../../../contexts/AuthContext";
+import CategoryDetail from "./detail.category";
+import CategoryCreate from "./create-modal.category";
+import CategoryUpdate from "./update.category";
 
 const CategoryAdminMain: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
@@ -23,12 +23,14 @@ const CategoryAdminMain: React.FC = () => {
   const { userRole } = useAuth();
 
   const reload = async () => {
-    console.log('🔄 [Category Table] Reloading table...');
+    console.log("🔄 [Category Table] Reloading table...");
     await actionRef.current?.reload();
   };
 
   const [isOpenDetailModal, setIsOpenDetailModal] = useState<boolean>(false);
-  const [dataDetailModal, setDataDetailModal] = useState<CategoryDTO | null>(null);
+  const [dataDetailModal, setDataDetailModal] = useState<CategoryDTO | null>(
+    null
+  );
 
   const handleOpenDetailModal = (record: CategoryDTO) => {
     setIsOpenDetailModal(true);
@@ -51,17 +53,17 @@ const CategoryAdminMain: React.FC = () => {
     try {
       await categoryService.deleteCategory(id);
       api.success({
-        message: 'Xóa thành công',
-        description: 'Danh mục đã được xóa thành công',
-        placement: 'topRight',
+        message: "Xóa thành công",
+        description: "Danh mục đã được xóa thành công",
+        placement: "topRight",
       });
       reload();
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -69,18 +71,18 @@ const CategoryAdminMain: React.FC = () => {
 
   const columns: ProColumns<CategoryDTO>[] = [
     {
-      dataIndex: 'index',
-      valueType: 'indexBorder',
+      dataIndex: "index",
+      valueType: "indexBorder",
       width: 48,
     },
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
       width: 80,
       copyable: true,
       sorter: true,
-      valueType: 'digit',
+      valueType: "digit",
       render: (_, record) => (
         <a
           onClick={() => {
@@ -92,9 +94,9 @@ const CategoryAdminMain: React.FC = () => {
       ),
     },
     {
-      title: 'Thumbnail',
-      dataIndex: 'thumbnailUrl',
-      key: 'thumbnailUrl',
+      title: "Thumbnail",
+      dataIndex: "thumbnailUrl",
+      key: "thumbnailUrl",
       width: 100,
       hideInSearch: true,
       render: (_, record) =>
@@ -104,18 +106,22 @@ const CategoryAdminMain: React.FC = () => {
             alt="Thumbnail"
             width={50}
             height={50}
-            style={{ objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }}
+            style={{
+              objectFit: "cover",
+              borderRadius: "8px",
+              cursor: "pointer",
+            }}
           />
         ) : (
           <div
             style={{
               width: 50,
               height: 50,
-              backgroundColor: '#f0f0f0',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              backgroundColor: "#f0f0f0",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             N/A
@@ -123,60 +129,62 @@ const CategoryAdminMain: React.FC = () => {
         ),
     },
     {
-      title: 'Tên',
-      dataIndex: 'name',
-      key: 'name',
+      title: "Tên",
+      dataIndex: "name",
+      key: "name",
       ellipsis: true,
       copyable: true,
       sorter: true,
     },
     {
-      title: 'Mô tả',
-      dataIndex: 'description',
-      key: 'description',
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
       ellipsis: true,
       hideInSearch: true,
       render: (_, record) => (
         <div
           style={{
             maxWidth: 300,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
-          {record.description || 'N/A'}
+          {record.description || "N/A"}
         </div>
       ),
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      valueType: 'select',
+      title: "Trạng thái",
+      dataIndex: "isActive",
+      key: "isActive",
+      valueType: "select",
       valueEnum: {
-        true: { text: 'Active' },
-        false: { text: 'Inactive' },
+        true: { text: "Active" },
+        false: { text: "Inactive" },
       },
       render: (_, record) => (
-        <Tag color={record.isActive ? 'green' : 'red'}>
-          {record.isActive ? 'Active' : 'Inactive'}
+        <Tag color={record.isActive ? "green" : "red"}>
+          {record.isActive ? "Active" : "Inactive"}
         </Tag>
       ),
     },
     {
-      title: 'Ngày tạo',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      valueType: 'date',
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      valueType: "date",
       hideInSearch: true,
       sorter: true,
       render: (_, record) =>
-        record.createdAt ? new Date(record.createdAt).toLocaleDateString('vi-VN') : 'N/A',
+        record.createdAt
+          ? new Date(record.createdAt).toLocaleDateString("vi-VN")
+          : "N/A",
     },
     {
-      title: 'Hành động',
-      key: 'action',
+      title: "Hành động",
+      key: "action",
       width: 150,
       hideInSearch: true,
       render: (_, record) => (
@@ -186,9 +194,9 @@ const CategoryAdminMain: React.FC = () => {
               handleOpenUpdateModal();
               setDataDetailModal(record);
             }}
-            style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
           />
-          {userRole !== 'EMPLOYEE' && (
+          {userRole !== "EMPLOYEE" && (
             <Popconfirm
               title="Xóa danh mục"
               description="Bạn có chắc chắn muốn xóa danh mục này?"
@@ -197,12 +205,16 @@ const CategoryAdminMain: React.FC = () => {
               cancelText="Hủy"
             >
               <DeleteOutlined
-                style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+                style={{
+                  cursor: "pointer",
+                  color: "#ff5733",
+                  fontSize: "16px",
+                }}
               />
             </Popconfirm>
           )}
           <MoreOutlined
-            style={{ cursor: 'pointer', color: '#ff5733', fontSize: '16px' }}
+            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
             onClick={() => handleOpenDetailModal(record)}
           />
         </Space>
@@ -213,12 +225,11 @@ const CategoryAdminMain: React.FC = () => {
   return (
     <>
       {contextHolder}
-      <h1 style={{ padding: '20px' }}>Quản lý danh mục</h1>
+      <h1 style={{ padding: "20px" }}>Quản lý danh mục</h1>
       <CategoryDetail
         isOpenDetailModal={isOpenDetailModal}
         setIsOpenDetailModal={setIsOpenDetailModal}
         dataDetailModal={dataDetailModal}
-        setDataDetailModal={setDataDetailModal}
       />
 
       <CategoryCreate
@@ -234,79 +245,91 @@ const CategoryAdminMain: React.FC = () => {
         dataDetailModal={dataDetailModal}
       />
 
-      <div style={{ padding: '0 20px 20px 20px' }}>
+      <div style={{ padding: "0 20px 20px 20px" }}>
         <ProTable<CategoryDTO>
           actionRef={actionRef}
           columns={columns}
           request={async (params, sort) => {
             const currentRequestId = ++requestIdRef.current;
-            
+
             try {
-                  // Xử lý sort từ ProTable
-                  let sortField = 'id';
-                  let sortDirection = 'asc';
-                  
-                  if (sort && Object.keys(sort).length > 0) {
-                    const sortKey = Object.keys(sort)[0];
-                    const sortValue = sort[sortKey];
-                    sortField = sortKey;
-                    sortDirection = sortValue === 'ascend' ? 'asc' : 'desc';
-                  }
+              // Xử lý sort từ ProTable
+              let sortField = "id";
+              let sortDirection: "asc" | "desc" = "asc";
 
-                  const queryParams: {
-                    page?: number;
-                    size?: number;
-                    sort?: string;
-                    direction?: string;
-                    id?: number;
-                    name?: string;
-                    isActive?: boolean;
-                    search?: string;
-                  } = {
-                    page: params.current || 1,
-                    size: params.pageSize || 10,
-                    sort: sortField,
-                    direction: sortDirection,
-                  };
+              if (sort && Object.keys(sort).length > 0) {
+                const sortKey = Object.keys(sort)[0];
+                const sortValue = sort[sortKey];
+                sortField = sortKey;
+                sortDirection = sortValue === "ascend" ? "asc" : "desc";
+              }
 
-                  // Log để debug
-                  console.log(`🔍 [Category Table #${currentRequestId}] Request params:`, {
-                    params,
-                    sort,
-                    queryParams: { ...queryParams },
-                  });
+              const queryParams: {
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: "asc" | "desc";
+                id?: number;
+                name?: string;
+                isActive?: boolean;
+                search?: string;
+              } = {
+                page: params.current || 1,
+                size: params.pageSize || 10,
+                sort: sortField,
+                direction: sortDirection,
+              };
 
-                  if (params.id) {
-                    queryParams.id = Number(params.id);
-                  }
-                  if (params.name) {
-                    queryParams.name = params.name;
-                  }
-                  if (params.isActive !== undefined) {
-                    queryParams.isActive = params.isActive;
-                  }
+              // Log để debug
+              console.log(
+                `🔍 [Category Table #${currentRequestId}] Request params:`,
+                {
+                  params,
+                  sort,
+                  queryParams: { ...queryParams },
+                }
+              );
 
-                  console.log(`📤 [Category Table #${currentRequestId}] Sending request:`, queryParams);
-                  const startTime = Date.now();
-                  
-                  const response = await categoryService.getAllCategories(queryParams);
-                  
-                  // Kiểm tra nếu request này đã bị override bởi request mới hơn
-                  if (currentRequestId !== requestIdRef.current) {
-                    console.log(`⚠️ [Category Table #${currentRequestId}] Request bị hủy, có request mới hơn`);
-                    return {
-                      data: [],
-                      success: false,
-                      total: 0,
-                    };
-                  }
-                  
-                  const endTime = Date.now();
-                  console.log(`📥 [Category Table #${currentRequestId}] Response:`, {
-                    duration: `${endTime - startTime}ms`,
-                    total: response?.metadata?.totalElements || 0,
-                    dataCount: response?.result?.length || 0,
-                  });
+              if (params.id) {
+                queryParams.id = Number(params.id);
+              }
+              if (params.name) {
+                queryParams.name = params.name;
+              }
+              if (params.isActive !== undefined) {
+                queryParams.isActive = params.isActive;
+              }
+
+              console.log(
+                `📤 [Category Table #${currentRequestId}] Sending request:`,
+                queryParams
+              );
+              const startTime = Date.now();
+
+              const response =
+                await categoryService.getAllCategories(queryParams);
+
+              // Kiểm tra nếu request này đã bị override bởi request mới hơn
+              if (currentRequestId !== requestIdRef.current) {
+                console.log(
+                  `⚠️ [Category Table #${currentRequestId}] Request bị hủy, có request mới hơn`
+                );
+                return {
+                  data: [],
+                  success: false,
+                  total: 0,
+                };
+              }
+
+              const endTime = Date.now();
+              console.log(
+                `📥 [Category Table #${currentRequestId}] Response:`,
+                {
+                  duration: `${endTime - startTime}ms`,
+                  total: response?.metadata?.totalElements || 0,
+                  dataCount: response?.result?.length || 0,
+                }
+              );
               if (response && response.result && response.metadata) {
                 return {
                   data: response.result,
@@ -321,11 +344,12 @@ const CategoryAdminMain: React.FC = () => {
                 };
               }
             } catch (error: unknown) {
-              const { message, errorCode, isAccessDenied } = extractErrorMessage(error);
+              const { message, errorCode, isAccessDenied } =
+                extractErrorMessage(error);
               api.error({
-                message: isAccessDenied ? 'Không có quyền' : (errorCode || 'Lỗi'),
+                message: isAccessDenied ? "Không có quyền" : errorCode || "Lỗi",
                 description: message,
-                placement: 'topRight',
+                placement: "topRight",
                 duration: isAccessDenied ? 6 : 5,
               });
               return {
@@ -337,7 +361,7 @@ const CategoryAdminMain: React.FC = () => {
           }}
           rowKey="id"
           search={{
-            labelWidth: 'auto',
+            labelWidth: "auto",
             optionRender: (_searchConfig, _formProps, dom) => [
               ...dom.reverse(),
             ],
@@ -360,7 +384,7 @@ const CategoryAdminMain: React.FC = () => {
               Thêm danh mục
             </Button>,
           ]}
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: "max-content" }}
           bordered
           cardBordered
         />
@@ -370,4 +394,3 @@ const CategoryAdminMain: React.FC = () => {
 };
 
 export default CategoryAdminMain;
-

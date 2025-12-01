@@ -1,19 +1,17 @@
-import React from 'react';
-import { Descriptions, Drawer, Tag, Image } from 'antd';
-import type { CategoryDTO } from '../../../services/category.service';
+import { Descriptions, Drawer, Image, Tag } from "antd";
+import React from "react";
+import type { CategoryDTO } from "../../../services/category.service";
 
 interface CategoryDetailProps {
   isOpenDetailModal: boolean;
   setIsOpenDetailModal: (v: boolean) => void;
   dataDetailModal: CategoryDTO | null;
-  setDataDetailModal: (v: CategoryDTO | null) => void;
 }
 
 const CategoryDetail: React.FC<CategoryDetailProps> = ({
   isOpenDetailModal,
   setIsOpenDetailModal,
   dataDetailModal,
-  setDataDetailModal,
 }) => {
   return (
     <Drawer
@@ -27,10 +25,12 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({
       {dataDetailModal && (
         <Descriptions title="Thông Tin Danh Mục" bordered column={2}>
           <Descriptions.Item label="ID">{dataDetailModal.id}</Descriptions.Item>
-          <Descriptions.Item label="Tên">{dataDetailModal.name}</Descriptions.Item>
+          <Descriptions.Item label="Tên">
+            {dataDetailModal.name}
+          </Descriptions.Item>
           <Descriptions.Item label="Trạng thái" span={2}>
-            <Tag color={dataDetailModal.isActive ? 'green' : 'red'}>
-              {dataDetailModal.isActive ? 'Active' : 'Inactive'}
+            <Tag color={dataDetailModal.isActive ? "green" : "red"}>
+              {dataDetailModal.isActive ? "Active" : "Inactive"}
             </Tag>
           </Descriptions.Item>
           {dataDetailModal.description && (
@@ -48,25 +48,25 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({
                 width={200}
                 src={dataDetailModal.thumbnailUrl}
                 alt="Thumbnail"
-                style={{ borderRadius: '8px' }}
+                style={{ borderRadius: "8px" }}
               />
             </Descriptions.Item>
           )}
           <Descriptions.Item label="Tạo lúc">
             {dataDetailModal.createdAt
-              ? new Date(dataDetailModal.createdAt).toLocaleString('vi-VN')
-              : 'N/A'}
+              ? new Date(dataDetailModal.createdAt).toLocaleString("vi-VN")
+              : "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Người tạo">
-            {dataDetailModal.createdBy || 'N/A'}
+            {dataDetailModal.createdBy || "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Cập nhật lúc">
             {dataDetailModal.updatedAt
-              ? new Date(dataDetailModal.updatedAt).toLocaleString('vi-VN')
-              : 'N/A'}
+              ? new Date(dataDetailModal.updatedAt).toLocaleString("vi-VN")
+              : "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Người cập nhật">
-            {dataDetailModal.updatedBy || 'N/A'}
+            {dataDetailModal.updatedBy || "N/A"}
           </Descriptions.Item>
         </Descriptions>
       )}
@@ -75,4 +75,3 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({
 };
 
 export default CategoryDetail;
-

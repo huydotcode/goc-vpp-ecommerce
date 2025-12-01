@@ -1,10 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Drawer, Form, Input, notification, Select, Space, Upload, Progress } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { categoryService } from '../../../services/category.service';
-import type { UpdateCategoryRequest, CategoryDTO } from '../../../services/category.service';
-import { extractErrorMessage } from '../../../utils/errorHandler';
+import React, { useEffect, useState } from "react";
+import {
+  Button,
+  Drawer,
+  Form,
+  Input,
+  notification,
+  Select,
+  Space,
+  Upload,
+  Progress,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd";
+import { categoryService } from "../../../services/category.service";
+import type {
+  UpdateCategoryRequest,
+  CategoryDTO,
+} from "../../../services/category.service";
+import { extractErrorMessage } from "../../../utils/error";
+import type { RcFile } from "antd/es/upload";
 
 interface CategoryUpdateProps {
   isOpenUpdateModal: boolean;
@@ -34,7 +48,7 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<string>('');
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<string>("");
 
   useEffect(() => {
     if (dataDetailModal) {
@@ -44,13 +58,13 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
         isActive: dataDetailModal.isActive,
         thumbnailUrl: dataDetailModal.thumbnailUrl,
       });
-      setExistingThumbnailUrl(dataDetailModal.thumbnailUrl || '');
+      setExistingThumbnailUrl(dataDetailModal.thumbnailUrl || "");
       if (dataDetailModal.thumbnailUrl) {
         setFileList([
           {
-            uid: '-1',
-            name: 'thumbnail.png',
-            status: 'done',
+            uid: "-1",
+            name: "thumbnail.png",
+            status: "done",
             url: dataDetailModal.thumbnailUrl,
           },
         ]);
@@ -60,34 +74,34 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
   }, [dataDetailModal, form]);
 
   const handleFileSelect = (file: File): boolean => {
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     if (!isImage) {
       api.error({
-        message: 'Lỗi',
-        description: 'Chỉ chấp nhận file ảnh',
+        message: "Lỗi",
+        description: "Chỉ chấp nhận file ảnh",
       });
       return false;
     }
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
       api.error({
-        message: 'Lỗi',
-        description: 'Kích thước file phải nhỏ hơn 5MB',
+        message: "Lỗi",
+        description: "Kích thước file phải nhỏ hơn 5MB",
       });
       return false;
     }
-    
+
     // Tạo preview từ local
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
       setSelectedFile(file);
       const uploadFile: UploadFile = {
-        uid: '-1',
+        uid: "-1",
         name: file.name,
-        status: 'done',
+        status: "done",
         url: result,
-        originFileObj: file,
+        originFileObj: file as RcFile,
       };
       setFileList([uploadFile]);
     };
@@ -110,21 +124,24 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
         });
       }, 100);
 
-      const response = await categoryService.uploadThumbnail(file, dataDetailModal?.id);
+      const response = await categoryService.uploadThumbnail(
+        file,
+        dataDetailModal?.id
+      );
       clearInterval(progressInterval);
       setUploadProgress(100);
-      
-      if (response.data?.secureUrl) {
-        return response.data.secureUrl;
+
+      if (response?.secureUrl) {
+        return response.secureUrl;
       } else {
-        throw new Error('Không nhận được URL từ server');
+        throw new Error("Không nhận được URL từ server");
       }
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Upload thất bại',
+        message: errorCode || "Upload thất bại",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
       return null;
@@ -148,9 +165,9 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
       if (existingThumbnailUrl) {
         setFileList([
           {
-            uid: '-1',
-            name: 'thumbnail.png',
-            status: 'done',
+            uid: "-1",
+            name: "thumbnail.png",
+            status: "done",
             url: existingThumbnailUrl,
           },
         ]);
@@ -165,7 +182,7 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
 
     try {
       let thumbnailUrl = values.thumbnailUrl || existingThumbnailUrl;
-      
+
       // Upload ảnh lên server nếu có file mới được chọn
       if (selectedFile) {
         const uploadedUrl = await handleUpload(selectedFile);
@@ -181,9 +198,9 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
       };
       await categoryService.updateCategory(dataDetailModal.id, categoryData);
       api.success({
-        message: 'Thành công',
-        description: 'Cập nhật danh mục thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Cập nhật danh mục thành công",
+        placement: "topRight",
       });
       setIsOpenUpdateModal(false);
       form.resetFields();
@@ -193,9 +210,9 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
     } catch (error: unknown) {
       const { message, errorCode } = extractErrorMessage(error);
       api.error({
-        message: errorCode || 'Lỗi',
+        message: errorCode || "Lỗi",
         description: message,
-        placement: 'topRight',
+        placement: "topRight",
         duration: 5,
       });
     }
@@ -211,11 +228,16 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
         width="60%"
         placement="left"
       >
-        <Form {...layout} form={form} name="update-category-form" onFinish={onFinish}>
+        <Form
+          {...layout}
+          form={form}
+          name="update-category-form"
+          onFinish={onFinish}
+        >
           <Form.Item
             label="Tên"
             name="name"
-            rules={[{ required: true, message: 'Vui lòng nhập tên danh mục' }]}
+            rules={[{ required: true, message: "Vui lòng nhập tên danh mục" }]}
           >
             <Input />
           </Form.Item>
@@ -236,7 +258,9 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
             {uploading && (
               <div style={{ marginTop: 16 }}>
                 <Progress percent={uploadProgress} status="active" />
-                <p style={{ marginTop: 8, color: '#666' }}>Đang upload ảnh lên server...</p>
+                <p style={{ marginTop: 8, color: "#666" }}>
+                  Đang upload ảnh lên server...
+                </p>
               </div>
             )}
           </Form.Item>
@@ -244,7 +268,7 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
           <Form.Item
             label="Trạng thái"
             name="isActive"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
           >
             <Select placeholder="Chọn trạng thái">
               <Select.Option value={true}>Active</Select.Option>
@@ -254,10 +278,19 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
 
           <Form.Item {...tailLayout}>
             <Space>
-              <Button type="primary" htmlType="submit" loading={uploading} disabled={uploading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={uploading}
+                disabled={uploading}
+              >
                 Cập nhật
               </Button>
-              <Button htmlType="button" onClick={() => form.resetFields()} disabled={uploading}>
+              <Button
+                htmlType="button"
+                onClick={() => form.resetFields()}
+                disabled={uploading}
+              >
                 Reset
               </Button>
             </Space>
@@ -269,4 +302,3 @@ const CategoryUpdate: React.FC<CategoryUpdateProps> = ({
 };
 
 export default CategoryUpdate;
-
