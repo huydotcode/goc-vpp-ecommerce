@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, Form, Input, Card, message, Space, Divider } from 'antd';
-import Lottie from 'lottie-react';
-import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/auth.service';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button, Form, Input, Card, message, Space, Divider } from "antd";
+import Lottie from "lottie-react";
+import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/auth.service";
+import { getErrorMessage } from "../utils/error";
 
 // Placeholder animation - bạn có thể thay bằng animation thật từ assets/animation
 const loginAnimation = {
-  v: '5.5.7',
+  v: "5.5.7",
   fr: 30,
   ip: 0,
   op: 60,
   w: 400,
   h: 400,
-  nm: 'Login Animation',
+  nm: "Login Animation",
   ddd: 0,
   assets: [],
   layers: [],
@@ -29,14 +30,14 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       await login(values);
-      message.success('Đăng nhập thành công!');
+      message.success("Đăng nhập thành công!");
       // Đợi một chút để đảm bảo user info đã được load
       setTimeout(() => {
         // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
-        navigate('/');
+        navigate("/");
       }, 100);
-    } catch (error: any) {
-      message.error(error?.message || 'Đăng nhập thất bại');
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }
@@ -46,14 +47,14 @@ const Login: React.FC = () => {
     setGoogleLoading(true);
     try {
       const response = await authService.getGoogleAuthUrl();
-      const authUrl = response.authUrl || (response as any).data?.authUrl;
+      const authUrl = response.authUrl;
       if (authUrl) {
         window.location.href = authUrl;
       } else {
-        throw new Error('Không nhận được authUrl từ server');
+        throw new Error("Không nhận được authUrl từ server");
       }
-    } catch (error: any) {
-      message.error(error?.message || 'Không thể lấy Google OAuth URL');
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "Không thể lấy Google OAuth URL");
       setGoogleLoading(false);
     }
   };
@@ -61,15 +62,20 @@ const Login: React.FC = () => {
   const handleTestMockLogin = async () => {
     setLoading(true);
     try {
-      const response = await authService.testGoogleLogin('test@gmail.com', 'Test User');
+      const response = await authService.testGoogleLogin(
+        "test@gmail.com",
+        "Test User"
+      );
       // Clean token trước khi lưu
-      const cleanToken = response.accessToken.trim().replace(/^["']|["']$/g, '');
-      localStorage.setItem('accessToken', cleanToken);
-      message.success('Mock login thành công!');
+      const cleanToken = response.accessToken
+        .trim()
+        .replace(/^["']|["']$/g, "");
+      localStorage.setItem("accessToken", cleanToken);
+      message.success("Mock login thành công!");
       // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
-      navigate('/');
-    } catch (error: any) {
-      message.error(error?.message || 'Mock login thất bại');
+      navigate("/");
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "Mock login thất bại");
     } finally {
       setLoading(false);
     }
@@ -78,23 +84,37 @@ const Login: React.FC = () => {
   const handleTestRefresh = async () => {
     try {
       const response = await authService.testRefresh();
-      message.success('Test refresh thành công!');
-      console.log('Refresh token info:', response);
-    } catch (error: any) {
-      message.error(error?.message || 'Test refresh thất bại');
+      message.success("Test refresh thành công!");
+      console.log("Refresh token info:", response);
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "Test refresh thất bại");
     }
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #f9f4e8 0%, #ffffff 100%)' }}>
-      <Card 
-        style={{ 
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f9f4e8 0%, #ffffff 100%)",
+      }}
+    >
+      <Card
+        style={{
           width: 450,
-          borderRadius: '16px',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+          borderRadius: "16px",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "20px",
+          }}
+        >
           <Lottie
             animationData={loginAnimation}
             style={{
@@ -104,8 +124,18 @@ const Login: React.FC = () => {
             loop={true}
           />
         </div>
-        <h2 style={{ textAlign: 'center', marginBottom: 24, fontSize: '24px', fontWeight: 'bold', color: '#333' }}>Đăng nhập</h2>
-        
+        <h2
+          style={{
+            textAlign: "center",
+            marginBottom: 24,
+            fontSize: "24px",
+            fontWeight: "bold",
+            color: "#333",
+          }}
+        >
+          Đăng nhập
+        </h2>
+
         <Form
           name="login"
           onFinish={onFinish}
@@ -115,7 +145,7 @@ const Login: React.FC = () => {
           <Form.Item
             label="Username"
             name="username"
-            rules={[{ required: true, message: 'Vui lòng nhập username!' }]}
+            rules={[{ required: true, message: "Vui lòng nhập username!" }]}
           >
             <Input placeholder="root_admin@system.local" />
           </Form.Item>
@@ -123,7 +153,7 @@ const Login: React.FC = () => {
           <Form.Item
             label="Password"
             name="password"
-            rules={[{ required: true, message: 'Vui lòng nhập password!' }]}
+            rules={[{ required: true, message: "Vui lòng nhập password!" }]}
           >
             <Input.Password placeholder="123123" />
           </Form.Item>
@@ -137,7 +167,7 @@ const Login: React.FC = () => {
 
         <Divider>Hoặc</Divider>
 
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
           <Button
             type="default"
             block
@@ -156,11 +186,7 @@ const Login: React.FC = () => {
             Test Mock Login (Không cần Google)
           </Button>
 
-          <Button
-            type="link"
-            block
-            onClick={handleTestRefresh}
-          >
+          <Button type="link" block onClick={handleTestRefresh}>
             Test Refresh Token
           </Button>
         </Space>
@@ -170,4 +196,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-

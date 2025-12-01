@@ -1,9 +1,10 @@
-import React from 'react';
-import { Button, Card, Space, message, Divider } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/auth.service';
-import axiosInstance from '../services/axios.config';
+import React from "react";
+import { Button, Card, Space, message, Divider } from "antd";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/auth.service";
+import apiClient from "../api/client";
+import { getErrorMessage } from "../utils/error";
 
 const Admin: React.FC = () => {
   const { logout, refreshToken } = useAuth();
@@ -12,47 +13,54 @@ const Admin: React.FC = () => {
   const handleTestRefresh = async () => {
     try {
       const response = await authService.testRefresh();
-      message.success('Test refresh thành công!');
-      console.log('Token info:', response);
-    } catch (error: any) {
-      message.error(error?.message || 'Test refresh thất bại');
+      message.success("Test refresh thành công!");
+      console.log("Token info:", response);
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "Test refresh thất bại");
     }
   };
 
   const handleManualRefresh = async () => {
     try {
       await refreshToken();
-      message.success('Refresh token thành công!');
-    } catch (error: any) {
-      message.error(error?.message || 'Refresh token thất bại');
+      message.success("Refresh token thành công!");
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "Refresh token thất bại");
     }
   };
 
   const handleTestProtectedAPI = async () => {
     try {
-      const response = await axiosInstance.get('/test-refresh');
-      message.success('API call thành công!');
-      console.log('Response:', response);
-    } catch (error: any) {
-      message.error(error?.message || 'API call thất bại');
+      const response = await apiClient.get("/test-refresh");
+      message.success("API call thành công!");
+      console.log("Response:", response);
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error) || "API call thất bại");
     }
   };
 
   const handleTestInvalidToken = async () => {
-    localStorage.setItem('accessToken', 'invalid_token');
+    localStorage.setItem("accessToken", "invalid_token");
     try {
-      await axiosInstance.get('/test-refresh');
-    } catch (error: any) {
-      message.error('Expected error: ' + (error?.message || 'Invalid token'));
+      await apiClient.get("/test-refresh");
+    } catch (error: unknown) {
+      message.error(
+        "Expected error: " + (getErrorMessage(error) || "Invalid token")
+      );
     }
   };
 
   const handleTestExpiredToken = async () => {
-    localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MDAwMDAwMDB9.expired');
+    localStorage.setItem(
+      "accessToken",
+      "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MDAwMDAwMDB9.expired"
+    );
     try {
-      await axiosInstance.get('/test-refresh');
-    } catch (error: any) {
-      message.error('Expected error: ' + (error?.message || 'Expired token'));
+      await apiClient.get("/test-refresh");
+    } catch (error: unknown) {
+      message.error(
+        "Expected error: " + (getErrorMessage(error) || "Expired token")
+      );
     }
   };
 
@@ -62,9 +70,9 @@ const Admin: React.FC = () => {
         <h1>Trang Admin</h1>
         <p>Chào mừng đến trang quản trị!</p>
 
-        <Space direction="vertical" style={{ width: '100%', marginTop: 24 }}>
+        <Space direction="vertical" style={{ width: "100%", marginTop: 24 }}>
           <h3>Test Authentication</h3>
-          
+
           <Button type="primary" onClick={handleTestRefresh} block>
             Test Refresh Token Info
           </Button>
@@ -93,27 +101,27 @@ const Admin: React.FC = () => {
 
           <h3>Test Error Pages</h3>
 
-          <Button 
-            type="default" 
-            onClick={() => navigate('/404')} 
+          <Button
+            type="default"
+            onClick={() => navigate("/404")}
             block
             style={{ marginBottom: 8 }}
           >
             Test 404 Page
           </Button>
 
-          <Button 
-            type="default" 
-            onClick={() => navigate('/403')} 
+          <Button
+            type="default"
+            onClick={() => navigate("/403")}
             block
             style={{ marginBottom: 8 }}
           >
             Test 403 Page
           </Button>
 
-          <Button 
-            type="default" 
-            onClick={() => navigate('/401')} 
+          <Button
+            type="default"
+            onClick={() => navigate("/401")}
             block
             style={{ marginBottom: 8 }}
           >
@@ -132,4 +140,3 @@ const Admin: React.FC = () => {
 };
 
 export default Admin;
-
