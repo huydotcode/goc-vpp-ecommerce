@@ -11,10 +11,8 @@ const Forbidden: React.FC = () => {
   const { userRole } = useAuth();
 
   const handleGoHome = () => {
-    // Nếu là USER, về /home, nếu là ADMIN/EMPLOYEE, về /admin
-    if (userRole === "USER") {
-      navigate("/home");
-    } else if (userRole === "ADMIN" || userRole === "EMPLOYEE") {
+    // Nếu là ADMIN/EMPLOYEE, về /admin, còn lại về trang chủ (/)
+    if (userRole === "ADMIN" || userRole === "EMPLOYEE") {
       navigate("/admin");
     } else {
       navigate("/");

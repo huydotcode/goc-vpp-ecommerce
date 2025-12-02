@@ -153,8 +153,14 @@ apiClient.interceptors.response.use(
         storage.removeToken();
         Cookies.remove("refreshToken");
 
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
+        // Chỉ redirect về /login nếu đang ở protected route
+        // Không redirect nếu đang ở public route (/, /login, etc.)
+        const currentPath = window.location.pathname;
+        const publicRoutes = ["/", "/login", "/register", "/google/callback"];
+        const isPublicRoute = publicRoutes.includes(currentPath);
+
+        if (!isPublicRoute) {
+          window.location.href = "/";
         }
 
         return Promise.reject(refreshError);

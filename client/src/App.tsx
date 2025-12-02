@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AdminLayout from "./components/layout/admin/AdminLayout";
@@ -14,7 +14,6 @@ import UserAdminMain from "./components/admin/user/main-protable";
 import CategoryAdminMain from "./components/admin/category/main-protable";
 import ProductAdminMain from "./components/admin/product/main-protable";
 import PromotionAdminMain from "./components/admin/promotion/main-protable";
-import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import "./styles/index.css";
 import type { JSX } from "react";
 
@@ -50,19 +49,19 @@ function AppRoutes(): JSX.Element {
         <Route path="profile" element={<div>Profile Page</div>} />
       </Route>
       <Route
-        path="/home"
+        path="/"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowGuest={true}>
             <ClientLayout />
           </ProtectedRoute>
         }
       >
         <Route index element={<Home />} />
       </Route>
+      <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/401" element={<Unauthorized />} />
       <Route path="/403" element={<Forbidden />} />
       <Route path="/404" element={<NotFound />} />
-      <Route path="/" element={<RoleBasedRedirect />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

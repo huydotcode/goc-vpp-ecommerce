@@ -34,8 +34,9 @@ const RoleBasedRedirect: React.FC = () => {
       );
     }
 
+    // Guest (không có token) → cho phép truy cập trang chủ (/)
     if (!token) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/" replace />;
     }
   }
 
@@ -43,7 +44,7 @@ const RoleBasedRedirect: React.FC = () => {
     return <Navigate to="/admin" replace />;
   }
 
-  return <Navigate to="/home" replace />;
+  return <Navigate to="/" replace />;
 };
 
 export default RoleBasedRedirect;

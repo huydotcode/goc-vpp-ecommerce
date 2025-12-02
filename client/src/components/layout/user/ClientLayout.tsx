@@ -17,7 +17,7 @@ const ClientLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const userMenuItems: MenuProps["items"] = [
@@ -61,8 +61,8 @@ const ClientLayout: React.FC = () => {
             height: "100%",
           }}
         >
-          <div className="relative h-full" onClick={() => navigate("/home")}>
-            <Link to={"/home"}>
+          <div className="relative h-full" onClick={() => navigate("/")}>
+            <Link to={"/"}>
               <img
                 className="h-full object-cover w-auto"
                 src={"/images/logo.png"}
