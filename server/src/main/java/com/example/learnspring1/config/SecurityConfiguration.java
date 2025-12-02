@@ -145,6 +145,11 @@ public class SecurityConfiguration {
                                     "/categories/**"
                                 )
                                 .permitAll()
+                                .requestMatchers(
+                                    "/payment/payos/**",
+                                    "/orders/cod"
+                                )
+                                .permitAll()
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer(
                         oauth2 -> oauth2.jwt(Customizer

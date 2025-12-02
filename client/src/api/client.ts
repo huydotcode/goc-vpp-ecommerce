@@ -12,6 +12,9 @@ export const PUBLIC_ENDPOINTS = [
   "/google/auth-url",
   "/google/test-login",
   "/register",
+  "/payment/vnpay/create",
+  "/payment/payos/create",
+  "/orders/cod",
 ];
 
 export const API_BASE_URL =

@@ -25,6 +25,7 @@ import ProductDetailPage from "./pages/ProductDetail";
 import RegisterPage from "./pages/Register";
 import UserProfilePage from "./pages/UserProfile";
 import VnPayResult from "./pages/VnPayResult";
+import PayOSResult from "./pages/PayOSResult";
 import Forbidden from "./pages/errors/Forbidden";
 import NotFound from "./pages/errors/NotFound";
 import Unauthorized from "./pages/errors/Unauthorized";
@@ -80,6 +81,7 @@ function AppRoutes(): JSX.Element {
         <Route path="cart" element={<CartPage />} />
         <Route path="cart-vnpay" element={<CartVnPayMock />} />
         <Route path="vnpay-result" element={<VnPayResult />} />
+        <Route path="payos-result" element={<PayOSResult />} />
         <Route
           path="user"
           element={

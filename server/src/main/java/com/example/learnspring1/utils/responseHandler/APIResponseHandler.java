@@ -33,7 +33,12 @@ public class APIResponseHandler implements ResponseBodyAdvice<Object> {
             ServerHttpRequest request,
             ServerHttpResponse response) {
         String path = request.getURI().getPath();
-        if (path != null && path.contains("/payment/vnpay/ipn")) {
+        // Không wrap response cho payment endpoints (cần response trực tiếp)
+        if (path != null && (
+            path.contains("/payment/vnpay/ipn") ||
+            path.contains("/payment/payos/") ||
+            path.contains("/payment/vnpay/create")
+        )) {
             return body;
         }
 
