@@ -1,5 +1,7 @@
 import { authApi } from "@/api/auth.api";
 import type { LoginRequest, LoginResponse } from "@/types/auth.types";
+import Cookies from "js-cookie";
+import { storage } from "../utils/storage";
 
 export interface User {
   username: string;
@@ -50,10 +52,16 @@ export const authService = {
   },
 
   /**
-   * Logout - clear token and redirect to login
+   * Logout - clear token and redirect to home
    */
   logout: () => {
-    localStorage.removeItem("accessToken");
-    window.location.href = "/login";
+    // Xóa accessToken từ localStorage
+    storage.removeToken();
+    // Xóa refreshToken cookie
+    Cookies.remove("refreshToken");
+    // Xóa tất cả sessionStorage nếu có
+    sessionStorage.clear();
+    // Redirect về trang chủ
+    window.location.href = "/";
   },
 };
