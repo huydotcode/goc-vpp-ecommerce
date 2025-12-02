@@ -194,7 +194,11 @@ const CategoryAdminMain: React.FC = () => {
               handleOpenUpdateModal();
               setDataDetailModal(record);
             }}
-            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
+            style={{
+              cursor: "pointer",
+              color: "var(--color-primary)",
+              fontSize: "16px",
+            }}
           />
           {userRole !== "EMPLOYEE" && (
             <Popconfirm
@@ -207,14 +211,18 @@ const CategoryAdminMain: React.FC = () => {
               <DeleteOutlined
                 style={{
                   cursor: "pointer",
-                  color: "#ff5733",
+                  color: "var(--color-primary)",
                   fontSize: "16px",
                 }}
               />
             </Popconfirm>
           )}
           <MoreOutlined
-            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
+            style={{
+              cursor: "pointer",
+              color: "var(--color-primary)",
+              fontSize: "16px",
+            }}
             onClick={() => handleOpenDetailModal(record)}
           />
         </Space>

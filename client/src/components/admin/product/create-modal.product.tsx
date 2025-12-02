@@ -326,13 +326,19 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
             {uploading && (
               <div style={{ marginTop: 16 }}>
                 <Progress percent={uploadProgress} status="active" />
-                <p style={{ marginTop: 8, color: "#666" }}>
+                <p style={{ marginTop: 8, color: "var(--color-gray-500)" }}>
                   Đang upload {selectedFiles.length} ảnh lên server... (
                   {uploadProgress}%)
                 </p>
               </div>
             )}
-            <div style={{ marginTop: 8, color: "#999", fontSize: "12px" }}>
+            <div
+              style={{
+                marginTop: 8,
+                color: "var(--color-gray-500)",
+                fontSize: "12px",
+              }}
+            >
               Có thể upload nhiều ảnh (tối đa 10 ảnh). Ảnh đầu tiên sẽ được dùng
               làm thumbnail.
             </div>

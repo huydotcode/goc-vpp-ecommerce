@@ -219,7 +219,7 @@ const CategoryCreate: React.FC<CategoryCreateProps> = ({
             {uploading && (
               <div style={{ marginTop: 16 }}>
                 <Progress percent={uploadProgress} status="active" />
-                <p style={{ marginTop: 8, color: "#666" }}>
+                <p style={{ marginTop: 8, color: "var(--color-gray-500)" }}>
                   Đang upload ảnh lên server...
                 </p>
               </div>

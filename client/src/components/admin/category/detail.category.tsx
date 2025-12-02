@@ -29,7 +29,7 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({
             {dataDetailModal.name}
           </Descriptions.Item>
           <Descriptions.Item label="Trạng thái" span={2}>
-            <Tag color={dataDetailModal.isActive ? "green" : "red"}>
+            <Tag color={dataDetailModal.isActive ? "success" : "error"}>
               {dataDetailModal.isActive ? "Active" : "Inactive"}
             </Tag>
           </Descriptions.Item>

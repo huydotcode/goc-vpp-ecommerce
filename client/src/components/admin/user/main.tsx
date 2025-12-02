@@ -231,7 +231,11 @@ const UserAdminMain: React.FC = () => {
               handleOpenUpdateModal();
               setDataDetailModal(record);
             }}
-            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
+            style={{
+              cursor: "pointer",
+              color: "var(--color-primary)",
+              fontSize: "16px",
+            }}
           />
           <Popconfirm
             title="Xóa user"

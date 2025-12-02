@@ -105,7 +105,13 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "24px", background: "#f5f5f5", minHeight: "100vh" }}>
+    <div
+      style={{
+        padding: "24px",
+        background: "var(--color-gray-100)",
+        minHeight: "100vh",
+      }}
+    >
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <h1 style={{ marginBottom: "24px", textAlign: "center" }}>Cửa hàng</h1>
 
@@ -113,7 +119,8 @@ const Home: React.FC = () => {
           <Card
             style={{
               marginBottom: "24px",
-              background: "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)",
+              background:
+                "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)",
               color: "white",
             }}
           >
@@ -224,11 +231,11 @@ const Home: React.FC = () => {
                             <div
                               style={{
                                 height: 200,
-                                background: "#f0f0f0",
+                                background: "var(--color-gray-200)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: "#999",
+                                color: "var(--color-gray-500)",
                               }}
                             >
                               Không có ảnh
@@ -278,7 +285,7 @@ const Home: React.FC = () => {
                                       <span
                                         style={{
                                           textDecoration: "line-through",
-                                          color: "#999",
+                                          color: "var(--color-gray-500)",
                                           marginRight: "8px",
                                         }}
                                       >
@@ -286,7 +293,7 @@ const Home: React.FC = () => {
                                       </span>
                                       <span
                                         style={{
-                                          color: "#ff4d4f",
+                                          color: "var(--color-error)",
                                           fontWeight: "bold",
                                         }}
                                       >

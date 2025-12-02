@@ -180,10 +180,18 @@ const PromotionAdminMain: React.FC = () => {
               handleOpenUpdateModal();
               setDataDetailModal(record);
             }}
-            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
+            style={{
+              cursor: "pointer",
+              color: "var(--color-primary)",
+              fontSize: "16px",
+            }}
           />
           <MoreOutlined
-            style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
+            style={{
+              cursor: "pointer",
+              color: "var(--color-primary)",
+              fontSize: "16px",
+            }}
             onClick={() => handleOpenDetailModal(record)}
           />
         </Space>

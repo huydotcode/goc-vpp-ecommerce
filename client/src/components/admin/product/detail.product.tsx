@@ -76,7 +76,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Trạng thái">
-            <Tag color={dataDetailModal.isActive ? "green" : "red"}>
+            <Tag color={dataDetailModal.isActive ? "success" : "error"}>
               {dataDetailModal.isActive ? "Active" : "Inactive"}
             </Tag>
           </Descriptions.Item>
