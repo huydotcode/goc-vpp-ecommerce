@@ -107,7 +107,6 @@ const Home: React.FC = () => {
   return (
     <div
       style={{
-        padding: "24px",
         background: "var(--color-gray-100)",
         minHeight: "100vh",
       }}
