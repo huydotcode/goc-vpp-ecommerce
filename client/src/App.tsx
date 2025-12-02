@@ -15,6 +15,7 @@ import AdminProfilePage from "./pages/AdminProfile";
 import AdminOrderDetailPage from "./pages/AdminOrderDetail";
 import AdminOrdersPage from "./pages/AdminOrders";
 import CartPage from "./pages/Cart";
+import CartVnPayMock from "./pages/CartVnPayMock";
 import CheckoutPage from "./pages/Checkout";
 import GoogleCallback from "./pages/GoogleCallback";
 import Home from "./pages/Home";
@@ -23,6 +24,7 @@ import OrdersPage from "./pages/Orders";
 import ProductDetailPage from "./pages/ProductDetail";
 import RegisterPage from "./pages/Register";
 import UserProfilePage from "./pages/UserProfile";
+import VnPayResult from "./pages/VnPayResult";
 import Forbidden from "./pages/errors/Forbidden";
 import NotFound from "./pages/errors/NotFound";
 import Unauthorized from "./pages/errors/Unauthorized";
@@ -76,6 +78,8 @@ function AppRoutes(): JSX.Element {
         <Route index element={<Home />} />
         <Route path="products/:id" element={<ProductDetailPage />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="cart-vnpay" element={<CartVnPayMock />} />
+        <Route path="vnpay-result" element={<VnPayResult />} />
         <Route
           path="user"
           element={

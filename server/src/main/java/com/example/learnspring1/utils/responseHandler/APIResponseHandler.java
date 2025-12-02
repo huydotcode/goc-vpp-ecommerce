@@ -32,6 +32,11 @@ public class APIResponseHandler implements ResponseBodyAdvice<Object> {
             Class<? extends HttpMessageConverter<?>> selectedConverterType,
             ServerHttpRequest request,
             ServerHttpResponse response) {
+        String path = request.getURI().getPath();
+        if (path != null && path.contains("/payment/vnpay/ipn")) {
+            return body;
+        }
+
         // Nếu body đã là APIResponse thì không cần bọc lại
         if (body instanceof APIResponse) {
             return body;
