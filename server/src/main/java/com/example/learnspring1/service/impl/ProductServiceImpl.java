@@ -1,6 +1,8 @@
 package com.example.learnspring1.service.impl;
 
+import com.example.learnspring1.domain.Order;
 import com.example.learnspring1.domain.Product;
+import com.example.learnspring1.repository.OrderItemRepository;
 import com.example.learnspring1.repository.ProductRepository;
 import com.example.learnspring1.service.ProductService;
 import org.springframework.data.domain.Page;
@@ -8,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,9 +19,12 @@ import java.util.Optional;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
 
-    public ProductServiceImpl(ProductRepository productRepository) {
+    public ProductServiceImpl(ProductRepository productRepository,
+            OrderItemRepository orderItemRepository) {
         this.productRepository = productRepository;
+        this.orderItemRepository = orderItemRepository;
     }
 
     @Override
@@ -40,22 +47,24 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<Product> getProductsPageWithFilters(Pageable pageable,
-                                                    Long id,
-                                                    String name,
-                                                    String sku,
-                                                    String brand,
-                                                    Long categoryId,
-                                                    Boolean isFeatured,
-                                                    Boolean isActive,
-                                                    String search) {
+            Long id,
+            String name,
+            String sku,
+            String brand,
+            Long categoryId,
+            Boolean isFeatured,
+            Boolean isActive,
+            String search) {
         if (id != null) {
             return productRepository.findProductsByIdOnly(String.valueOf(id), pageable);
         }
-        return productRepository.findProductsWithFiltersPaged(name, sku, brand, categoryId, isFeatured, isActive, search, pageable);
+        return productRepository.findProductsWithFiltersPaged(name, sku, brand, categoryId, isFeatured, isActive,
+                search, pageable);
     }
 
     @Override
-    public List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId, Boolean isFeatured, Boolean isActive) {
+    public List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId,
+            Boolean isFeatured, Boolean isActive) {
         return productRepository.findProductsWithFilters(name, sku, brand, categoryId, isFeatured, isActive);
     }
 
@@ -102,10 +111,16 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Product not found with id " + id));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Product not found with id " + id));
         product.softDelete();
         productRepository.save(product);
     }
+
+    @Override
+    public Page<Product> getBestSellers(Pageable pageable) {
+        // Best seller: dựa trên tổng quantity của OrderItem trong 90 ngày gần nhất
+        // và chỉ tính các đơn hàng COMPLETED.
+        Instant fromDate = Instant.now().minus(90, ChronoUnit.DAYS);
+        return orderItemRepository.findBestSellers(Order.OrderStatus.COMPLETED, fromDate, pageable);
+    }
 }
-
-

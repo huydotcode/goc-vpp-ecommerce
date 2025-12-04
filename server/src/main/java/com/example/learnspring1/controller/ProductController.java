@@ -19,7 +19,6 @@ import com.example.learnspring1.domain.Product;
 import com.example.learnspring1.domain.dto.PaginatedResponseDTO;
 import com.example.learnspring1.domain.dto.MetadataDTO;
 import com.example.learnspring1.service.ProductService;
- 
 
 import jakarta.validation.Valid;
 
@@ -36,10 +35,8 @@ public class ProductController {
     }
 
     @Operation(summary = "Tạo mới product")
-    @ApiResponse(responseCode = "200", description = "Tạo product thành công",
-        content = @Content(schema = @Schema(implementation = Product.class)))
-    @ApiResponse(responseCode = "403", description = "Không có quyền",
-        content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
+    @ApiResponse(responseCode = "200", description = "Tạo product thành công", content = @Content(schema = @Schema(implementation = Product.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền", content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Product create(@Valid @RequestBody Product input) {
@@ -69,15 +66,15 @@ public class ProductController {
             @RequestParam(name = "categoryId", required = false) Long categoryId,
             @RequestParam(name = "isFeatured", required = false) Boolean isFeatured,
             @RequestParam(name = "isActive", required = false) Boolean isActive,
-            @RequestParam(name = "search", required = false) String search
-    ) {
+            @RequestParam(name = "search", required = false) String search) {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         if (direction == null) {
             direction = Sort.Direction.ASC;
         }
         Sort sort = Sort.by(direction, sortField);
         Pageable pageable = PageRequest.of(page - 1, size, sort);
-        Page<Product> result = productService.getProductsPageWithFilters(pageable, id, name, sku, brand, categoryId, isFeatured, isActive, search);
+        Page<Product> result = productService.getProductsPageWithFilters(pageable, id, name, sku, brand, categoryId,
+                isFeatured, isActive, search);
         MetadataDTO metadata = MetadataDTO.builder()
                 .page(page)
                 .size(size)
@@ -92,16 +89,38 @@ public class ProductController {
                 .build();
     }
 
+    @Operation(summary = "Lấy danh sách sản phẩm bán chạy / nổi bật")
+    @GetMapping("/best-sellers")
+    public PaginatedResponseDTO<Product> getBestSellers(
+            @RequestParam(name = "size", defaultValue = "8") int size) {
+        int page = 1;
+        Pageable pageable = PageRequest.of(page - 1, size);
+
+        Page<Product> result = productService.getBestSellers(pageable);
+        MetadataDTO metadata = MetadataDTO.builder()
+                .page(page)
+                .size(size)
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .sortField("bestSellerScore")
+                .sortDirection("DESC")
+                .build();
+
+        return PaginatedResponseDTO.<Product>builder()
+                .metadata(metadata)
+                .result(result.getContent())
+                .build();
+    }
+
     @Operation(summary = "Lấy product theo id")
     @GetMapping("/{id}")
     public Product getById(@PathVariable("id") Long id) {
         return productService.getProductByIdWithImages(id)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Product not found with id " + id));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Product not found with id " + id));
     }
 
     @Operation(summary = "Cập nhật product")
-    @ApiResponse(responseCode = "403", description = "Không có quyền",
-        content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền", content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Product update(@PathVariable("id") Long id, @Valid @RequestBody Product input) {
@@ -109,13 +128,10 @@ public class ProductController {
     }
 
     @Operation(summary = "Xóa product (soft delete)")
-    @ApiResponse(responseCode = "403", description = "Không có quyền",
-        content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Không có quyền", content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable("id") Long id) {
         productService.deleteProduct(id);
     }
 }
-
-

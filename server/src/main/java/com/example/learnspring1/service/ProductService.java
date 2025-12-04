@@ -16,16 +16,17 @@ public interface ProductService {
     Page<Product> getProductsPage(Pageable pageable);
 
     Page<Product> getProductsPageWithFilters(Pageable pageable,
-                                             Long id,
-                                             String name,
-                                             String sku,
-                                             String brand,
-                                             Long categoryId,
-                                             Boolean isFeatured,
-                                             Boolean isActive,
-                                             String search);
+            Long id,
+            String name,
+            String sku,
+            String brand,
+            Long categoryId,
+            Boolean isFeatured,
+            Boolean isActive,
+            String search);
 
-    List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId, Boolean isFeatured, Boolean isActive);
+    List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId, Boolean isFeatured,
+            Boolean isActive);
 
     Optional<Product> getProductById(Long id);
 
@@ -36,6 +37,10 @@ public interface ProductService {
     Product updateProduct(Long id, Product product);
 
     void deleteProduct(Long id);
+
+    /**
+     * Lấy danh sách sản phẩm bán chạy / nổi bật dựa trên tổng số lượng OrderItem
+     * trong 90 ngày gần nhất với trạng thái đơn hàng COMPLETED.
+     */
+    Page<Product> getBestSellers(Pageable pageable);
 }
-
-
