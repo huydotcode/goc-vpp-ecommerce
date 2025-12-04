@@ -25,14 +25,14 @@ public class PromotionResponseDTO {
     }
 
     public PromotionResponseDTO(Long id,
-                                 String name,
-                                 String thumbnailUrl,
-                                 String description,
-                                 PromotionDiscountType discountType,
-                                 BigDecimal discountAmount,
-                                 Boolean isActive,
-                                 List<ConditionDTO> conditions,
-                                 List<GiftItemDTO> giftItems) {
+            String name,
+            String thumbnailUrl,
+            String description,
+            PromotionDiscountType discountType,
+            BigDecimal discountAmount,
+            Boolean isActive,
+            List<ConditionDTO> conditions,
+            List<GiftItemDTO> giftItems) {
         this.id = id;
         this.name = name;
         this.thumbnailUrl = thumbnailUrl;
@@ -66,8 +66,7 @@ public class PromotionResponseDTO {
                 promotion.getDiscountAmount(),
                 promotion.getIsActive(),
                 conditionDTOs,
-                giftDTOs
-        );
+                giftDTOs);
     }
 
     public Long getId() {
@@ -132,8 +131,7 @@ public class PromotionResponseDTO {
             return new ConditionDTO(
                     condition.getId(),
                     condition.getOperator() != null ? condition.getOperator().name() : null,
-                    detailDTOs
-            );
+                    detailDTOs);
         }
 
         public Long getId() {
@@ -154,20 +152,23 @@ public class PromotionResponseDTO {
         private Long productId;
         private String productName;
         private BigDecimal productPrice;
+        private String productThumbnailUrl;
         private Integer requiredQuantity;
 
         public ConditionDetailDTO() {
         }
 
         public ConditionDetailDTO(Long id,
-                                   Long productId,
-                                   String productName,
-                                   BigDecimal productPrice,
-                                   Integer requiredQuantity) {
+                Long productId,
+                String productName,
+                BigDecimal productPrice,
+                String productThumbnailUrl,
+                Integer requiredQuantity) {
             this.id = id;
             this.productId = productId;
             this.productName = productName;
             this.productPrice = productPrice;
+            this.productThumbnailUrl = productThumbnailUrl;
             this.requiredQuantity = requiredQuantity;
         }
 
@@ -181,8 +182,8 @@ public class PromotionResponseDTO {
                     detail.getProduct() != null ? detail.getProduct().getId() : null,
                     detail.getProduct() != null ? detail.getProduct().getName() : null,
                     detail.getProduct() != null ? detail.getProduct().getPrice() : null,
-                    detail.getRequiredQuantity()
-            );
+                    detail.getProduct() != null ? detail.getProduct().getThumbnailUrl() : null,
+                    detail.getRequiredQuantity());
         }
 
         public Long getId() {
@@ -201,6 +202,10 @@ public class PromotionResponseDTO {
             return productPrice;
         }
 
+        public String getProductThumbnailUrl() {
+            return productThumbnailUrl;
+        }
+
         public Integer getRequiredQuantity() {
             return requiredQuantity;
         }
@@ -210,15 +215,17 @@ public class PromotionResponseDTO {
         private Long id;
         private Long productId;
         private String productName;
+        private String productThumbnailUrl;
         private Integer quantity;
 
         public GiftItemDTO() {
         }
 
-        public GiftItemDTO(Long id, Long productId, String productName, Integer quantity) {
+        public GiftItemDTO(Long id, Long productId, String productName, String productThumbnailUrl, Integer quantity) {
             this.id = id;
             this.productId = productId;
             this.productName = productName;
+            this.productThumbnailUrl = productThumbnailUrl;
             this.quantity = quantity;
         }
 
@@ -231,8 +238,8 @@ public class PromotionResponseDTO {
                     giftItem.getId(),
                     giftItem.getProduct() != null ? giftItem.getProduct().getId() : null,
                     giftItem.getProduct() != null ? giftItem.getProduct().getName() : null,
-                    giftItem.getQuantity()
-            );
+                    giftItem.getProduct() != null ? giftItem.getProduct().getThumbnailUrl() : null,
+                    giftItem.getQuantity());
         }
 
         public Long getId() {
@@ -247,9 +254,12 @@ public class PromotionResponseDTO {
             return productName;
         }
 
+        public String getProductThumbnailUrl() {
+            return productThumbnailUrl;
+        }
+
         public Integer getQuantity() {
             return quantity;
         }
     }
 }
-
