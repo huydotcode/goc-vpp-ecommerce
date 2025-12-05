@@ -20,6 +20,7 @@ const { Search } = Input;
 const UserHeader: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const isLoggedIn = Boolean(user && isAuthenticated);
   const [searchValue, setSearchValue] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const mobileSearchInputRef = useRef<InputRef>(null);
@@ -214,32 +215,30 @@ const UserHeader: React.FC = () => {
               className="hover:bg-gray-50"
             />
           </div>
-          {/* Cart Button */}
-          {isAuthenticated && (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <Badge count={0} showZero={false} offset={[8, 0]}>
-                <Button
-                  type="text"
-                  icon={<ShoppingCartOutlined style={{ fontSize: "22px" }} />}
-                  onClick={() => navigate("/cart")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: "40px",
-                    width: "40px",
-                    padding: 0,
-                  }}
-                  className="hover:bg-gray-50"
-                />
-              </Badge>
-            </div>
-          )}
+          {/* Cart Button (always visible) */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Badge count={0} showZero={false} offset={[8, 0]}>
+              <Button
+                type="text"
+                icon={<ShoppingCartOutlined style={{ fontSize: "22px" }} />}
+                onClick={() => navigate("/cart")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "40px",
+                  width: "40px",
+                  padding: 0,
+                }}
+                className="hover:bg-gray-50"
+              />
+            </Badge>
+          </div>
 
           {/* User Dropdown */}
           <Dropdown
             menu={{
-              items: isAuthenticated ? authenticatedMenuItems : guestMenuItems,
+              items: isLoggedIn ? authenticatedMenuItems : guestMenuItems,
             }}
             placement="bottomRight"
           >
@@ -257,7 +256,7 @@ const UserHeader: React.FC = () => {
               }}
               className="hover:bg-gray-50"
             >
-              {isAuthenticated ? (
+              {isLoggedIn ? (
                 <>
                   <Avatar
                     src={user?.avatarUrl}
