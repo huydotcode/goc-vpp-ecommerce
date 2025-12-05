@@ -36,6 +36,7 @@ export interface PromotionConditionDetailResponse {
   productId: number;
   productName?: string | null;
   productPrice?: number | null;
+  productThumbnailUrl?: string | null;
   requiredQuantity: number;
 }
 
@@ -75,6 +76,7 @@ export interface PromotionGiftItemResponse {
   id: number;
   productId: number;
   productName?: string | null;
+  productThumbnailUrl?: string | null;
   quantity: number;
 }
 
