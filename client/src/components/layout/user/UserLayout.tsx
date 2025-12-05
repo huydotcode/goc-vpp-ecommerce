@@ -2,6 +2,7 @@ import { Layout } from "antd";
 import React from "react";
 import { Outlet } from "react-router-dom";
 import UserHeader from "./UserHeader";
+import UserFooter from "./UserFooter";
 
 const { Content } = Layout;
 
@@ -15,6 +16,8 @@ const UserLayout: React.FC = () => {
           <Outlet />
         </div>
       </Content>
+
+      <UserFooter />
     </Layout>
   );
 };
