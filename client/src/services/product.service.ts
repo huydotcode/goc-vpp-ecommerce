@@ -29,6 +29,17 @@ export const productService = {
   },
 
   /**
+   * Get best seller / top products
+   */
+  getBestSellers: async (
+    params: {
+      size?: number;
+    } = {}
+  ): Promise<PaginatedResponse<Product>> => {
+    return productApi.getBestSellers(params);
+  },
+
+  /**
    * Get products with simple pagination
    */
   getProductsPage: async (params: {

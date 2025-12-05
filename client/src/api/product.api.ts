@@ -23,6 +23,19 @@ export const productApi = {
   },
 
   /**
+   * Get best seller / top products
+   */
+  getBestSellers: async (params: {
+    size?: number;
+  }): Promise<PaginatedResponse<Product>> => {
+    const response = await apiClient.get<PaginatedResponse<Product>>(
+      API_ENDPOINTS.PRODUCTS_BEST_SELLERS,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
    * Get products with simple pagination
    */
   getProductsPage: async (params: {

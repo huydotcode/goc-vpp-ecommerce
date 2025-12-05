@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   PRODUCTS: "/products",
   PRODUCTS_ADVANCED: "/products/advanced",
   PRODUCTS_PAGE: "/products/page",
+  PRODUCTS_BEST_SELLERS: "/products/best-sellers",
 
   // Promotions
   PROMOTIONS: "/promotions",

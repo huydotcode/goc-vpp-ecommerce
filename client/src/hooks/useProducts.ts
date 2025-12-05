@@ -16,6 +16,8 @@ export const productKeys = {
     [...productKeys.lists(), "page", params] as const,
   details: () => [...productKeys.all, "detail"] as const,
   detail: (id: number) => [...productKeys.details(), id] as const,
+  bestSellers: (size: number) =>
+    [...productKeys.all, "best-sellers", { size }] as const,
 };
 
 // Get all products with pagination and filters
@@ -35,6 +37,15 @@ export const useProductsPage = (
   return useQuery({
     queryKey: productKeys.page(params),
     queryFn: () => productService.getProductsPage(params),
+    enabled,
+  });
+};
+
+// Get best seller / top products
+export const useBestSellers = (size = 8, enabled = true) => {
+  return useQuery({
+    queryKey: productKeys.bestSellers(size),
+    queryFn: () => productService.getBestSellers({ size }),
     enabled,
   });
 };
