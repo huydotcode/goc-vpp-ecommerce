@@ -1,5 +1,6 @@
 import React from "react";
-import { Button, Card, Space, message, Divider } from "antd";
+import { Button, Card, Space, Divider } from "antd";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/auth.service";
@@ -13,29 +14,29 @@ const Admin: React.FC = () => {
   const handleTestRefresh = async () => {
     try {
       const response = await authService.testRefresh();
-      message.success("Test refresh thành công!");
+      toast.success("Test refresh thành công!");
       console.log("Token info:", response);
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "Test refresh thất bại");
+      toast.error(getErrorMessage(error) || "Test refresh thất bại");
     }
   };
 
   const handleManualRefresh = async () => {
     try {
       await refreshToken();
-      message.success("Refresh token thành công!");
+      toast.success("Refresh token thành công!");
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "Refresh token thất bại");
+      toast.error(getErrorMessage(error) || "Refresh token thất bại");
     }
   };
 
   const handleTestProtectedAPI = async () => {
     try {
       const response = await apiClient.get("/test-refresh");
-      message.success("API call thành công!");
+      toast.success("API call thành công!");
       console.log("Response:", response);
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "API call thất bại");
+      toast.error(getErrorMessage(error) || "API call thất bại");
     }
   };
 
@@ -44,7 +45,7 @@ const Admin: React.FC = () => {
     try {
       await apiClient.get("/test-refresh");
     } catch (error: unknown) {
-      message.error(
+      toast.error(
         "Expected error: " + (getErrorMessage(error) || "Invalid token")
       );
     }
@@ -58,7 +59,7 @@ const Admin: React.FC = () => {
     try {
       await apiClient.get("/test-refresh");
     } catch (error: unknown) {
-      message.error(
+      toast.error(
         "Expected error: " + (getErrorMessage(error) || "Expired token")
       );
     }

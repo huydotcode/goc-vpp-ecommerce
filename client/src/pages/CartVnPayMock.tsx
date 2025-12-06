@@ -1,8 +1,25 @@
-import { Button, Card, Col, Form, Input, InputNumber, Radio, Row, Select, message } from "antd";
+import {
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  InputNumber,
+  Radio,
+  Row,
+  Select,
+} from "antd";
+import { toast } from "sonner";
 import React, { useEffect, useState } from "react";
 import { paymentApi } from "../api/payment.api";
 import { useNavigate } from "react-router-dom";
-import { addressService, type Province, type District, type Ward, type AddressData } from "../services/address.service";
+import {
+  addressService,
+  type Province,
+  type District,
+  type Ward,
+  type AddressData,
+} from "../services/address.service";
 
 const CartVnPayMock: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(2);
@@ -38,7 +55,7 @@ const CartVnPayMock: React.FC = () => {
       const data = await addressService.getProvinces();
       setProvinces(data);
     } catch {
-      message.error("Khong tai duoc danh sach tinh/thanh pho");
+      toast.error("Khong tai duoc danh sach tinh/thanh pho");
     } finally {
       setLoadingProvinces(false);
     }
@@ -54,16 +71,18 @@ const CartVnPayMock: React.FC = () => {
           street: lastAddress.street,
           address: addressService.buildFullAddress(lastAddress),
         });
-        
+
         await handleProvinceChange(province.code);
-        
+
         // Đợi districts load xong
         setTimeout(async () => {
-          const district = districts.find((d) => d.name === lastAddress.district);
+          const district = districts.find(
+            (d) => d.name === lastAddress.district
+          );
           if (district) {
             form.setFieldsValue({ district: district.code });
             await handleDistrictChange(district.code);
-            
+
             // Đợi wards load xong
             setTimeout(() => {
               const ward = wards.find((w) => w.name === lastAddress.ward);
@@ -89,7 +108,7 @@ const CartVnPayMock: React.FC = () => {
       const data = await addressService.getDistricts(provinceCode);
       setDistricts(data);
     } catch {
-      message.error("Khong tai duoc danh sach quan/huyen");
+      toast.error("Khong tai duoc danh sach quan/huyen");
     } finally {
       setLoadingDistricts(false);
     }
@@ -106,12 +125,11 @@ const CartVnPayMock: React.FC = () => {
       const data = await addressService.getWards(districtCode);
       setWards(data);
     } catch {
-      message.error("Khong tai duoc danh sach phuong/xa");
+      toast.error("Khong tai duoc danh sach phuong/xa");
     } finally {
       setLoadingWards(false);
     }
   };
-
 
   const handlePay = async () => {
     try {
@@ -121,9 +139,10 @@ const CartVnPayMock: React.FC = () => {
       if (paymentMethod === "payos") {
         // PayOS yêu cầu description tối đa 25 ký tự
         const fullOrderInfo = `Thanh toan don hang PayOS cho ${values.fullName}`;
-        const orderInfo = fullOrderInfo.length > 25 
-          ? fullOrderInfo.substring(0, 25) 
-          : fullOrderInfo;
+        const orderInfo =
+          fullOrderInfo.length > 25
+            ? fullOrderInfo.substring(0, 25)
+            : fullOrderInfo;
 
         const res = await paymentApi.createPayOSPayment({
           amount,
@@ -139,13 +158,15 @@ const CartVnPayMock: React.FC = () => {
           window.location.href = checkoutUrl;
         } else {
           console.error("Response không có checkoutUrl:", res);
-          message.error("Khong lay duoc URL thanh toan. Vui long xem console.");
+          toast.error("Khong lay duoc URL thanh toan. Vui long xem console.");
         }
       } else {
         // COD
         // Lấy tên từ code
-        const provinceName = provinces.find((p) => p.code === values.province)?.name || "";
-        const districtName = districts.find((d) => d.code === values.district)?.name || "";
+        const provinceName =
+          provinces.find((p) => p.code === values.province)?.name || "";
+        const districtName =
+          districts.find((d) => d.code === values.district)?.name || "";
         const wardName = wards.find((w) => w.code === values.ward)?.name || "";
         const street = values.street || "";
 
@@ -159,12 +180,13 @@ const CartVnPayMock: React.FC = () => {
         addressService.saveLastAddress(addressData);
 
         // Build full address từ tên
-        const fullAddress = addressService.buildFullAddress({
-          street,
-          ward: wardName,
-          district: districtName,
-          province: provinceName,
-        }) || values.address;
+        const fullAddress =
+          addressService.buildFullAddress({
+            street,
+            ward: wardName,
+            district: districtName,
+            province: provinceName,
+          }) || values.address;
 
         const res = await paymentApi.createCODOrder({
           amount,
@@ -178,20 +200,25 @@ const CartVnPayMock: React.FC = () => {
         console.log("COD Response:", res);
 
         if (res.orderCode) {
-          message.success(`Tao don hang COD thanh cong! Ma don: ${res.orderCode}`);
-          navigate(`/payos-result?status=success&orderCode=${res.orderCode}&message=Don hang COD da duoc tao thanh cong`);
+          toast.success(
+            `Tao don hang COD thanh cong! Ma don: ${res.orderCode}`
+          );
+          navigate(
+            `/payos-result?status=success&orderCode=${res.orderCode}&message=Don hang COD da duoc tao thanh cong`
+          );
         } else {
-          message.error("Khong tao duoc don hang COD");
+          toast.error("Khong tao duoc don hang COD");
         }
       }
     } catch (error) {
       if ((error as { errorFields?: unknown }).errorFields) {
         return;
       }
-      const errorMessage = paymentMethod === "payos" 
-        ? "Co loi xay ra khi tao giao dich PayOS"
-        : "Co loi xay ra khi tao don hang COD";
-      message.error(errorMessage);
+      const errorMessage =
+        paymentMethod === "payos"
+          ? "Co loi xay ra khi tao giao dich PayOS"
+          : "Co loi xay ra khi tao don hang COD";
+      toast.error(errorMessage);
       console.error("Error:", error);
     } finally {
       setLoading(false);
@@ -211,7 +238,8 @@ const CartVnPayMock: React.FC = () => {
                 <strong>Ten:</strong> San pham demo PayOS
               </p>
               <p>
-                <strong>Don gia:</strong> {unitPrice.toLocaleString("vi-VN")} VND
+                <strong>Don gia:</strong> {unitPrice.toLocaleString("vi-VN")}{" "}
+                VND
               </p>
               <div style={{ marginTop: 16 }}>
                 <span style={{ marginRight: 8 }}>So luong:</span>
@@ -263,7 +291,9 @@ const CartVnPayMock: React.FC = () => {
                 <Form.Item
                   label="So dien thoai"
                   name="phone"
-                  rules={[{ required: true, message: "Vui long nhap so dien thoai" }]}
+                  rules={[
+                    { required: true, message: "Vui long nhap so dien thoai" },
+                  ]}
                 >
                   <Input placeholder="Nhap so dien thoai" />
                 </Form.Item>
@@ -273,7 +303,12 @@ const CartVnPayMock: React.FC = () => {
                     <Form.Item
                       label="Tinh/Thanh pho"
                       name="province"
-                      rules={[{ required: true, message: "Vui long chon tinh/thanh pho" }]}
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui long chon tinh/thanh pho",
+                        },
+                      ]}
                     >
                       <Select
                         placeholder="Chon tinh/thanh pho"
@@ -281,7 +316,9 @@ const CartVnPayMock: React.FC = () => {
                         onChange={handleProvinceChange}
                         showSearch
                         filterOption={(input, option) =>
-                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
                         }
                         options={provinces.map((p) => ({
                           value: p.code,
@@ -293,7 +330,9 @@ const CartVnPayMock: React.FC = () => {
                     <Form.Item
                       label="Quan/Huyen"
                       name="district"
-                      rules={[{ required: true, message: "Vui long chon quan/huyen" }]}
+                      rules={[
+                        { required: true, message: "Vui long chon quan/huyen" },
+                      ]}
                     >
                       <Select
                         placeholder="Chon quan/huyen"
@@ -302,7 +341,9 @@ const CartVnPayMock: React.FC = () => {
                         disabled={!form.getFieldValue("province")}
                         showSearch
                         filterOption={(input, option) =>
-                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
                         }
                         options={districts.map((d) => ({
                           value: d.code,
@@ -314,7 +355,9 @@ const CartVnPayMock: React.FC = () => {
                     <Form.Item
                       label="Phuong/Xa"
                       name="ward"
-                      rules={[{ required: true, message: "Vui long chon phuong/xa" }]}
+                      rules={[
+                        { required: true, message: "Vui long chon phuong/xa" },
+                      ]}
                     >
                       <Select
                         placeholder="Chon phuong/xa"
@@ -322,7 +365,9 @@ const CartVnPayMock: React.FC = () => {
                         disabled={!form.getFieldValue("district")}
                         showSearch
                         filterOption={(input, option) =>
-                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
                         }
                         options={wards.map((w) => ({
                           value: w.code,
@@ -334,7 +379,12 @@ const CartVnPayMock: React.FC = () => {
                     <Form.Item
                       label="So nha, ten duong"
                       name="street"
-                      rules={[{ required: true, message: "Vui long nhap so nha, ten duong" }]}
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui long nhap so nha, ten duong",
+                        },
+                      ]}
                     >
                       <Input placeholder="Vi du: 123 Nguyen Van A" />
                     </Form.Item>
@@ -342,22 +392,39 @@ const CartVnPayMock: React.FC = () => {
                     <Form.Item
                       label="Dia chi day du"
                       name="address"
-                      shouldUpdate={(prevValues: Record<string, unknown>, currentValues: Record<string, unknown>) =>
-                        (prevValues?.province as string ?? "") !== (currentValues?.province as string ?? "") ||
-                        (prevValues?.district as string ?? "") !== (currentValues?.district as string ?? "") ||
-                        (prevValues?.ward as string ?? "") !== (currentValues?.ward as string ?? "") ||
-                        (prevValues?.street as string ?? "") !== (currentValues?.street as string ?? "")
+                      shouldUpdate={(
+                        prevValues: Record<string, unknown>,
+                        currentValues: Record<string, unknown>
+                      ) =>
+                        ((prevValues?.province as string) ?? "") !==
+                          ((currentValues?.province as string) ?? "") ||
+                        ((prevValues?.district as string) ?? "") !==
+                          ((currentValues?.district as string) ?? "") ||
+                        ((prevValues?.ward as string) ?? "") !==
+                          ((currentValues?.ward as string) ?? "") ||
+                        ((prevValues?.street as string) ?? "") !==
+                          ((currentValues?.street as string) ?? "")
                       }
                     >
                       {({ getFieldValue }) => {
-                        const provinceCode = getFieldValue("province") as string;
-                        const districtCode = getFieldValue("district") as string;
+                        const provinceCode = getFieldValue(
+                          "province"
+                        ) as string;
+                        const districtCode = getFieldValue(
+                          "district"
+                        ) as string;
                         const wardCode = getFieldValue("ward") as string;
-                        const street = (getFieldValue("street") as string) || "";
+                        const street =
+                          (getFieldValue("street") as string) || "";
 
-                        const provinceName = provinces.find((p) => p.code === provinceCode)?.name || "";
-                        const districtName = districts.find((d) => d.code === districtCode)?.name || "";
-                        const wardName = wards.find((w) => w.code === wardCode)?.name || "";
+                        const provinceName =
+                          provinces.find((p) => p.code === provinceCode)
+                            ?.name || "";
+                        const districtName =
+                          districts.find((d) => d.code === districtCode)
+                            ?.name || "";
+                        const wardName =
+                          wards.find((w) => w.code === wardCode)?.name || "";
 
                         const fullAddress = addressService.buildFullAddress({
                           street,
@@ -367,7 +434,7 @@ const CartVnPayMock: React.FC = () => {
                         });
 
                         return (
-                          <Input.TextArea 
+                          <Input.TextArea
                             placeholder="Dia chi se tu dong dien khi chon tinh/quan/phuong"
                             rows={2}
                             readOnly
@@ -386,8 +453,8 @@ const CartVnPayMock: React.FC = () => {
                   loading={loading}
                   onClick={handlePay}
                 >
-                  {paymentMethod === "payos" 
-                    ? "Thanh toan qua PayOS" 
+                  {paymentMethod === "payos"
+                    ? "Thanh toan qua PayOS"
                     : "Dat hang COD"}
                 </Button>
               </Form>
@@ -400,5 +467,3 @@ const CartVnPayMock: React.FC = () => {
 };
 
 export default CartVnPayMock;
-
-

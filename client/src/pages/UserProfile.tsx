@@ -1,9 +1,9 @@
-import React from "react";
-import { Button, Form, Input } from "antd";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UpdateUserRequest } from "@/services/user.service";
 import { userService } from "@/services/user.service";
-import { handleApiError, showSuccess } from "@/utils/error";
+import { handleApiError } from "@/utils/error";
+import { Button, Form, Input } from "antd";
+import React from "react";
 
 const UserProfilePage: React.FC = () => {
   const { user, loadUserInfo } = useAuth();
@@ -26,7 +26,6 @@ const UserProfilePage: React.FC = () => {
         email: values.email,
       });
       await loadUserInfo();
-      showSuccess("Cập nhật thông tin tài khoản thành công");
     } catch (error) {
       handleApiError(error);
     }

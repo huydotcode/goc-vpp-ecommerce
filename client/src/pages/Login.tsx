@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Form, Input, Card, message, Space, Divider } from "antd";
+import { Button, Form, Input, Card, Space, Divider } from "antd";
 import Lottie from "lottie-react";
+import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/auth.service";
 import { getErrorMessage } from "../utils/error";
@@ -30,14 +31,14 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       await login(values);
-      message.success("Đăng nhập thành công!");
+      toast.success("Đăng nhập thành công!");
       // Đợi một chút để đảm bảo user info đã được load
       setTimeout(() => {
         // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
         navigate("/");
       }, 100);
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "Đăng nhập thất bại");
+      toast.error(getErrorMessage(error) || "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,7 @@ const Login: React.FC = () => {
         throw new Error("Không nhận được authUrl từ server");
       }
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "Không thể lấy Google OAuth URL");
+      toast.error(getErrorMessage(error) || "Không thể lấy Google OAuth URL");
       setGoogleLoading(false);
     }
   };
@@ -71,11 +72,11 @@ const Login: React.FC = () => {
         .trim()
         .replace(/^["']|["']$/g, "");
       localStorage.setItem("accessToken", cleanToken);
-      message.success("Mock login thành công!");
+      toast.success("Mock login thành công!");
       // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
       navigate("/");
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "Mock login thất bại");
+      toast.error(getErrorMessage(error) || "Mock login thất bại");
     } finally {
       setLoading(false);
     }
@@ -84,10 +85,10 @@ const Login: React.FC = () => {
   const handleTestRefresh = async () => {
     try {
       const response = await authService.testRefresh();
-      message.success("Test refresh thành công!");
+      toast.success("Test refresh thành công!");
       console.log("Refresh token info:", response);
     } catch (error: unknown) {
-      message.error(getErrorMessage(error) || "Test refresh thất bại");
+      toast.error(getErrorMessage(error) || "Test refresh thất bại");
     }
   };
 

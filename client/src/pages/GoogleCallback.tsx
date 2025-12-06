@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { message, Spin } from "antd";
+import { Spin } from "antd";
+import { toast } from "sonner";
 import apiClient from "../api/client";
 
 const GoogleCallback: React.FC = () => {
@@ -16,7 +17,7 @@ const GoogleCallback: React.FC = () => {
 
     // Handle error from server
     if (error) {
-      message.error(decodeURIComponent(error));
+      toast.error(decodeURIComponent(error));
       navigate("/login");
       setLoading(false);
       return;
@@ -27,7 +28,7 @@ const GoogleCallback: React.FC = () => {
       // Clean token trước khi lưu
       const cleanToken = accessToken.trim().replace(/^["']|["']$/g, "");
       localStorage.setItem("accessToken", cleanToken);
-      message.success("Đăng nhập Google thành công!");
+      toast.success("Đăng nhập Google thành công!");
       // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
       navigate("/");
       setLoading(false);
@@ -36,7 +37,7 @@ const GoogleCallback: React.FC = () => {
 
     // Case 2: Have code from Google, need to exchange for token
     if (!code) {
-      message.error("Không có authorization code từ Google");
+      toast.error("Không có authorization code từ Google");
       navigate("/login");
       setLoading(false);
       return;
@@ -54,7 +55,7 @@ const GoogleCallback: React.FC = () => {
             .trim()
             .replace(/^["']|["']$/g, "");
           localStorage.setItem("accessToken", cleanToken);
-          message.success("Đăng nhập Google thành công!");
+          toast.success("Đăng nhập Google thành công!");
           // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
           navigate("/");
         } else {
@@ -62,7 +63,7 @@ const GoogleCallback: React.FC = () => {
         }
       } catch (err: unknown) {
         const error = err as { message?: string };
-        message.error(error?.message || "Đăng nhập Google thất bại");
+        toast.error(error?.message || "Đăng nhập Google thất bại");
         navigate("/login");
       } finally {
         setLoading(false);
