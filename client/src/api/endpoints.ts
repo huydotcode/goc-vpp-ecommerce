@@ -29,4 +29,8 @@ export const API_ENDPOINTS = {
 
   // Product Images
   PRODUCT_IMAGES: "/product-images",
+
+  // Cart
+  CART: "/cart",
+  CART_ITEMS: "/cart/items",
 } as const;
