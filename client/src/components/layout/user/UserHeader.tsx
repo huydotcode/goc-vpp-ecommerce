@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useCart } from "../../../hooks/useCart";
 
 const { Header } = Layout;
 
@@ -19,11 +20,21 @@ const { Search } = Input;
 
 const UserHeader: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const { cart } = useCart();
   const navigate = useNavigate();
   const isLoggedIn = Boolean(user && isAuthenticated);
   const [searchValue, setSearchValue] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const mobileSearchInputRef = useRef<InputRef>(null);
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
+  // Get cart item count
+  const currentCartCount = cart?.totalItems || 0;
+
+  useEffect(() => {
+    console.log({ shouldAnimate, cartItemCount, currentCartCount });
+  }, [shouldAnimate, cartItemCount, currentCartCount]);
 
   const handleLogout = () => {
     logout();
@@ -93,6 +104,22 @@ const UserHeader: React.FC = () => {
       window.removeEventListener("resize", handleResize);
     };
   }, [isMobileSearchOpen]);
+
+  // Detect cart count change and trigger animation
+  useEffect(() => {
+    if (currentCartCount !== cartItemCount) {
+      setCartItemCount(currentCartCount);
+      // Trigger animation when count changes (and is not initial load)
+      if (cartItemCount > 0 || currentCartCount > 0) {
+        setShouldAnimate(true);
+        // Reset animation flag after animation completes
+        const timer = setTimeout(() => {
+          setShouldAnimate(false);
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentCartCount, cartItemCount]);
 
   const authenticatedMenuItems: MenuProps["items"] = [
     {
@@ -217,22 +244,71 @@ const UserHeader: React.FC = () => {
           </div>
           {/* Cart Button (always visible) */}
           <div style={{ display: "flex", alignItems: "center" }}>
-            <Badge count={0} showZero={false} offset={[8, 0]}>
-              <Button
-                type="text"
-                icon={<ShoppingCartOutlined style={{ fontSize: "22px" }} />}
-                onClick={() => navigate("/cart")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "40px",
-                  width: "40px",
-                  padding: 0,
+            <AnimatePresence key={cartItemCount}>
+              <motion.div
+                animate={
+                  shouldAnimate
+                    ? {
+                        scale: [1, 1.15, 1],
+                        rotate: [0, -5, 5, -5, 0],
+                      }
+                    : {}
+                }
+                transition={{
+                  duration: 0.5,
+                  ease: "easeOut",
                 }}
-                className="hover:bg-gray-50"
-              />
-            </Badge>
+                style={{
+                  borderRadius: "8px",
+                }}
+              >
+                <Badge
+                  count={currentCartCount}
+                  showZero={false}
+                  offset={[-8, 8]}
+                  overflowCount={99}
+                >
+                  <motion.div
+                    animate={
+                      shouldAnimate
+                        ? {
+                            boxShadow: [
+                              "0 0 0px rgba(239, 68, 68, 0)",
+                              "0 0 20px rgba(239, 68, 68, 0.6)",
+                              "0 0 0px rgba(239, 68, 68, 0)",
+                            ],
+                          }
+                        : {}
+                    }
+                    transition={{
+                      duration: 0.6,
+                      ease: "easeOut",
+                    }}
+                    style={{
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <Button
+                      type="text"
+                      icon={
+                        <ShoppingCartOutlined style={{ fontSize: "22px" }} />
+                      }
+                      onClick={() => navigate("/cart")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: "40px",
+                        width: "40px",
+                        padding: 0,
+                        borderRadius: "8px",
+                      }}
+                      className="hover:bg-gray-50"
+                    />
+                  </motion.div>
+                </Badge>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* User Dropdown */}
