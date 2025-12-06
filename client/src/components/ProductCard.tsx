@@ -1,9 +1,12 @@
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
 import type { ProductDTO } from "@/services/product.service";
 import { formatPrice } from "@/utils/format";
 import { GiftOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Tag, Typography } from "antd";
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const { Text } = Typography;
 
@@ -32,6 +35,9 @@ type ProductCardProps = DefaultProductCardProps | PromotionProductCardProps;
 
 const ProductCard: React.FC<ProductCardProps> = (props) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { addItem, adding } = useCart();
+  const [addingProductId, setAddingProductId] = useState<number | null>(null);
 
   const isPromotion = props.mode === "promotion";
   const showNewTag =
@@ -79,16 +85,73 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         )
       : null);
 
-  const handleAddToCart = () => {
-    console.log("Add to cart:", id);
+  const handleAddToCart = async () => {
+    try {
+      // Kiểm tra đăng nhập
+      if (!isAuthenticated) {
+        toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ");
+        navigate("/login", { state: { from: window.location.pathname } });
+        return;
+      }
+
+      // Kiểm tra sản phẩm có tồn kho không (chỉ với default mode)
+      if (!isPromotion) {
+        const stockQuantity = (props as DefaultProductCardProps).product
+          .stockQuantity;
+        if (
+          stockQuantity !== null &&
+          stockQuantity !== undefined &&
+          stockQuantity <= 0
+        ) {
+          toast.warning("Sản phẩm đã hết hàng");
+          return;
+        }
+      }
+
+      setAddingProductId(id);
+      await addItem({ productId: id, quantity: 1 });
+    } finally {
+      setAddingProductId(null);
+    }
   };
 
   const handleBuyNow = () => {
     navigate(`/products/${id}`);
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Chỉ navigate nếu không click vào button hoặc các element tương tác
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("button") ||
+      target.closest(".ant-btn") ||
+      target.closest(".ant-tag")
+    ) {
+      return;
+    }
+    navigate(`/products/${id}`);
+  };
+
+  const isAdding = adding || addingProductId === id;
+
+  // Kiểm tra tồn kho để disable button (chỉ với default mode)
+  const isOutOfStock =
+    !isPromotion &&
+    (() => {
+      const product = (props as DefaultProductCardProps).product;
+      const stockQuantity = product?.stockQuantity;
+      return (
+        stockQuantity !== null &&
+        stockQuantity !== undefined &&
+        stockQuantity <= 0
+      );
+    })();
+
   return (
-    <div className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-red-100 bg-white p-0 text-[13px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-primary hover:shadow-sm">
+    <div
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-red-100 bg-white p-0 text-[13px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-primary hover:shadow-sm"
+      onClick={handleCardClick}
+    >
       {/* Image area */}
       <div className="relative flex w-full items-center justify-center overflow-hidden rounded-md">
         {imageUrl ? (
@@ -174,7 +237,10 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                 type="primary"
                 size="middle"
                 className="w-full py-2 text-[13px]"
-                onClick={handleBuyNow}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBuyNow();
+                }}
               >
                 Mua ngay
               </Button>
@@ -183,9 +249,14 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                 size="middle"
                 className="flex w-full items-center justify-center gap-1 px-3 text-[13px]"
                 icon={<ShoppingCartOutlined />}
-                onClick={handleAddToCart}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToCart();
+                }}
+                loading={isAdding}
+                disabled={isAdding || isOutOfStock}
               >
-                Thêm giỏ hàng
+                {isAdding ? "Đang thêm..." : "Thêm giỏ hàng"}
               </Button>
             </div>
           </>
@@ -200,7 +271,10 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
               type="primary"
               size="middle"
               className="w-full py-2 text-[13px] md:text-[14px]"
-              onClick={handleBuyNow}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBuyNow();
+              }}
             >
               Mua ngay
             </Button>
@@ -209,9 +283,14 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
               size="middle"
               className="flex w-full items-center justify-center gap-1 px-3 text-[13px] md:text-[14px]"
               icon={<ShoppingCartOutlined />}
-              onClick={handleAddToCart}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart();
+              }}
+              loading={isAdding}
+              disabled={isAdding || isOutOfStock}
             >
-              Thêm giỏ hàng
+              {isAdding ? "Đang thêm..." : "Thêm giỏ hàng"}
             </Button>
           </div>
         </div>
