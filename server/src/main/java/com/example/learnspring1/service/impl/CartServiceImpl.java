@@ -172,8 +172,8 @@ public class CartServiceImpl implements CartService {
                     itemDTO.setProductName(item.getProduct().getName());
 
                     // Lấy ảnh đầu tiên của sản phẩm
-                    if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
-                        itemDTO.setProductImageUrl(item.getProduct().getImages().get(0).getImageUrl());
+                    if (item.getProduct().getThumbnailUrl() != null) {
+                        itemDTO.setProductImageUrl(item.getProduct().getThumbnailUrl());
                     } else {
                         itemDTO.setProductImageUrl(null);
                     }
