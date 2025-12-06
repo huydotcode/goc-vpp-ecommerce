@@ -4,7 +4,7 @@ import type {
   UpdateUserRequest,
   UserFilters,
 } from "@/types/user.types";
-import { handleApiError, showSuccess } from "@/utils/error";
+import { handleApiError } from "@/utils/error";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Query keys
@@ -76,7 +76,6 @@ export const useCreateUser = () => {
       userService.createUser(userData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-      showSuccess("Tạo người dùng thành công");
     },
     onError: handleApiError,
   });
@@ -95,7 +94,6 @@ export const useUpdateUser = () => {
         queryKey: userKeys.detail(variables.id),
       });
       queryClient.invalidateQueries({ queryKey: userKeys.current() });
-      showSuccess("Cập nhật người dùng thành công");
     },
     onError: handleApiError,
   });
@@ -109,7 +107,6 @@ export const useDeleteUser = () => {
     mutationFn: (id: number) => userService.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-      showSuccess("Xóa người dùng thành công");
     },
     onError: handleApiError,
   });
@@ -129,7 +126,6 @@ export const useUploadAvatar = () => {
         });
       }
       queryClient.invalidateQueries({ queryKey: userKeys.current() });
-      showSuccess("Upload avatar thành công");
     },
     onError: handleApiError,
   });

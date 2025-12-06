@@ -4,7 +4,7 @@ import type {
   CreateCategoryRequest,
   UpdateCategoryRequest,
 } from "@/types/category.types";
-import { handleApiError, showSuccess } from "@/utils/error";
+import { handleApiError } from "@/utils/error";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Query keys
@@ -58,7 +58,6 @@ export const useCreateCategory = () => {
       categoryService.createCategory(categoryData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
-      showSuccess("Tạo danh mục thành công");
     },
     onError: handleApiError,
   });
@@ -76,7 +75,6 @@ export const useUpdateCategory = () => {
       queryClient.invalidateQueries({
         queryKey: categoryKeys.detail(variables.id),
       });
-      showSuccess("Cập nhật danh mục thành công");
     },
     onError: handleApiError,
   });
@@ -90,7 +88,6 @@ export const useDeleteCategory = () => {
     mutationFn: (id: number) => categoryService.deleteCategory(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
-      showSuccess("Xóa danh mục thành công");
     },
     onError: handleApiError,
   });
@@ -110,7 +107,6 @@ export const useUploadCategoryThumbnail = () => {
         });
       }
       queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
-      showSuccess("Upload thumbnail thành công");
     },
     onError: handleApiError,
   });

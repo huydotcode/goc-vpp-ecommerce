@@ -4,7 +4,7 @@ import type {
   ProductFilters,
   UpdateProductRequest,
 } from "@/types/product.types";
-import { handleApiError, showSuccess } from "@/utils/error";
+import { handleApiError } from "@/utils/error";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Query keys
@@ -68,7 +68,6 @@ export const useCreateProduct = () => {
       productService.createProduct(productData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      showSuccess("Tạo sản phẩm thành công");
     },
     onError: handleApiError,
   });
@@ -86,7 +85,6 @@ export const useUpdateProduct = () => {
       queryClient.invalidateQueries({
         queryKey: productKeys.detail(variables.id),
       });
-      showSuccess("Cập nhật sản phẩm thành công");
     },
     onError: handleApiError,
   });
@@ -100,7 +98,6 @@ export const useDeleteProduct = () => {
     mutationFn: (id: number) => productService.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      showSuccess("Xóa sản phẩm thành công");
     },
     onError: handleApiError,
   });
@@ -120,7 +117,6 @@ export const useUploadThumbnail = () => {
         });
       }
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      showSuccess("Upload thumbnail thành công");
     },
     onError: handleApiError,
   });

@@ -3,7 +3,7 @@ import type {
   PromotionFilters,
   PromotionRequest,
 } from "@/types/promotion.types";
-import { handleApiError, showSuccess } from "@/utils/error";
+import { handleApiError } from "@/utils/error";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Query keys
@@ -54,7 +54,6 @@ export const useCreatePromotion = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: promotionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: promotionKeys.active() });
-      showSuccess("Tạo khuyến mãi thành công");
     },
     onError: handleApiError,
   });
@@ -73,7 +72,6 @@ export const useUpdatePromotion = () => {
       queryClient.invalidateQueries({
         queryKey: promotionKeys.detail(variables.id),
       });
-      showSuccess("Cập nhật khuyến mãi thành công");
     },
     onError: handleApiError,
   });
@@ -93,7 +91,6 @@ export const useUploadPromotionThumbnail = () => {
         });
       }
       queryClient.invalidateQueries({ queryKey: promotionKeys.lists() });
-      showSuccess("Upload thumbnail thành công");
     },
     onError: handleApiError,
   });
