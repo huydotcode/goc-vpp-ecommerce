@@ -23,9 +23,9 @@ export interface AddressData {
   fullAddress?: string;
 }
 
-const PROVINCES_API = "https://provinces.open-api.vn/api/p/";
-const DISTRICTS_API = "https://provinces.open-api.vn/api/d/";
-const WARDS_API = "https://provinces.open-api.vn/api/w/";
+// const PROVINCES_API = "https://provinces.open-api.vn/api/p/";
+// const DISTRICTS_API = "https://provinces.open-api.vn/api/d/";
+// const WARDS_API = "https://provinces.open-api.vn/api/w/";
 
 const STORAGE_KEY = "last_address";
 
@@ -94,4 +94,3 @@ export const addressService = {
     return parts.join(", ");
   },
 };
-
