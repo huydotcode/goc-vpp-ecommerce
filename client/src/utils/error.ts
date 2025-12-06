@@ -1,5 +1,6 @@
-import { message } from "antd";
 import type { AxiosError } from "axios";
+import { toast } from "sonner";
+import { translateErrorMessage } from "./error-messages";
 
 /**
  * Unified error handling utilities
@@ -50,7 +51,7 @@ export const extractErrorMessage = (error: unknown): ExtractedError => {
     // If has errorCode, prioritize it
     if (apiError.errorCode) {
       return {
-        message: apiError.errorCode,
+        message: translateErrorMessage(apiError.errorCode),
         errorCode: apiError.errorCode,
         status:
           typeof apiError.status === "number" ? apiError.status : undefined,
@@ -61,7 +62,7 @@ export const extractErrorMessage = (error: unknown): ExtractedError => {
     // If has message
     if (apiError.message) {
       return {
-        message: apiError.message,
+        message: translateErrorMessage(apiError.message),
         errorCode: apiError.errorCode,
         status:
           typeof apiError.status === "number" ? apiError.status : undefined,
@@ -71,8 +72,11 @@ export const extractErrorMessage = (error: unknown): ExtractedError => {
 
     // Handle validation errors array
     if (apiError.errors && apiError.errors.length > 0) {
+      const translatedErrors = apiError.errors.map((err) =>
+        translateErrorMessage(err)
+      );
       return {
-        message: apiError.errors.join(", "),
+        message: translatedErrors.join(", "),
         status:
           typeof apiError.status === "number" ? apiError.status : undefined,
       };
@@ -89,7 +93,17 @@ export const extractErrorMessage = (error: unknown): ExtractedError => {
       // Backend error message
       if (data?.message) {
         return {
-          message: data.message,
+          message: translateErrorMessage(data.message),
+          status,
+          errorCode: data.errorCode,
+          isAccessDenied: data.isAccessDenied,
+        };
+      }
+
+      // Backend errorCode
+      if (data?.errorCode) {
+        return {
+          message: translateErrorMessage(data.errorCode),
           status,
           errorCode: data.errorCode,
           isAccessDenied: data.isAccessDenied,
@@ -98,8 +112,11 @@ export const extractErrorMessage = (error: unknown): ExtractedError => {
 
       // Backend validation errors
       if (data?.errors && data.errors.length > 0) {
+        const translatedErrors = data.errors.map((err) =>
+          translateErrorMessage(err)
+        );
         return {
-          message: data.errors.join(", "),
+          message: translatedErrors.join(", "),
           status,
         };
       }
@@ -137,11 +154,11 @@ export const extractErrorMessage = (error: unknown): ExtractedError => {
       };
     }
 
-    return { message: error.message };
+    return { message: translateErrorMessage(error.message) };
   }
 
   if (typeof error === "string") {
-    return { message: error };
+    return { message: translateErrorMessage(error) };
   }
 
   return { message: "Đã xảy ra lỗi không mong muốn" };
@@ -155,40 +172,11 @@ export const getErrorMessage = (error: unknown): string => {
 };
 
 /**
- * Show error notification using Ant Design message
- */
-export const showError = (error: unknown): void => {
-  const errorMessage = getErrorMessage(error);
-  message.error(errorMessage);
-};
-
-/**
- * Show success notification
- */
-export const showSuccess = (msg: string): void => {
-  message.success(msg);
-};
-
-/**
- * Show warning notification
- */
-export const showWarning = (msg: string): void => {
-  message.warning(msg);
-};
-
-/**
- * Show info notification
- */
-export const showInfo = (msg: string): void => {
-  message.info(msg);
-};
-
-/**
  * Handle API error and show notification
  * @returns Error message for further handling if needed
  */
-export const handleApiError = (error: unknown): string => {
+export const handleApiError = (error: unknown): void => {
   const errorMessage = getErrorMessage(error);
-  showError(error);
-  return errorMessage;
+  console.log("Handle API Error: ", errorMessage);
+  toast.error(errorMessage);
 };
