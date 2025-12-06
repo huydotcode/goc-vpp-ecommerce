@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConfigProvider, theme } from "antd";
+import { App as AntdApp, ConfigProvider, theme } from "antd";
 import viVN from "antd/es/locale/vi_VN";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./styles/index.css";
+import { Toaster } from "sonner";
 
 // Ant Design theme config - Tone màu đỏ
 const antdTheme = {
@@ -63,7 +64,15 @@ createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <StrictMode>
       <ConfigProvider locale={viVN} theme={antdTheme}>
-        <App />
+        <AntdApp>
+          <Toaster
+            position="bottom-left"
+            richColors
+            closeButton
+            duration={3000}
+          />
+          <App />
+        </AntdApp>
       </ConfigProvider>
     </StrictMode>
   </QueryClientProvider>
