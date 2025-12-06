@@ -5,7 +5,7 @@
 export const ERROR_MESSAGE_MAP: Record<string, string> = {
   // Cart errors
   "Product is not available": "Sản phẩm không khả dụng",
-  "Insufficient stock": "Sản phẩm không đủ số lượng tồn kho",
+  "Insufficient stock": "Sản phẩm đã hết hàng",
   "Product not found": "Không tìm thấy sản phẩm",
   "Cart item not found": "Không tìm thấy sản phẩm trong giỏ hàng",
   "Cart not found": "Không tìm thấy giỏ hàng",
