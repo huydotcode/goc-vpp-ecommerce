@@ -38,4 +38,8 @@ export const API_ENDPOINTS = {
   // Product Variants
   PRODUCT_VARIANTS: "/product-variants",
   PRODUCT_VARIANTS_ADVANCED: "/product-variants/advanced",
+
+  // Orders
+  ORDERS: "/orders",
+  ORDERS_CHECKOUT: "/orders/checkout",
 } as const;
