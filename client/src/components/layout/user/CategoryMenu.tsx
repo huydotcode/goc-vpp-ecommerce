@@ -114,7 +114,7 @@ const CategoryMenu: React.FC = () => {
               alignItems: "center",
               justifyContent: "center",
               gap: "6px",
-              height: "100%",
+              height: "64px",
               padding: "0 12px",
               fontWeight: 500,
               lineHeight: "1.5",
