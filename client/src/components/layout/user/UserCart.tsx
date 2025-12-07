@@ -317,11 +317,14 @@ const UserCart: React.FC = () => {
   );
 
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
       <motion.div
         animate={outerControls}
         style={{
           borderRadius: "8px",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
         }}
       >
         <Popover
@@ -374,9 +377,9 @@ const UserCart: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  height: "40px",
+                  height: "100%",
                   width: "40px",
-                  padding: 0,
+                  padding: "8px",
                   borderRadius: "8px",
                 }}
                 className="hover:bg-gray-50"

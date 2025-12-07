@@ -105,7 +105,7 @@ const CategoryMenu: React.FC = () => {
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              height: "40px",
+              height: "100%",
               padding: "0 12px",
               fontWeight: 500,
             }}
@@ -126,7 +126,7 @@ const CategoryMenu: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            height: "40px",
+            height: "100%",
             width: "40px",
             padding: 0,
           }}
