@@ -1,7 +1,9 @@
 package com.example.learnspring1.service.impl;
 
+import com.example.learnspring1.domain.Category;
 import com.example.learnspring1.domain.Order;
 import com.example.learnspring1.domain.Product;
+import com.example.learnspring1.repository.CategoryRepository;
 import com.example.learnspring1.repository.OrderItemRepository;
 import com.example.learnspring1.repository.ProductRepository;
 import com.example.learnspring1.service.CategoryService;
@@ -23,13 +25,16 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
     private final CategoryService categoryService;
+    private final CategoryRepository categoryRepository;
 
     public ProductServiceImpl(ProductRepository productRepository,
             OrderItemRepository orderItemRepository,
-            CategoryService categoryService) {
+            CategoryService categoryService,
+            CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
         this.orderItemRepository = orderItemRepository;
         this.categoryService = categoryService;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
@@ -37,6 +42,14 @@ public class ProductServiceImpl implements ProductService {
         if (product.getSku() != null && productRepository.existsBySku(product.getSku())) {
             throw new IllegalArgumentException("SKU đã tồn tại");
         }
+        
+        // Xử lý categories từ categoryIds hoặc categories
+        if (product.getCategoryIds() != null && !product.getCategoryIds().isEmpty()) {
+            // Load categories từ categoryIds
+            List<Category> categories = categoryRepository.findAllById(product.getCategoryIds());
+            product.setCategories(categories);
+        }
+        
         return productRepository.save(product);
     }
 
@@ -118,9 +131,17 @@ public class ProductServiceImpl implements ProductService {
             existing.setDimensions(product.getDimensions());
             existing.setSpecifications(product.getSpecifications());
             existing.setThumbnailUrl(product.getThumbnailUrl());
-            if (product.getCategories() != null) {
+            
+            // Xử lý categories từ categoryIds hoặc categories
+            if (product.getCategoryIds() != null && !product.getCategoryIds().isEmpty()) {
+                // Load categories từ categoryIds
+                List<Category> categories = categoryRepository.findAllById(product.getCategoryIds());
+                existing.setCategories(categories);
+            } else if (product.getCategories() != null) {
+                // Nếu có categories trực tiếp thì dùng
                 existing.setCategories(product.getCategories());
             }
+            
             existing.setIsActive(product.getIsActive());
             existing.setIsFeatured(product.getIsFeatured());
             return productRepository.save(existing);

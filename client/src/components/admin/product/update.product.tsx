@@ -9,8 +9,9 @@ import {
   Select,
   Space,
   Upload,
+  Alert,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, AppstoreOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd";
 import { productService } from "../../../services/product.service";
 import {
@@ -22,6 +23,7 @@ import type {
   ProductDTO,
 } from "../../../services/product.service";
 import { extractErrorMessage } from "../../../utils/error";
+import VariantManager from "./variant-manager.product";
 
 interface ProductUpdateProps {
   isOpenUpdateModal: boolean;
@@ -52,6 +54,7 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [isVariantManagerVisible, setIsVariantManagerVisible] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -160,14 +163,52 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
         return false;
       }
 
+      // Tạo preview local trước
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const previewUrl = e.target?.result as string;
+        const uploadFile: UploadFile = {
+          uid: `-${Date.now()}-${Math.random()}`,
+          name: file.name,
+          status: "uploading",
+          url: previewUrl,
+          originFileObj: file as any,
+        };
+        setFileList((prev) => [...prev, uploadFile]);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload lên server
       setUploading(true);
       const url = await handleUpload(file);
       if (url) {
-        setImageUrls((prev) => [...prev, url]);
+        // Cập nhật fileList với URL từ server
+        setFileList((prev) =>
+          prev.map((f) => {
+            if (f.originFileObj === file) {
+              return {
+                ...f,
+                status: "done" as const,
+                url: url,
+              };
+            }
+            return f;
+          })
+        );
+        // Cập nhật imageUrls
+        setImageUrls((prev) => {
+          if (!prev.includes(url)) {
+            return [...prev, url];
+          }
+          return prev;
+        });
         api.success({
           message: "Upload thành công",
           description: "Ảnh đã được upload thành công",
         });
+      } else {
+        // Xóa file khỏi fileList nếu upload thất bại
+        setFileList((prev) => prev.filter((f) => f.originFileObj !== file));
       }
       setUploading(false);
       return false;
@@ -175,14 +216,14 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
     fileList,
     onChange: ({ fileList: newFileList }: { fileList: UploadFile[] }) => {
       setFileList(newFileList);
-      // Cập nhật imageUrls từ fileList
+      // Chỉ cập nhật imageUrls từ fileList nếu file đã upload thành công
       const urls = newFileList
-        .filter((file) => file.status === "done" && file.url)
+        .filter((file) => file.status === "done" && file.url && !file.url.startsWith("data:"))
         .map((file) => file.url!);
       setImageUrls(urls);
     },
     onRemove: (file: UploadFile) => {
-      if (file.url) {
+      if (file.url && !file.url.startsWith("data:")) {
         setImageUrls((prev) => prev.filter((url) => url !== file.url));
       }
       return true;
@@ -232,10 +273,31 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
       <Drawer
         title="Cập nhật sản phẩm"
         open={isOpenUpdateModal}
-        onClose={() => setIsOpenUpdateModal(false)}
+        onClose={() => {
+          setIsOpenUpdateModal(false);
+          setIsVariantManagerVisible(false);
+        }}
         width="60%"
         placement="left"
+        extra={
+          dataDetailModal && (
+            <Button
+              type="primary"
+              icon={<AppstoreOutlined />}
+              onClick={() => setIsVariantManagerVisible(true)}
+            >
+              Quản lý Variant
+            </Button>
+          )
+        }
       >
+        <Alert
+          message="Lưu ý về Variants"
+          description="Sử dụng nút 'Quản lý Variant' ở góc trên để quản lý các variants (màu sắc, kích thước, chất liệu...). Các trường 'Màu sắc', 'Kích thước' bên dưới là để tương thích với dữ liệu cũ."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <Form
           {...layout}
           form={form}
@@ -371,6 +433,15 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
           </Form.Item>
         </Form>
       </Drawer>
+
+      {dataDetailModal && (
+        <VariantManager
+          productId={dataDetailModal.id}
+          productName={dataDetailModal.name}
+          visible={isVariantManagerVisible}
+          onClose={() => setIsVariantManagerVisible(false)}
+        />
+      )}
     </>
   );
 };

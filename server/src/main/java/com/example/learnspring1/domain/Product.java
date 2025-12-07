@@ -8,6 +8,8 @@ import java.util.List;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.example.learnspring1.domain.ProductVariant;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -73,6 +75,10 @@ public class Product {
     @Builder.Default
     private List<Category> categories = new ArrayList<>();
 
+    @Transient
+    @JsonProperty("categoryIds")
+    private List<Long> categoryIds;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -102,6 +108,11 @@ public class Product {
     @JsonManagedReference
     @Builder.Default
     private List<ProductImage> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    @Builder.Default
+    private List<ProductVariant> variants = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {

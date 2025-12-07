@@ -22,13 +22,20 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.example.learnspring1.domain.APIResponse;
+import com.example.learnspring1.domain.User;
+import com.example.learnspring1.domain.Role;
 import com.example.learnspring1.domain.dto.LoginDTO;
+import com.example.learnspring1.domain.dto.RegisterDTO;
 import com.example.learnspring1.domain.dto.ResponseLoginDTO;
+import com.example.learnspring1.service.UserService;
 import com.example.learnspring1.utils.SecurityUtil;
+import com.example.learnspring1.repository.UserRepository;
 
 import jakarta.validation.Valid;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @Tag(name = "Authentication", description = "API xác thực và đăng nhập")
@@ -37,15 +44,121 @@ public class AuthController {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final SecurityUtil securityUtil;
     private final UserDetailsService userDetailsService;
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
     public AuthController(
         AuthenticationManagerBuilder authenticationManagerBuilder, 
         SecurityUtil securityUtil,
-        UserDetailsService userDetailsService
+        UserDetailsService userDetailsService,
+        UserService userService,
+        PasswordEncoder passwordEncoder,
+        UserRepository userRepository
     ) {
         this.authenticationManagerBuilder = authenticationManagerBuilder;
         this.securityUtil = securityUtil;
         this.userDetailsService = userDetailsService;
+        this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
+    }
+
+    @Operation(
+        summary = "Đăng ký tài khoản mới",
+        description = """
+            Đăng ký tài khoản mới với role mặc định là USER.
+            
+            **Cách sử dụng:**
+            1. Gửi POST request với username, email, password
+            2. Tài khoản sẽ được tạo với role USER
+            3. Sau đó có thể đăng nhập bằng email và password
+            """,
+        tags = {"Authentication"}
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "Đăng ký thành công",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = APIResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Dữ liệu không hợp lệ hoặc email/username đã tồn tại",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = APIResponse.class)
+            )
+        )
+    })
+    @PostMapping("/register")
+    @Transactional
+    public APIResponse<User> register(
+        @Parameter(
+            description = "Thông tin đăng ký",
+            required = true
+        )
+        @Valid @RequestBody RegisterDTO registerDTO
+    ) {
+        try {
+            // Kiểm tra email đã tồn tại chưa
+            if (userRepository.existsByEmail(registerDTO.getEmail())) {
+                return new APIResponse<>(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Email đã tồn tại",
+                    null,
+                    "Email already exists"
+                );
+            }
+            
+            // Kiểm tra username đã tồn tại chưa
+            if (userRepository.existsByUsername(registerDTO.getUsername())) {
+                return new APIResponse<>(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Username đã tồn tại",
+                    null,
+                    "Username already exists"
+                );
+            }
+            
+            // Tạo user mới với role USER mặc định
+            User newUser = User.builder()
+                .username(registerDTO.getUsername())
+                .email(registerDTO.getEmail())
+                .password(registerDTO.getPassword())
+                .role(Role.USER)
+                .isActive(true)
+                .build();
+            
+            User createdUser = userService.createUser(newUser, passwordEncoder);
+            
+            // Flush để đảm bảo user được lưu vào database ngay lập tức
+            userRepository.flush();
+            
+            return new APIResponse<>(
+                org.springframework.http.HttpStatus.OK,
+                "Đăng ký thành công",
+                createdUser,
+                null
+            );
+        } catch (IllegalArgumentException e) {
+            return new APIResponse<>(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                e.getMessage(),
+                null,
+                e.getMessage()
+            );
+        } catch (Exception e) {
+            return new APIResponse<>(
+                org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
+                "Lỗi khi đăng ký",
+                null,
+                e.getMessage()
+            );
+        }
     }
 
     @Operation(

@@ -186,6 +186,7 @@ const CategoryAdminMain: React.FC = () => {
       title: "Hành động",
       key: "action",
       width: 150,
+      fixed: "right",
       hideInSearch: true,
       render: (_, record) => (
         <Space size="middle">

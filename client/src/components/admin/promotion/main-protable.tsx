@@ -172,6 +172,7 @@ const PromotionAdminMain: React.FC = () => {
       title: "Hành động",
       key: "action",
       width: 120,
+      fixed: "right",
       hideInSearch: true,
       render: (_, record) => (
         <Space size="middle">

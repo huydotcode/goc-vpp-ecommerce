@@ -1,6 +1,11 @@
-import { Descriptions, Drawer, Image, Tag } from "antd";
-import React from "react";
+import { Descriptions, Drawer, Image, Tag, Button, Space, Table, Badge } from "antd";
+import React, { useState, useEffect } from "react";
+import { AppstoreOutlined } from "@ant-design/icons";
 import type { ProductDTO } from "../../../services/product.service";
+import VariantManager from "./variant-manager.product";
+import { variantApi } from "../../../api/variant.api";
+import type { ProductVariant } from "../../../types/variant.types";
+import { VariantTypeLabels } from "../../../types/variant.types";
 
 interface ProductDetailProps {
   isOpenDetailModal: boolean;
@@ -13,15 +18,50 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   setIsOpenDetailModal,
   dataDetailModal,
 }) => {
+  const [isVariantManagerVisible, setIsVariantManagerVisible] = useState(false);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+
+  useEffect(() => {
+    if (isOpenDetailModal && dataDetailModal?.id) {
+      loadVariants();
+    }
+  }, [isOpenDetailModal, dataDetailModal?.id]);
+
+  const loadVariants = async () => {
+    if (!dataDetailModal?.id) return;
+    try {
+      setLoadingVariants(true);
+      const data = await variantApi.getVariantsByProductId(dataDetailModal.id, false);
+      setVariants(data);
+    } catch (error) {
+      console.error("Không thể tải variants:", error);
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
   return (
-    <Drawer
-      title="Chi tiết sản phẩm"
-      open={isOpenDetailModal}
-      onClose={() => {
-        setIsOpenDetailModal(false);
-      }}
-      width="60%"
-    >
+    <>
+      <Drawer
+        title="Chi tiết sản phẩm"
+        open={isOpenDetailModal}
+        onClose={() => {
+          setIsOpenDetailModal(false);
+        }}
+        width="60%"
+        extra={
+          <Space>
+            <Button
+              type="primary"
+              icon={<AppstoreOutlined />}
+              onClick={() => setIsVariantManagerVisible(true)}
+            >
+              Quản lý Variant
+            </Button>
+          </Space>
+        }
+      >
       {dataDetailModal && (
         <Descriptions title="Thông Tin Sản Phẩm" bordered column={2}>
           <Descriptions.Item label="ID">{dataDetailModal.id}</Descriptions.Item>
@@ -139,9 +179,133 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           <Descriptions.Item label="Người cập nhật">
             {dataDetailModal.updatedBy || "N/A"}
           </Descriptions.Item>
+          {variants.length > 0 && (
+            <Descriptions.Item label="Variants" span={2}>
+              <Table
+                dataSource={variants}
+                rowKey="id"
+                loading={loadingVariants}
+                pagination={false}
+                size="small"
+                columns={[
+                  {
+                    title: "Loại",
+                    dataIndex: "variantType",
+                    key: "variantType",
+                    render: (type: string) => (
+                      <Tag color="blue">{VariantTypeLabels[type as keyof typeof VariantTypeLabels] || type}</Tag>
+                    ),
+                  },
+                  {
+                    title: "Giá trị",
+                    dataIndex: "variantValue",
+                    key: "variantValue",
+                  },
+                  {
+                    title: "Mã màu",
+                    dataIndex: "colorCode",
+                    key: "colorCode",
+                    render: (colorCode: string | null) =>
+                      colorCode ? (
+                        <Space>
+                          <div
+                            style={{
+                              width: 20,
+                              height: 20,
+                              backgroundColor: colorCode,
+                              border: "1px solid #d9d9d9",
+                              borderRadius: 4,
+                            }}
+                          />
+                          <span>{colorCode}</span>
+                        </Space>
+                      ) : (
+                        "-"
+                      ),
+                  },
+                  {
+                    title: "Ảnh",
+                    dataIndex: "imageUrl",
+                    key: "imageUrl",
+                    render: (imageUrl: string | null, record: ProductVariant) =>
+                      imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={record.variantValue}
+                          width={50}
+                          height={50}
+                          style={{
+                            objectFit: "cover",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                          preview={{
+                            mask: "Xem ảnh",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 50,
+                            height: 50,
+                            backgroundColor: "#f0f0f0",
+                            borderRadius: "4px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "12px",
+                            color: "#999",
+                          }}
+                        >
+                          N/A
+                        </div>
+                      ),
+                  },
+                  {
+                    title: "Giá",
+                    dataIndex: "price",
+                    key: "price",
+                    render: (price: number | null) =>
+                      price
+                        ? new Intl.NumberFormat("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          }).format(price)
+                        : "-",
+                  },
+                  {
+                    title: "Tồn kho",
+                    dataIndex: "stockQuantity",
+                    key: "stockQuantity",
+                  },
+                  {
+                    title: "Trạng thái",
+                    dataIndex: "isActive",
+                    key: "isActive",
+                    render: (active: boolean) => (
+                      <Badge status={active ? "success" : "default"} text={active ? "Active" : "Inactive"} />
+                    ),
+                  },
+                ]}
+              />
+            </Descriptions.Item>
+          )}
         </Descriptions>
       )}
     </Drawer>
+
+    {dataDetailModal && (
+      <VariantManager
+        productId={dataDetailModal.id}
+        productName={dataDetailModal.name}
+        visible={isVariantManagerVisible}
+        onClose={() => {
+          setIsVariantManagerVisible(false);
+          loadVariants();
+        }}
+      />
+    )}
+    </>
   );
 };
 

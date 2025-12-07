@@ -10,6 +10,7 @@ import {
   Space,
   Upload,
   Progress,
+  Alert,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd";
@@ -19,6 +20,7 @@ import type { CreateProductRequest } from "../../../services/product.service";
 import { extractErrorMessage } from "../../../utils/error";
 import type { Category } from "@/types/category.types";
 import type { RcFile } from "antd/es/upload";
+import VariantManager from "./variant-manager.product";
 
 interface ProductCreateProps {
   isOpenCreateModal: boolean;
@@ -49,6 +51,8 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
   // const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<number | null>(null);
+  const [isVariantManagerVisible, setIsVariantManagerVisible] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -91,22 +95,43 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       return false;
     }
 
-    // Tạo preview từ local
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setSelectedFiles((prev) => [...prev, file]);
-      const uploadFile: UploadFile = {
-        uid: `-${Date.now()}-${Math.random()}`,
-        name: file.name,
-        status: "done",
-        url: result,
-        originFileObj: file as RcFile,
+    // Kiểm tra xem file đã tồn tại chưa (so sánh theo name và size)
+    setSelectedFiles((prev) => {
+      const exists = prev.some(
+        (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
+      );
+      if (exists) {
+        return prev;
+      }
+      
+      // Tạo preview và thêm vào fileList ngay
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        const uploadFile: UploadFile = {
+          uid: `-${Date.now()}-${Math.random()}`,
+          name: file.name,
+          status: "done",
+          url: result,
+          originFileObj: file as RcFile,
+        };
+        setFileList((prevList) => {
+          // Kiểm tra duplicate trong fileList
+          const fileExists = prevList.some(
+            (f) => f.originFileObj === file || (f.name === file.name && f.uid?.includes(file.name))
+          );
+          if (fileExists) {
+            return prevList;
+          }
+          return [...prevList, uploadFile];
+        });
       };
-      setFileList((prev) => [...prev, uploadFile]);
-    };
-    reader.readAsDataURL(file);
-    return false;
+      reader.readAsDataURL(file);
+      
+      return [...prev, file];
+    });
+    
+    return false; // Ngăn upload tự động, sẽ upload khi submit form
   };
 
   const handleUpload = async (file: File): Promise<string | null> => {
@@ -133,18 +158,31 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
     beforeUpload: handleFileSelect,
     fileList,
     onChange: ({ fileList: newFileList }: { fileList: UploadFile[] }) => {
-      setFileList(newFileList);
-      // Cập nhật selectedFiles khi xóa file
-      const remainingFiles = newFileList
-        .filter((f) => f.originFileObj)
-        .map((f) => f.originFileObj as File);
-      setSelectedFiles(remainingFiles);
+      // Chỉ cập nhật fileList nếu có thay đổi thực sự (xóa file)
+      // Không thêm file mới ở đây vì handleFileSelect đã xử lý
+      const removedFiles = fileList.filter(
+        (oldFile) => !newFileList.some((newFile) => newFile.uid === oldFile.uid)
+      );
+      
+      if (removedFiles.length > 0) {
+        // Có file bị xóa, cập nhật cả fileList và selectedFiles
+        setFileList(newFileList);
+        const remainingFiles = newFileList
+          .filter((f) => f.originFileObj)
+          .map((f) => f.originFileObj as File);
+        setSelectedFiles(remainingFiles);
+      }
+      // Nếu không có file bị xóa, không làm gì để tránh duplicate
     },
     onRemove: (file: UploadFile) => {
       if (file.originFileObj) {
         setSelectedFiles((prev) =>
           prev.filter((f) => f !== file.originFileObj)
         );
+        // Xóa preview URL nếu có
+        if (file.url && file.url.startsWith("blob:")) {
+          URL.revokeObjectURL(file.url);
+        }
       }
       return true;
     },
@@ -184,14 +222,19 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         isFeatured: values.isFeatured ?? false,
         categoryIds: values.categoryIds || [],
       };
-      await productService.createProduct(productData);
+      const createdProduct = await productService.createProduct(productData);
 
+      setCreatedProductId(createdProduct.id);
       api.success({
         message: "Thành công",
-        description: "Tạo mới sản phẩm thành công",
+        description: "Tạo mới sản phẩm thành công. Bạn có thể quản lý variants ngay bây giờ.",
         placement: "topRight",
+        duration: 5,
       });
-      setIsOpenCreateModal(false);
+      
+      // Tự động mở Variant Manager sau khi tạo thành công
+      setIsVariantManagerVisible(true);
+      
       form.resetFields();
       setFileList([]);
       setSelectedFiles([]);
@@ -224,9 +267,18 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         open={isOpenCreateModal}
         onClose={() => {
           setIsOpenCreateModal(false);
+          setCreatedProductId(null);
+          setIsVariantManagerVisible(false);
         }}
         width="60%"
       >
+        <Alert
+          message="Lưu ý về Variants"
+          description="Sau khi tạo sản phẩm, bạn có thể quản lý các variants (màu sắc, kích thước, chất liệu...) trong Variant Manager. Các trường 'Màu sắc', 'Kích thước' bên dưới là để tương thích với dữ liệu cũ."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
           <Form.Item
             label="Tên"
@@ -375,6 +427,19 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
           </Form.Item>
         </Form>
       </Drawer>
+
+      {createdProductId && (
+        <VariantManager
+          productId={createdProductId}
+          productName={form.getFieldValue("name") || `Product #${createdProductId}`}
+          visible={isVariantManagerVisible}
+          onClose={() => {
+            setIsVariantManagerVisible(false);
+            setIsOpenCreateModal(false);
+            setCreatedProductId(null);
+          }}
+        />
+      )}
     </>
   );
 };

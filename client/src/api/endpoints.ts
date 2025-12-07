@@ -1,6 +1,7 @@
 export const API_ENDPOINTS = {
   // Authentication
   LOGIN: "/login",
+  REGISTER: "/register",
   REFRESH: "/refresh",
 
   // Users
@@ -33,4 +34,8 @@ export const API_ENDPOINTS = {
   // Cart
   CART: "/cart",
   CART_ITEMS: "/cart/items",
+
+  // Product Variants
+  PRODUCT_VARIANTS: "/product-variants",
+  PRODUCT_VARIANTS_ADVANCED: "/product-variants/advanced",
 } as const;

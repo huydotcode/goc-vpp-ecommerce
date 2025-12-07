@@ -1,5 +1,6 @@
 import type { ApiResponse } from "@/types/common.types";
 import type { LoginRequest, LoginResponse } from "@/types/auth.types";
+import type { User } from "@/types/user.types";
 import apiClient from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
@@ -9,7 +10,25 @@ export interface User {
   provider?: string;
 }
 
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
 export const authApi = {
+  /**
+   * Register new user account
+   */
+  register: async (data: RegisterRequest): Promise<User> => {
+    const response = await apiClient.post<ApiResponse<User>>(
+      API_ENDPOINTS.REGISTER,
+      data
+    );
+    // Interceptor đã unwrap, response là ApiResponse<User>
+    return (response as unknown as ApiResponse<User>).data!;
+  },
+
   /**
    * Login with username and password
    */

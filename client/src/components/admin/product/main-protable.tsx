@@ -291,6 +291,20 @@ const ProductAdminMain: React.FC = () => {
           : "N/A",
     },
     {
+      title: "Variants",
+      dataIndex: "variants",
+      key: "variants",
+      hideInSearch: true,
+      render: (_, record) => {
+        const variantCount = record.variants?.length || 0;
+        return variantCount > 0 ? (
+          <Tag color="blue">{variantCount} variant{variantCount > 1 ? "s" : ""}</Tag>
+        ) : (
+          <span>-</span>
+        );
+      },
+    },
+    {
       title: "Nổi bật",
       dataIndex: "isFeatured",
       key: "isFeatured",
@@ -336,6 +350,7 @@ const ProductAdminMain: React.FC = () => {
       title: "Hành động",
       key: "action",
       width: 150,
+      fixed: "right",
       hideInSearch: true,
       render: (_, record) => (
         <Space size="middle">

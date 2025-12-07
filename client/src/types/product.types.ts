@@ -3,6 +3,7 @@
  */
 
 import type { Category } from "./category.types";
+import type { ProductVariant } from "./variant.types";
 
 export interface ProductImage {
   id: number;
@@ -33,6 +34,7 @@ export interface Product {
   thumbnailUrl?: string | null;
   categories?: Category[];
   images?: ProductImage[];
+  variants?: ProductVariant[];
   isActive: boolean;
   isFeatured: boolean;
   createdAt: string; // ISO date string
