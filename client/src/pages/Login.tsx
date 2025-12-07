@@ -54,8 +54,9 @@ const Login: React.FC = () => {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "calc(100vh - 200px)",
-        padding: "40px 20px",
+        padding: "20px 12px",
       }}
+      className="md:py-10 md:px-5"
     >
       <Card
         style={{
@@ -66,7 +67,7 @@ const Login: React.FC = () => {
           border: "1px solid var(--color-gray-200)",
         }}
         bodyStyle={{
-          padding: "32px 28px",
+          padding: "24px 20px",
         }}
       >
         {/* Header */}

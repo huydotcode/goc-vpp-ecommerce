@@ -12,7 +12,7 @@ const UserLayout: React.FC = () => {
       <UserHeader />
 
       <Content style={{ background: "var(--color-gray-100)" }}>
-        <div className="mx-auto max-w-[1250px] px-4 md:px-6">
+        <div className="mx-auto max-w-[1250px] px-2 md:px-6">
           <Outlet />
         </div>
       </Content>
