@@ -44,7 +44,23 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ maxItems = 10 }) => {
     );
   }
 
-  const displayCategories = categories.slice(0, maxItems);
+  // Filter only parent categories (root categories - no parentId)
+  const parentCategories = categories.filter(
+    (category) => !category.parentId || category.parentId === null
+  );
+
+  if (parentCategories.length === 0) {
+    return (
+      <div className="mb-8">
+        <Title level={3} className="mb-4">
+          Danh mục sản phẩm
+        </Title>
+        <Empty description="Chưa có danh mục nào" />
+      </div>
+    );
+  }
+
+  const displayCategories = parentCategories.slice(0, maxItems);
 
   const showSkeleton = isLoading;
 
@@ -70,7 +86,7 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ maxItems = 10 }) => {
             </Title>
           </div>
 
-          {categories.length > maxItems && (
+          {parentCategories.length > maxItems && (
             <Button
               type="default"
               danger
@@ -84,7 +100,7 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ maxItems = 10 }) => {
         </div>
 
         <div className="mt-2">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {showSkeleton
               ? Array.from({
                   length: Math.min(displayCategories.length || 8, 8),
