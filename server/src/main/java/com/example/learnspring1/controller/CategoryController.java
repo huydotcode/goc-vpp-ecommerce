@@ -122,6 +122,16 @@ public class CategoryController {
         return categoryService.getCategoriesWithFilters(name, isActive).stream().map(this::toDTO).toList();
     }
 
+    @Operation(summary = "Lấy nested categories", description = "Trả về danh sách category dạng nested (có children).")
+    @ApiResponse(responseCode = "200", description = "Thành công",
+        content = @Content(schema = @Schema(implementation = CategoryDTO.class)))
+    @GetMapping("/nested")
+    public List<CategoryDTO> getNestedCategories(
+            @Parameter(description = "Trạng thái active", example = "true") @RequestParam(name = "isActive", required = false) Boolean isActive) 
+    {
+        return categoryService.getNestedCategories(isActive);
+    }
+
     @Operation(summary = "Lấy category theo ID", description = "Trả về thông tin category theo id.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Thành công",
@@ -172,6 +182,9 @@ public class CategoryController {
                 .thumbnailUrl(category.getThumbnailUrl())
                 .description(category.getDescription())
                 .isActive(category.getIsActive())
+                .parentId(category.getParent() != null ? category.getParent().getId() : null)
+                .parentName(category.getParent() != null ? category.getParent().getName() : null)
+                .sortOrder(category.getSortOrder())
                 .createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt())
                 .createdBy(category.getCreatedBy())

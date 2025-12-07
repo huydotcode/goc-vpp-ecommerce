@@ -1,5 +1,8 @@
 package com.example.learnspring1.domain;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +34,20 @@ public class Category {
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    // Parent relationship
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", nullable = true)
+    private Category parent;
+
+    // Children relationship
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = false)
+    @Builder.Default
+    private List<Category> children = new ArrayList<>();
+
+    // Sort order for children
+    @Column(name = "sort_order", nullable = true)
+    private Integer sortOrder;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)

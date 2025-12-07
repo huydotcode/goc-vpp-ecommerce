@@ -3,6 +3,7 @@ package com.example.learnspring1.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.learnspring1.domain.dto.CategoryDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -13,11 +14,12 @@ public interface CategoryService {
     Category createCategory(Category category);
 
     Page<Category> getCategoriesPage(Pageable pageable, Specification<Category> spec);
-    
+
     Page<Category> getCategoriesPage(Pageable pageable);
-    
-    Page<Category> getCategoriesPageWithFilters(Pageable pageable, Long id, String name, Boolean isActive, String search);
-    
+
+    Page<Category> getCategoriesPageWithFilters(Pageable pageable, Long id, String name, Boolean isActive,
+            String search);
+
     List<Category> getCategoriesWithFilters(String name, Boolean isActive);
 
     Optional<Category> getCategoryById(Long id);
@@ -27,5 +29,10 @@ public interface CategoryService {
     Category updateCategory(Long id, Category category);
 
     void deleteCategory(Long id);
-}
 
+    List<CategoryDTO> getNestedCategories(Boolean isActive);
+
+    // Get all descendant category IDs (including the category itself and all
+    // children recursively)
+    List<Long> getAllDescendantIds(Long categoryId);
+}
