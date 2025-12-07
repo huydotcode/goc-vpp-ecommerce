@@ -1,7 +1,7 @@
+import type { LoginRequest } from "@/types/auth.types";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { authService } from "../services/auth.service";
-import type { LoginRequest } from "@/types/auth.types";
 import type { UserDTO } from "../services/user.service";
 import { userService } from "../services/user.service";
 
@@ -10,10 +10,10 @@ interface AuthContextType {
   isLoading: boolean;
   user: UserDTO | null;
   userRole: "ADMIN" | "USER" | "EMPLOYEE" | null;
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (credentials: LoginRequest) => Promise<UserDTO | undefined>;
   logout: () => void;
   refreshToken: () => Promise<void>;
-  loadUserInfo: () => Promise<void>;
+  loadUserInfo: () => Promise<UserDTO | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,11 +38,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     "ADMIN" | "USER" | "EMPLOYEE" | null
   >(null);
 
-  const loadUserInfo = async () => {
+  const loadUserInfo = async (): Promise<UserDTO | null> => {
     try {
       const userInfo = await userService.getCurrentUser();
+
       setUser(userInfo);
       setUserRole(userInfo.role);
+
+      return userInfo;
     } catch (error) {
       console.error("[AuthContext] Failed to load user info:", error);
       // Kiểm tra lỗi 401 (unauthorized)
@@ -72,7 +75,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const login = async (credentials: LoginRequest) => {
+  const login = async (
+    credentials: LoginRequest
+  ): Promise<UserDTO | undefined> => {
     try {
       // authService.login() trả về LoginResponse: { accessToken, refreshToken }
       const response = await authService.login(credentials);
@@ -85,7 +90,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
 
       // Load user info sau khi login
-      await loadUserInfo();
+      const userInfo = await loadUserInfo();
+
+      // Return user info after loading
+      return userInfo ?? undefined;
     } catch (error) {
       console.error("[AuthContext] Login error:", error);
       throw error;
@@ -122,9 +130,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated,
         isLoading,
         user,
-        userRole,
         login,
         logout,
+        userRole,
         refreshToken,
         loadUserInfo,
       }}

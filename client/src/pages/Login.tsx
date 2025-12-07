@@ -30,13 +30,14 @@ const Login: React.FC = () => {
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
-      await login(values);
+      const userInfo = await login(values);
       toast.success("Đăng nhập thành công!");
-      // Đợi một chút để đảm bảo user info đã được load
-      setTimeout(() => {
-        // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
+      // Navigate based on user role
+      if (userInfo?.role === "ADMIN" || userInfo?.role === "EMPLOYEE") {
+        navigate("/admin");
+      } else {
         navigate("/");
-      }, 100);
+      }
     } catch (error: unknown) {
       toast.error(getErrorMessage(error) || "Đăng nhập thất bại");
     } finally {
@@ -73,8 +74,8 @@ const Login: React.FC = () => {
         .replace(/^["']|["']$/g, "");
       localStorage.setItem("accessToken", cleanToken);
       toast.success("Mock login thành công!");
-      // Redirect sẽ được xử lý bởi RoleBasedRedirect trong App.tsx
-      navigate("/");
+      // Reload page to trigger AuthContext to load user info
+      window.location.reload();
     } catch (error: unknown) {
       toast.error(getErrorMessage(error) || "Mock login thất bại");
     } finally {
