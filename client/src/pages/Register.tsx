@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Form, Input, Card, Divider } from "antd";
 import {
@@ -16,9 +16,16 @@ import { getErrorMessage } from "../utils/error";
 const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [form] = Form.useForm();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const onFinish = async (values: {
     username: string;
@@ -40,14 +47,14 @@ const RegisterPage: React.FC = () => {
       // Tự động đăng nhập sau khi đăng ký
       // Backend yêu cầu email để đăng nhập, không phải username
       try {
-        const userInfo = await login({
+        await login({
           username: values.email, // Dùng email thay vì username
           password: values.password,
         });
         toast.success("Đăng nhập thành công!");
         // Navigate về trang chủ
         navigate("/");
-      } catch (loginError) {
+      } catch {
         // Nếu đăng nhập tự động thất bại, chuyển đến trang login
         toast.info("Vui lòng đăng nhập để tiếp tục");
         navigate("/login");
@@ -75,6 +82,11 @@ const RegisterPage: React.FC = () => {
       setGoogleLoading(false);
     }
   };
+
+  // Show nothing while checking authentication or if already authenticated
+  if (isLoading || isAuthenticated) {
+    return null;
+  }
 
   return (
     <div
@@ -146,7 +158,8 @@ const RegisterPage: React.FC = () => {
               },
               {
                 pattern: /^[a-zA-Z0-9_]+$/,
-                message: "Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới!",
+                message:
+                  "Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới!",
               },
             ]}
             style={{ marginBottom: "20px" }}
