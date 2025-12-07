@@ -43,7 +43,6 @@ function App(): JSX.Element {
 function AppRoutes(): JSX.Element {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/google/callback" element={<GoogleCallback />} />
 
@@ -77,6 +76,7 @@ function AppRoutes(): JSX.Element {
         }
       >
         <Route index element={<Home />} />
+        <Route path="login" element={<Login />} />
         <Route path="products/:id" element={<ProductDetailPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="cart-vnpay" element={<CartVnPayMock />} />

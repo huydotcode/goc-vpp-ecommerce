@@ -1,25 +1,11 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button, Form, Input, Card, Space, Divider } from "antd";
-import Lottie from "lottie-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button, Form, Input, Card, Divider } from "antd";
+import { UserOutlined, LockOutlined, GoogleOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/auth.service";
 import { getErrorMessage } from "../utils/error";
-
-// Placeholder animation - bạn có thể thay bằng animation thật từ assets/animation
-const loginAnimation = {
-  v: "5.5.7",
-  fr: 30,
-  ip: 0,
-  op: 60,
-  w: 400,
-  h: 400,
-  nm: "Login Animation",
-  ddd: 0,
-  assets: [],
-  layers: [],
-};
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -61,83 +47,53 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleTestMockLogin = async () => {
-    setLoading(true);
-    try {
-      const response = await authService.testGoogleLogin(
-        "test@gmail.com",
-        "Test User"
-      );
-      // Clean token trước khi lưu
-      const cleanToken = response.accessToken
-        .trim()
-        .replace(/^["']|["']$/g, "");
-      localStorage.setItem("accessToken", cleanToken);
-      toast.success("Mock login thành công!");
-      // Reload page to trigger AuthContext to load user info
-      window.location.reload();
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error) || "Mock login thất bại");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTestRefresh = async () => {
-    try {
-      const response = await authService.testRefresh();
-      toast.success("Test refresh thành công!");
-      console.log("Refresh token info:", response);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error) || "Test refresh thất bại");
-    }
-  };
-
   return (
     <div
       style={{
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f9f4e8 0%, #ffffff 100%)",
+        minHeight: "calc(100vh - 200px)",
+        padding: "40px 20px",
       }}
     >
       <Card
         style={{
-          width: 450,
-          borderRadius: "16px",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+          width: "100%",
+          maxWidth: 400,
+          borderRadius: "12px",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+          border: "1px solid var(--color-gray-200)",
+        }}
+        bodyStyle={{
+          padding: "32px 28px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "20px",
-          }}
-        >
-          <Lottie
-            animationData={loginAnimation}
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <h1
             style={{
-              width: 150,
-              height: 150,
+              fontSize: "24px",
+              fontWeight: "600",
+              color: "var(--color-gray-900)",
+              margin: 0,
+              marginBottom: "8px",
             }}
-            loop={true}
-          />
+          >
+            Đăng nhập
+          </h1>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "var(--color-gray-600)",
+              margin: 0,
+            }}
+          >
+            Chào mừng bạn trở lại!
+          </p>
         </div>
-        <h2
-          style={{
-            textAlign: "center",
-            marginBottom: 24,
-            fontSize: "24px",
-            fontWeight: "bold",
-            color: "#333",
-          }}
-        >
-          Đăng nhập
-        </h2>
 
+        {/* Form */}
         <Form
           name="login"
           onFinish={onFinish}
@@ -145,53 +101,109 @@ const Login: React.FC = () => {
           autoComplete="off"
         >
           <Form.Item
-            label="Username"
+            label={
+              <span style={{ fontWeight: 500, color: "var(--color-gray-900)" }}>
+                Tên đăng nhập
+              </span>
+            }
             name="username"
-            rules={[{ required: true, message: "Vui lòng nhập username!" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập tên đăng nhập!" },
+            ]}
+            style={{ marginBottom: "20px" }}
           >
-            <Input placeholder="root_admin@system.local" />
+            <Input
+              prefix={
+                <UserOutlined style={{ color: "var(--color-gray-400)" }} />
+              }
+              placeholder="Nhập tên đăng nhập của bạn"
+            />
           </Form.Item>
 
           <Form.Item
-            label="Password"
+            label={
+              <span style={{ fontWeight: 500, color: "var(--color-gray-900)" }}>
+                Mật khẩu
+              </span>
+            }
             name="password"
-            rules={[{ required: true, message: "Vui lòng nhập password!" }]}
+            rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
+            style={{ marginBottom: "24px" }}
           >
-            <Input.Password placeholder="123123" />
+            <Input.Password
+              prefix={
+                <LockOutlined style={{ color: "var(--color-gray-400)" }} />
+              }
+              placeholder="Nhập mật khẩu của bạn"
+            />
           </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
+          <Form.Item style={{ marginBottom: "20px" }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={loading}
+              style={{
+                height: "40px",
+                fontSize: "15px",
+                fontWeight: "500",
+              }}
+            >
               Đăng nhập
             </Button>
           </Form.Item>
         </Form>
 
-        <Divider>Hoặc</Divider>
+        <Divider
+          style={{
+            margin: "24px 0",
+            borderColor: "var(--color-gray-200)",
+          }}
+        >
+          <span style={{ color: "var(--color-gray-500)", fontSize: "13px" }}>
+            Hoặc
+          </span>
+        </Divider>
 
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <Button
-            type="default"
-            block
-            onClick={handleGoogleLogin}
-            loading={googleLoading}
+        {/* Google Login */}
+        <Button
+          type="default"
+          block
+          onClick={handleGoogleLogin}
+          loading={googleLoading}
+          icon={<GoogleOutlined />}
+          style={{
+            height: "40px",
+            fontSize: "15px",
+            fontWeight: "500",
+            borderColor: "var(--color-gray-300)",
+          }}
+        >
+          Đăng nhập với Google
+        </Button>
+
+        {/* Register Link */}
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "24px",
+            fontSize: "14px",
+            color: "var(--color-gray-600)",
+          }}
+        >
+          Chưa có tài khoản?{" "}
+          <Link
+            to="/register"
+            style={{
+              color: "var(--color-primary)",
+              fontWeight: "600",
+              textDecoration: "none",
+            }}
           >
-            Đăng nhập với Google
-          </Button>
-
-          <Button
-            type="dashed"
-            block
-            onClick={handleTestMockLogin}
-            loading={loading}
-          >
-            Test Mock Login (Không cần Google)
-          </Button>
-
-          <Button type="link" block onClick={handleTestRefresh}>
-            Test Refresh Token
-          </Button>
-        </Space>
+            Đăng ký ngay
+          </Link>
+        </div>
       </Card>
     </div>
   );
