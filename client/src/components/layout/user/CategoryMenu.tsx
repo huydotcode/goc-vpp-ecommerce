@@ -100,18 +100,36 @@ const CategoryMenu: React.FC = () => {
         >
           <Button
             type="text"
-            icon={<AppstoreOutlined style={{ fontSize: "18px" }} />}
+            icon={
+              <AppstoreOutlined
+                style={{
+                  fontSize: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              />
+            }
             style={{
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: "6px",
               height: "100%",
               padding: "0 12px",
               fontWeight: 500,
+              lineHeight: "1.5",
             }}
-            className="hover:bg-gray-50"
+            className="hover:bg-gray-50 [&_.anticon]:flex [&_.anticon]:items-center"
           >
-            <span>Danh mục</span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                lineHeight: "1.5",
+              }}
+            >
+              Danh mục
+            </span>
           </Button>
         </Dropdown>
       </div>
@@ -120,7 +138,16 @@ const CategoryMenu: React.FC = () => {
       <div className="md:hidden">
         <Button
           type="text"
-          icon={<AppstoreOutlined style={{ fontSize: "18px" }} />}
+          icon={
+            <AppstoreOutlined
+              style={{
+                fontSize: "18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          }
           onClick={handleButtonClick}
           style={{
             display: "flex",
@@ -130,7 +157,7 @@ const CategoryMenu: React.FC = () => {
             width: "40px",
             padding: 0,
           }}
-          className="hover:bg-gray-50"
+          className="hover:bg-gray-50 [&_.anticon]:flex [&_.anticon]:items-center [&_.anticon]:justify-center"
         />
 
         <Drawer
