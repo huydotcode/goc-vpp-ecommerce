@@ -256,7 +256,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                 loading={isAdding}
                 disabled={isAdding || isOutOfStock}
               >
-                {isAdding ? "Đang thêm..." : "Thêm giỏ hàng"}
+                Thêm giỏ hàng
               </Button>
             </div>
           </>
@@ -290,7 +290,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
               loading={isAdding}
               disabled={isAdding || isOutOfStock}
             >
-              {isAdding ? "Đang thêm..." : "Thêm giỏ hàng"}
+              Thêm giỏ hàng
             </Button>
           </div>
         </div>
