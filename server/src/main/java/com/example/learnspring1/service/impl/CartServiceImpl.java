@@ -133,12 +133,16 @@ public class CartServiceImpl implements CartService {
             throw new RuntimeException("Unauthorized");
         }
 
-        Cart cart = item.getCart();
-        cartItemRepository.delete(item);
+        Long cartId = item.getCart().getId();
 
-        // Reload cart
-        cart = cartRepository.findById(cart.getId())
+        // Xóa item
+        cartItemRepository.delete(item);
+        cartItemRepository.flush(); // Đảm bảo delete được commit trước khi reload
+
+        // Reload cart với items được fetch
+        Cart cart = cartRepository.findByIdWithItems(cartId)
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
+
         return mapToDTO(cart);
     }
 
