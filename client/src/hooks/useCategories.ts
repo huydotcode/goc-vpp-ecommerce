@@ -40,6 +40,18 @@ export const useCategoriesFilter = (
   });
 };
 
+// Get nested categories (with children)
+export const useNestedCategories = (
+  filters: { isActive?: boolean },
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: [...categoryKeys.all, "nested", filters],
+    queryFn: () => categoryService.getNestedCategories(filters),
+    enabled,
+  });
+};
+
 // Get category by ID
 export const useCategory = (id: number, enabled = true) => {
   return useQuery({

@@ -79,4 +79,17 @@ export const categoryApi = {
   deleteCategory: async (id: number): Promise<void> => {
     await apiClient.delete(`${API_ENDPOINTS.CATEGORIES}/${id}`);
   },
+
+  /**
+   * Get nested categories (with children)
+   */
+  getNestedCategories: async (filters: {
+    isActive?: boolean;
+  }): Promise<Category[]> => {
+    const response = await apiClient.get<Category[]>(
+      `${API_ENDPOINTS.CATEGORIES}/nested`,
+      { params: filters }
+    );
+    return response.data;
+  },
 };

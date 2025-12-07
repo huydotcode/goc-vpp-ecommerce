@@ -70,6 +70,15 @@ export const categoryService = {
   },
 
   /**
+   * Get nested categories (with children)
+   */
+  getNestedCategories: async (filters: {
+    isActive?: boolean;
+  }): Promise<Category[]> => {
+    return categoryApi.getNestedCategories(filters);
+  },
+
+  /**
    * Upload category thumbnail
    */
   uploadThumbnail: async (
