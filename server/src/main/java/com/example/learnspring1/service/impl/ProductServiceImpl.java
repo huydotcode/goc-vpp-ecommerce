@@ -4,6 +4,7 @@ import com.example.learnspring1.domain.Order;
 import com.example.learnspring1.domain.Product;
 import com.example.learnspring1.repository.OrderItemRepository;
 import com.example.learnspring1.repository.ProductRepository;
+import com.example.learnspring1.service.CategoryService;
 import com.example.learnspring1.service.ProductService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,11 +22,14 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
+    private final CategoryService categoryService;
 
     public ProductServiceImpl(ProductRepository productRepository,
-            OrderItemRepository orderItemRepository) {
+            OrderItemRepository orderItemRepository,
+            CategoryService categoryService) {
         this.productRepository = productRepository;
         this.orderItemRepository = orderItemRepository;
+        this.categoryService = categoryService;
     }
 
     @Override
@@ -58,14 +63,28 @@ public class ProductServiceImpl implements ProductService {
         if (id != null) {
             return productRepository.findProductsByIdOnly(String.valueOf(id), pageable);
         }
-        return productRepository.findProductsWithFiltersPaged(name, sku, brand, categoryId, isFeatured, isActive,
-                search, pageable);
+
+        // Get all descendant category IDs if categoryId is provided
+        List<Long> categoryIds = new ArrayList<>();
+        if (categoryId != null) {
+            categoryIds = categoryService.getAllDescendantIds(categoryId);
+        }
+
+        return productRepository.findProductsWithFiltersPaged(
+                name, sku, brand, categoryId, categoryIds, isFeatured, isActive, search, pageable);
     }
 
     @Override
     public List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId,
             Boolean isFeatured, Boolean isActive) {
-        return productRepository.findProductsWithFilters(name, sku, brand, categoryId, isFeatured, isActive);
+        // Get all descendant category IDs if categoryId is provided
+        List<Long> categoryIds = new ArrayList<>();
+        if (categoryId != null) {
+            categoryIds = categoryService.getAllDescendantIds(categoryId);
+        }
+
+        return productRepository.findProductsWithFilters(
+                name, sku, brand, categoryId, categoryIds, isFeatured, isActive);
     }
 
     @Override
