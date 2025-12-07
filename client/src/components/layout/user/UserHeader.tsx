@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
+import CategoryMenu from "./CategoryMenu";
 import UserCart from "./UserCart";
 
 const { Header } = Layout;
@@ -150,26 +151,32 @@ const UserHeader: React.FC = () => {
       }}
     >
       <div className="mx-auto flex h-full w-full max-w-[1250px] items-center justify-between md:gap-4 px-4 md:px-6">
-        {/* Logo Section */}
-        <div
-          className="relative h-full cursor-pointer transition-opacity hover:opacity-80 shrink-0"
-          onClick={() => navigate("/")}
-        >
-          <Link className="flex h-full items-center" to={"/"}>
-            {/* Desktop logo */}
-            <img
-              className="logo-desktop hidden h-full w-auto object-cover md:block"
-              src={"/images/logo.png"}
-              alt="Góc VPP Logo"
-              style={{ maxHeight: "64px", padding: "8px 0" }}
-            />
-            {/* Mobile logo icon */}
-            <img
-              className="logo-mobile h-10 w-10 object-cover md:hidden"
-              src={"/images/logo-icon.png"}
-              alt="Góc VPP Logo"
-            />
-          </Link>
+        {/* Left Section: Logo + Categories */}
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          {/* Logo Section */}
+          <div
+            className="relative h-full cursor-pointer transition-opacity hover:opacity-80 shrink-0"
+            onClick={() => navigate("/")}
+          >
+            <Link className="flex h-full items-center" to={"/"}>
+              {/* Desktop logo */}
+              <img
+                className="logo-desktop hidden h-full w-auto object-cover lg:block"
+                src={"/images/logo.png"}
+                alt="Góc VPP Logo"
+                style={{ maxHeight: "64px", padding: "8px 0" }}
+              />
+              {/* Mobile logo icon */}
+              <img
+                className="logo-mobile h-10 w-10 object-cover lg:hidden"
+                src={"/images/logo-icon.png"}
+                alt="Góc VPP Logo"
+              />
+            </Link>
+          </div>
+
+          {/* Categories Dropdown */}
+          <CategoryMenu />
         </div>
 
         {/* Search Bar - Desktop Only */}
