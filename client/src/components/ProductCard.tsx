@@ -1,12 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import type { ProductDTO } from "@/services/product.service";
+import type { ProductVariant } from "@/types/variant.types";
 import { formatPrice } from "@/utils/format";
 import { GiftOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Tag, Typography } from "antd";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import VariantSelectorModal from "./VariantSelectorModal";
 
 const { Text } = Typography;
 
@@ -38,12 +40,26 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
   const { isAuthenticated } = useAuth();
   const { addItem, adding } = useCart();
   const [addingProductId, setAddingProductId] = useState<number | null>(null);
+  const [variantModalOpen, setVariantModalOpen] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
+    null
+  );
+  const [selectedQty, setSelectedQty] = useState<number>(1);
 
   const isPromotion = props.mode === "promotion";
   const showNewTag =
     !isPromotion &&
     (props.mode === "default" || props.mode === undefined) &&
     props.showNewTag;
+
+  const defaultVariant: ProductVariant | undefined =
+    !isPromotion && props.product.variants
+      ? (props.product.variants.find((v) => v.isDefault) ??
+        props.product.variants[0])
+      : undefined;
+
+  const variants: ProductVariant[] =
+    !isPromotion && props.product.variants ? props.product.variants : [];
 
   const baseProduct: BaseCardProduct = isPromotion
     ? props.product
@@ -55,8 +71,12 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
           (props.product.images && props.product.images.length > 0
             ? props.product.images[0].imageUrl
             : undefined),
-        originalPrice: props.product.price ?? 0,
-        finalPrice: props.product.discountPrice ?? props.product.price ?? 0,
+        originalPrice: defaultVariant?.price ?? props.product.price ?? 0,
+        finalPrice:
+          defaultVariant?.price ??
+          props.product.discountPrice ??
+          props.product.price ??
+          0,
         discountPercent: undefined, // sẽ tính lại bên dưới
         isGift: false,
       };
@@ -94,10 +114,22 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         return;
       }
 
-      // Kiểm tra sản phẩm có tồn kho không (chỉ với default mode)
-      if (!isPromotion) {
-        const stockQuantity = (props as DefaultProductCardProps).product
-          .stockQuantity;
+      // Nếu có nhiều variant, yêu cầu chọn
+      if (!isPromotion && variants.length > 1) {
+        setVariantModalOpen(true);
+        if (selectedVariantId == null) {
+          setSelectedVariantId(defaultVariant?.id ?? variants[0]?.id ?? null);
+        }
+        setSelectedQty(1);
+        return;
+      }
+
+      const targetVariant =
+        variants.length > 0 ? (defaultVariant ?? variants[0]) : undefined;
+
+      // Kiểm tra tồn kho trên variant
+      if (targetVariant) {
+        const stockQuantity = targetVariant.stockQuantity;
         if (
           stockQuantity !== null &&
           stockQuantity !== undefined &&
@@ -109,7 +141,11 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       }
 
       setAddingProductId(id);
-      await addItem({ productId: id, quantity: 1 });
+      await addItem({
+        productId: id,
+        variantId: targetVariant?.id ?? null,
+        quantity: 1,
+      });
     } finally {
       setAddingProductId(null);
     }
@@ -120,6 +156,10 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
+    // Nếu đang mở modal chọn variant, không điều hướng
+    if (variantModalOpen) {
+      return;
+    }
     // Chỉ navigate nếu không click vào button hoặc các element tương tác
     const target = e.target as HTMLElement;
     if (
@@ -132,14 +172,46 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
     navigate(`/products/${id}`);
   };
 
+  const handleConfirmVariant = async () => {
+    if (!selectedVariantId) {
+      toast.warning("Vui lòng chọn phân loại");
+      return;
+    }
+    const variant = variants.find((v) => v.id === selectedVariantId);
+    if (!variant) {
+      toast.error("Không tìm thấy phân loại");
+      return;
+    }
+    const stockQuantity = variant.stockQuantity;
+    if (
+      stockQuantity !== null &&
+      stockQuantity !== undefined &&
+      stockQuantity < selectedQty
+    ) {
+      toast.warning("Phân loại này không đủ hàng");
+      return;
+    }
+    try {
+      setAddingProductId(id);
+      await addItem({
+        productId: id,
+        variantId: variant.id ?? null,
+        quantity: selectedQty,
+      });
+      setVariantModalOpen(false);
+    } finally {
+      setAddingProductId(null);
+    }
+  };
+
   const isAdding = adding || addingProductId === id;
 
   // Kiểm tra tồn kho để disable button (chỉ với default mode)
   const isOutOfStock =
     !isPromotion &&
     (() => {
-      const product = (props as DefaultProductCardProps).product;
-      const stockQuantity = product?.stockQuantity;
+      const stockQuantity =
+        variants.length > 1 ? undefined : defaultVariant?.stockQuantity;
       return (
         stockQuantity !== null &&
         stockQuantity !== undefined &&
@@ -153,7 +225,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       onClick={handleCardClick}
     >
       {/* Image area */}
-      <div className="relative flex w-full items-center justify-center overflow-hidden rounded-md">
+      <div className="relative flex w-full items-center justify-center overflow-hidden rounded-md h-[300px]">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -293,6 +365,18 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
           </div>
         </div>
       )}
+
+      <VariantSelectorModal
+        open={variantModalOpen}
+        variants={variants}
+        selectedVariantId={selectedVariantId}
+        selectedQty={selectedQty}
+        productName={name}
+        onClose={() => setVariantModalOpen(false)}
+        onChangeVariant={(variantId) => setSelectedVariantId(variantId)}
+        onChangeQty={(qty) => setSelectedQty(qty)}
+        onConfirm={handleConfirmVariant}
+      />
     </div>
   );
 };
