@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Form, Input, Card, Divider } from "antd";
 import { UserOutlined, LockOutlined, GoogleOutlined } from "@ant-design/icons";
@@ -10,8 +10,15 @@ import { getErrorMessage } from "../utils/error";
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -46,6 +53,11 @@ const Login: React.FC = () => {
       setGoogleLoading(false);
     }
   };
+
+  // Show nothing while checking authentication or if already authenticated
+  if (isLoading || isAuthenticated) {
+    return null;
+  }
 
   return (
     <div
