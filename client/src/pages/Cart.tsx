@@ -139,9 +139,18 @@ const CartPage: React.FC = () => {
 
                   {/* Product Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Title level={5} style={{ margin: 0, marginBottom: 8 }}>
+                    <Title level={5} style={{ margin: 0, marginBottom: 4 }}>
                       {item.productName}
                     </Title>
+                    {item.variantName && (
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: 13, display: "block" }}
+                      >
+                        Phân loại: {item.variantName}{" "}
+                        {item.sku ? `(${item.sku})` : ""}
+                      </Text>
+                    )}
                     <Text type="secondary" style={{ fontSize: 14 }}>
                       {formatCurrency(item.unitPrice)} / sản phẩm
                     </Text>

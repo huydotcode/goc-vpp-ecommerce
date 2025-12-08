@@ -45,6 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
     null
   );
   const [selectedQty, setSelectedQty] = useState<number>(1);
+  const [isBuyNowFlow, setIsBuyNowFlow] = useState(false);
 
   const isPromotion = props.mode === "promotion";
   const showNewTag =
@@ -117,6 +118,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       // Nếu có nhiều variant, yêu cầu chọn
       if (!isPromotion && variants.length > 1) {
         setVariantModalOpen(true);
+        setIsBuyNowFlow(false);
         if (selectedVariantId == null) {
           setSelectedVariantId(defaultVariant?.id ?? variants[0]?.id ?? null);
         }
@@ -151,8 +153,50 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
     }
   };
 
-  const handleBuyNow = () => {
-    navigate(`/products/${id}`);
+  const handleBuyNow = async () => {
+    try {
+      if (!isAuthenticated) {
+        toast.warning("Vui lòng đăng nhập để mua ngay");
+        navigate("/login", { state: { from: window.location.pathname } });
+        return;
+      }
+
+      // Nếu có nhiều variant, dùng modal để chọn, sau đó sẽ navigate khi confirm
+      if (!isPromotion && variants.length > 1) {
+        setVariantModalOpen(true);
+        setIsBuyNowFlow(true);
+        if (selectedVariantId == null) {
+          setSelectedVariantId(defaultVariant?.id ?? variants[0]?.id ?? null);
+        }
+        setSelectedQty(1);
+        return;
+      }
+
+      const targetVariant =
+        variants.length > 0 ? (defaultVariant ?? variants[0]) : undefined;
+      if (!targetVariant) {
+        toast.error("Không tìm thấy phân loại sản phẩm");
+        return;
+      }
+      if (
+        targetVariant.stockQuantity !== null &&
+        targetVariant.stockQuantity !== undefined &&
+        targetVariant.stockQuantity <= 0
+      ) {
+        toast.warning("Sản phẩm đã hết hàng");
+        return;
+      }
+
+      setAddingProductId(id);
+      await addItem({
+        productId: id,
+        variantId: targetVariant.id ?? null,
+        quantity: 1,
+      });
+      navigate("/cart");
+    } finally {
+      setAddingProductId(null);
+    }
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -199,8 +243,12 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         quantity: selectedQty,
       });
       setVariantModalOpen(false);
+      if (isBuyNowFlow) {
+        navigate("/cart");
+      }
     } finally {
       setAddingProductId(null);
+      setIsBuyNowFlow(false);
     }
   };
 
@@ -372,6 +420,9 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         selectedVariantId={selectedVariantId}
         selectedQty={selectedQty}
         productName={name}
+        fallbackImage={imageUrl}
+        loading={adding || addingProductId === id}
+        confirmText={isBuyNowFlow ? "Mua ngay" : "Thêm vào giỏ"}
         onClose={() => setVariantModalOpen(false)}
         onChangeVariant={(variantId) => setSelectedVariantId(variantId)}
         onChangeQty={(qty) => setSelectedQty(qty)}

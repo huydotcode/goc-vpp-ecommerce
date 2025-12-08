@@ -11,6 +11,7 @@ interface VariantSelectorModalProps {
   productName: string;
   fallbackImage?: string | null;
   loading?: boolean;
+  confirmText?: string;
   onClose: () => void;
   onChangeVariant: (variantId: number) => void;
   onChangeQty: (qty: number) => void;
@@ -25,6 +26,7 @@ const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
   productName,
   fallbackImage,
   loading,
+  confirmText = "Thêm vào giỏ",
   onClose,
   onChangeVariant,
   onChangeQty,
@@ -220,7 +222,7 @@ const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
               >
                 <Button onClick={onClose}>Hủy</Button>
                 <Button type="primary" onClick={onConfirm} loading={loading}>
-                  Thêm vào giỏ
+                  {confirmText}
                 </Button>
               </div>
             </div>

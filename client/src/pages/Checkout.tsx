@@ -471,6 +471,15 @@ const CheckoutPage: React.FC = () => {
                     <Text strong style={{ display: "block", marginBottom: 4 }}>
                       {item.productName}
                     </Text>
+                    {item.variantName && (
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: 12, display: "block" }}
+                      >
+                        Phân loại: {item.variantName}{" "}
+                        {item.sku ? `(${item.sku})` : ""}
+                      </Text>
+                    )}
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       {formatCurrency(item.unitPrice)} x {item.quantity}
                     </Text>
