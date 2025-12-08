@@ -6,26 +6,26 @@ import ProductAdminMain from "./components/admin/product/main-protable";
 import PromotionAdminMain from "./components/admin/promotion/main-protable";
 import UserAdminMain from "./components/admin/user/main-protable";
 import AdminLayout from "./components/layout/admin/AdminLayout";
-import UserLayout from "./components/layout/user/UserLayout";
 import UserAccountLayout from "./components/layout/user/UserAccountLayout";
+import UserLayout from "./components/layout/user/UserLayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import Admin from "./pages/Admin";
-import AdminPermissionsPage from "./pages/AdminPermissions";
-import AdminProfilePage from "./pages/AdminProfile";
 import AdminOrderDetailPage from "./pages/AdminOrderDetail";
 import AdminOrdersPage from "./pages/AdminOrders";
+import AdminPermissionsPage from "./pages/AdminPermissions";
+import AdminProfilePage from "./pages/AdminProfile";
 import CartPage from "./pages/Cart";
 import CartVnPayMock from "./pages/CartVnPayMock";
 import CheckoutPage from "./pages/Checkout";
 import GoogleCallback from "./pages/GoogleCallback";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import OrderResult from "./pages/OrderResult";
 import OrdersPage from "./pages/Orders";
 import ProductDetailPage from "./pages/ProductDetail";
 import RegisterPage from "./pages/Register";
 import UserProfilePage from "./pages/UserProfile";
 import VnPayResult from "./pages/VnPayResult";
-import PayOSResult from "./pages/PayOSResult";
 import Forbidden from "./pages/errors/Forbidden";
 import NotFound from "./pages/errors/NotFound";
 import Unauthorized from "./pages/errors/Unauthorized";
@@ -43,7 +43,6 @@ function App(): JSX.Element {
 function AppRoutes(): JSX.Element {
   return (
     <Routes>
-      <Route path="/register" element={<RegisterPage />} />
       <Route path="/google/callback" element={<GoogleCallback />} />
 
       {/* Admin routes */}
@@ -76,12 +75,13 @@ function AppRoutes(): JSX.Element {
         }
       >
         <Route index element={<Home />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="login" element={<Login />} />
         <Route path="products/:id" element={<ProductDetailPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="cart-vnpay" element={<CartVnPayMock />} />
         <Route path="vnpay-result" element={<VnPayResult />} />
-        <Route path="payos-result" element={<PayOSResult />} />
+        <Route path="order-result" element={<OrderResult />} />
         <Route
           path="user"
           element={
