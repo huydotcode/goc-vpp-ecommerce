@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ProductVariantServiceImpl implements ProductVariantService {
@@ -28,13 +27,57 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         this.productRepository = productRepository;
     }
 
+    /**
+     * Đảm bảo chỉ 1 default variant cho mỗi product.
+     * Nếu variant mới/mới cập nhật được set isDefault = true, unset các default
+     * khác.
+     */
+    private void enforceSingleDefault(Long productId, Long keepVariantId) {
+        List<ProductVariant> variants = variantRepository.findByProductId(productId);
+        for (ProductVariant v : variants) {
+            if (keepVariantId != null && v.getId().equals(keepVariantId)) {
+                continue;
+            }
+            if (Boolean.TRUE.equals(v.getIsDefault())) {
+                v.setIsDefault(false);
+                variantRepository.save(v);
+            }
+        }
+    }
+
+    /**
+     * Nếu xóa default variant, chọn một variant khác (ưu tiên isActive) làm
+     * default.
+     */
+    private void ensureDefaultAfterDeletion(Long productId) {
+        Optional<ProductVariant> currentDefault = variantRepository.findByProductIdAndIsDefaultTrue(productId);
+        if (currentDefault.isPresent()) {
+            return;
+        }
+        List<ProductVariant> variants = variantRepository.findByProductId(productId);
+        if (variants.isEmpty()) {
+            return;
+        }
+        // Ưu tiên variant đang active
+        ProductVariant fallback = variants.stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
+                .findFirst()
+                .orElse(variants.get(0));
+        fallback.setIsDefault(true);
+        variantRepository.save(fallback);
+    }
+
     @Override
     @Transactional
     public ProductVariant createVariant(ProductVariant variant) {
         if (variant.getSku() != null && variantRepository.existsBySku(variant.getSku())) {
             throw new IllegalArgumentException("SKU variant đã tồn tại");
         }
-        return variantRepository.save(variant);
+        ProductVariant saved = variantRepository.save(variant);
+        if (Boolean.TRUE.equals(saved.getIsDefault())) {
+            enforceSingleDefault(saved.getProduct().getId(), saved.getId());
+        }
+        return saved;
     }
 
     @Override
@@ -101,9 +144,14 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         existing.setStockQuantity(variant.getStockQuantity());
         existing.setSku(variant.getSku());
         existing.setSortOrder(variant.getSortOrder());
+        existing.setIsDefault(variant.getIsDefault());
         existing.setIsActive(variant.getIsActive());
 
-        return variantRepository.save(existing);
+        ProductVariant saved = variantRepository.save(existing);
+        if (Boolean.TRUE.equals(saved.getIsDefault())) {
+            enforceSingleDefault(saved.getProduct().getId(), saved.getId());
+        }
+        return saved;
     }
 
     @Override
@@ -127,9 +175,13 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         existing.setStockQuantity(variantDTO.getStockQuantity());
         existing.setSku(variantDTO.getSku());
         existing.setSortOrder(variantDTO.getSortOrder());
+        existing.setIsDefault(variantDTO.getIsDefault());
         existing.setIsActive(variantDTO.getIsActive());
 
         ProductVariant saved = variantRepository.save(existing);
+        if (Boolean.TRUE.equals(saved.getIsDefault())) {
+            enforceSingleDefault(saved.getProduct().getId(), saved.getId());
+        }
         return convertToDTO(saved);
     }
 
@@ -138,8 +190,12 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     public void deleteVariant(Long id) {
         ProductVariant variant = variantRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy variant với ID: " + id));
+        Long productId = variant.getProduct() != null ? variant.getProduct().getId() : null;
         variant.softDelete();
         variantRepository.save(variant);
+        if (productId != null && Boolean.TRUE.equals(variant.getIsDefault())) {
+            ensureDefaultAfterDeletion(productId);
+        }
     }
 
     @Override

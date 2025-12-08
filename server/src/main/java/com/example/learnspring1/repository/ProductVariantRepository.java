@@ -23,18 +23,18 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     Optional<ProductVariant> findBySku(String sku);
 
+    Optional<ProductVariant> findByProductIdAndIsDefaultTrue(Long productId);
+
     boolean existsBySku(String sku);
 
     @Query("SELECT v FROM ProductVariant v WHERE " +
-           "(:productId IS NULL OR v.product.id = :productId) AND " +
-           "(:variantType IS NULL OR v.variantType = :variantType) AND " +
-           "(:isActive IS NULL OR v.isActive = :isActive) AND " +
-           "(v.deletedBy IS NULL)")
+            "(:productId IS NULL OR v.product.id = :productId) AND " +
+            "(:variantType IS NULL OR v.variantType = :variantType) AND " +
+            "(:isActive IS NULL OR v.isActive = :isActive) AND " +
+            "(v.deletedBy IS NULL)")
     Page<ProductVariant> findVariantsWithFilters(
-        @Param("productId") Long productId,
-        @Param("variantType") VariantType variantType,
-        @Param("isActive") Boolean isActive,
-        Pageable pageable
-    );
+            @Param("productId") Long productId,
+            @Param("variantType") VariantType variantType,
+            @Param("isActive") Boolean isActive,
+            Pageable pageable);
 }
-
