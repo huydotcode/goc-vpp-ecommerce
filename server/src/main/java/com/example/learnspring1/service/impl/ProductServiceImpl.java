@@ -3,9 +3,12 @@ package com.example.learnspring1.service.impl;
 import com.example.learnspring1.domain.Category;
 import com.example.learnspring1.domain.Order;
 import com.example.learnspring1.domain.Product;
+import com.example.learnspring1.domain.ProductVariant;
+import com.example.learnspring1.domain.VariantType;
 import com.example.learnspring1.repository.CategoryRepository;
 import com.example.learnspring1.repository.OrderItemRepository;
 import com.example.learnspring1.repository.ProductRepository;
+import com.example.learnspring1.repository.ProductVariantRepository;
 import com.example.learnspring1.service.CategoryService;
 import com.example.learnspring1.service.ProductService;
 import org.springframework.data.domain.Page;
@@ -26,15 +29,66 @@ public class ProductServiceImpl implements ProductService {
     private final OrderItemRepository orderItemRepository;
     private final CategoryService categoryService;
     private final CategoryRepository categoryRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     public ProductServiceImpl(ProductRepository productRepository,
             OrderItemRepository orderItemRepository,
             CategoryService categoryService,
-            CategoryRepository categoryRepository) {
+            CategoryRepository categoryRepository,
+            ProductVariantRepository productVariantRepository) {
         this.productRepository = productRepository;
         this.orderItemRepository = orderItemRepository;
         this.categoryService = categoryService;
         this.categoryRepository = categoryRepository;
+        this.productVariantRepository = productVariantRepository;
+    }
+
+    private void ensureDefaultVariant(Product product) {
+        List<ProductVariant> variants = productVariantRepository.findByProductId(product.getId());
+        if (variants != null && !variants.isEmpty()) {
+            return;
+        }
+
+        ProductVariant defaultVariant = ProductVariant.builder()
+                .product(product)
+                .variantType(VariantType.OTHER)
+                .variantValue("Default")
+                .colorCode(null)
+                .imageUrl(product.getThumbnailUrl())
+                .price(product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice())
+                .stockQuantity(product.getStockQuantity() != null ? product.getStockQuantity() : 0)
+                .sku(product.getSku() != null ? product.getSku() : ("SKU-" + product.getId()))
+                .sortOrder(0)
+                .isActive(true)
+                .isDefault(true)
+                .build();
+
+        productVariantRepository.save(defaultVariant);
+    }
+
+    private void syncDefaultVariant(Product product) {
+        List<ProductVariant> variants = productVariantRepository.findByProductId(product.getId());
+        if (variants == null || variants.isEmpty()) {
+            ensureDefaultVariant(product);
+            return;
+        }
+
+        // Nếu chỉ có default variant hoặc tất cả là default, sync giá/tồn cho default
+        variants.stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsDefault()))
+                .findFirst()
+                .ifPresent(v -> {
+                    v.setPrice(product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice());
+                    v.setStockQuantity(
+                            product.getStockQuantity() != null ? product.getStockQuantity() : v.getStockQuantity());
+                    if (product.getThumbnailUrl() != null) {
+                        v.setImageUrl(product.getThumbnailUrl());
+                    }
+                    if (product.getSku() != null) {
+                        v.setSku(product.getSku());
+                    }
+                    productVariantRepository.save(v);
+                });
     }
 
     @Override
@@ -42,15 +96,20 @@ public class ProductServiceImpl implements ProductService {
         if (product.getSku() != null && productRepository.existsBySku(product.getSku())) {
             throw new IllegalArgumentException("SKU đã tồn tại");
         }
-        
+
         // Xử lý categories từ categoryIds hoặc categories
         if (product.getCategoryIds() != null && !product.getCategoryIds().isEmpty()) {
             // Load categories từ categoryIds
             List<Category> categories = categoryRepository.findAllById(product.getCategoryIds());
             product.setCategories(categories);
         }
-        
-        return productRepository.save(product);
+
+        Product saved = productRepository.save(product);
+
+        // Tạo default variant nếu sản phẩm chưa có biến thể
+        ensureDefaultVariant(saved);
+
+        return saved;
     }
 
     @Override
@@ -122,7 +181,6 @@ public class ProductServiceImpl implements ProductService {
             existing.setDescription(product.getDescription());
             existing.setPrice(product.getPrice());
             existing.setDiscountPrice(product.getDiscountPrice());
-            existing.setStockQuantity(product.getStockQuantity());
             existing.setSku(product.getSku());
             existing.setBrand(product.getBrand());
             existing.setColor(product.getColor());
@@ -131,7 +189,7 @@ public class ProductServiceImpl implements ProductService {
             existing.setDimensions(product.getDimensions());
             existing.setSpecifications(product.getSpecifications());
             existing.setThumbnailUrl(product.getThumbnailUrl());
-            
+
             // Xử lý categories từ categoryIds hoặc categories
             if (product.getCategoryIds() != null && !product.getCategoryIds().isEmpty()) {
                 // Load categories từ categoryIds
@@ -141,10 +199,15 @@ public class ProductServiceImpl implements ProductService {
                 // Nếu có categories trực tiếp thì dùng
                 existing.setCategories(product.getCategories());
             }
-            
+
             existing.setIsActive(product.getIsActive());
             existing.setIsFeatured(product.getIsFeatured());
-            return productRepository.save(existing);
+            Product updated = productRepository.save(existing);
+
+            // Đồng bộ default variant khi sản phẩm không có biến thể tùy chọn
+            syncDefaultVariant(updated);
+
+            return updated;
         }).orElseThrow(() -> new RuntimeException("Product not found with id " + id));
     }
 
