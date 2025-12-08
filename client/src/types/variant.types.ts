@@ -1,14 +1,16 @@
-export enum VariantType {
-  COLOR = "COLOR",
-  SIZE = "SIZE",
-  MATERIAL = "MATERIAL",
-  STYLE = "STYLE",
-  PATTERN = "PATTERN",
-  CAPACITY = "CAPACITY",
-  WEIGHT = "WEIGHT",
-  PACKAGE = "PACKAGE",
-  OTHER = "OTHER",
-}
+export const VariantType = {
+  COLOR: "COLOR",
+  SIZE: "SIZE",
+  MATERIAL: "MATERIAL",
+  STYLE: "STYLE",
+  PATTERN: "PATTERN",
+  CAPACITY: "CAPACITY",
+  WEIGHT: "WEIGHT",
+  PACKAGE: "PACKAGE",
+  OTHER: "OTHER",
+} as const;
+
+export type VariantType = (typeof VariantType)[keyof typeof VariantType];
 
 export const VariantTypeLabels: Record<VariantType, string> = {
   [VariantType.COLOR]: "Màu sắc",
@@ -34,6 +36,7 @@ export interface ProductVariant {
   stockQuantity?: number | null;
   sku?: string | null;
   sortOrder?: number | null;
+  isDefault?: boolean | null;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -53,6 +56,7 @@ export interface CreateVariantRequest {
   sku?: string | null;
   sortOrder?: number | null;
   isActive?: boolean;
+  isDefault?: boolean;
 }
 
 export interface UpdateVariantRequest {
@@ -66,6 +70,7 @@ export interface UpdateVariantRequest {
   sku?: string | null;
   sortOrder?: number | null;
   isActive?: boolean;
+  isDefault?: boolean;
 }
 
 export interface VariantFilters {
@@ -77,4 +82,3 @@ export interface VariantFilters {
   sort?: string;
   direction?: "asc" | "desc";
 }
-
