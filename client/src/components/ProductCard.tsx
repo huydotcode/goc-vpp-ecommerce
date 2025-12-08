@@ -253,7 +253,6 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                   e.stopPropagation();
                   handleAddToCart();
                 }}
-                loading={isAdding}
                 disabled={isAdding || isOutOfStock}
               >
                 Thêm giỏ hàng
@@ -287,7 +286,6 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                 e.stopPropagation();
                 handleAddToCart();
               }}
-              loading={isAdding}
               disabled={isAdding || isOutOfStock}
             >
               Thêm giỏ hàng
