@@ -7,6 +7,7 @@ import java.util.List;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "categories")
@@ -16,6 +17,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({ "parent", "children", "hibernateLazyInitializer", "handler" })
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

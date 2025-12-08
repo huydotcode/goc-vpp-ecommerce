@@ -9,7 +9,6 @@ import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.example.learnspring1.domain.ProductVariant;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -66,12 +65,8 @@ public class Product {
     private String thumbnailUrl;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_categories",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
-    @JsonIgnoreProperties(value = {"hibernateLazyInitializer", "handler"})
+    @JoinTable(name = "product_categories", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
+    @JsonIgnoreProperties(value = { "parent", "children", "hibernateLazyInitializer", "handler" })
     @Builder.Default
     private List<Category> categories = new ArrayList<>();
 
@@ -135,5 +130,3 @@ public class Product {
         this.isActive = false;
     }
 }
-
-
