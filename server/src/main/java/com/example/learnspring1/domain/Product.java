@@ -39,8 +39,6 @@ public class Product {
     @Column(precision = 19, scale = 4)
     private BigDecimal discountPrice;
 
-    private Integer stockQuantity;
-
     @Column(length = 100, unique = true)
     private String sku;
 

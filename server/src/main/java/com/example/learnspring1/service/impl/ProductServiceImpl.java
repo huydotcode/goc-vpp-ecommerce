@@ -56,7 +56,7 @@ public class ProductServiceImpl implements ProductService {
                 .colorCode(null)
                 .imageUrl(product.getThumbnailUrl())
                 .price(product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice())
-                .stockQuantity(product.getStockQuantity() != null ? product.getStockQuantity() : 0)
+                .stockQuantity(0)
                 .sku(product.getSku() != null ? product.getSku() : ("SKU-" + product.getId()))
                 .sortOrder(0)
                 .isActive(true)
@@ -79,8 +79,6 @@ public class ProductServiceImpl implements ProductService {
                 .findFirst()
                 .ifPresent(v -> {
                     v.setPrice(product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice());
-                    v.setStockQuantity(
-                            product.getStockQuantity() != null ? product.getStockQuantity() : v.getStockQuantity());
                     if (product.getThumbnailUrl() != null) {
                         v.setImageUrl(product.getThumbnailUrl());
                     }
