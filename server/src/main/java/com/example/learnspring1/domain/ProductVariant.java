@@ -51,6 +51,10 @@ public class ProductVariant {
     private Integer sortOrder;
 
     @Builder.Default
+    @Column(name = "is_default", nullable = false)
+    private Boolean isDefault = false;
+
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -92,4 +96,3 @@ public class ProductVariant {
         this.isActive = false;
     }
 }
-

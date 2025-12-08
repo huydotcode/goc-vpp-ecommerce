@@ -24,6 +24,7 @@ public class ProductVariantDTO {
     private Integer stockQuantity;
     private String sku;
     private Integer sortOrder;
+    private Boolean isDefault;
     private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
@@ -31,4 +32,3 @@ public class ProductVariantDTO {
     private String updatedBy;
     private String deletedBy;
 }
-

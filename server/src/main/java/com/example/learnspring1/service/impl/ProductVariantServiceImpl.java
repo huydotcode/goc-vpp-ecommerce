@@ -23,7 +23,7 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     private final ProductRepository productRepository;
 
     public ProductVariantServiceImpl(ProductVariantRepository variantRepository,
-                                     ProductRepository productRepository) {
+            ProductRepository productRepository) {
         this.variantRepository = variantRepository;
         this.productRepository = productRepository;
     }
@@ -41,7 +41,8 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     @Transactional
     public ProductVariantDTO createVariantDTO(ProductVariantDTO variantDTO) {
         Product product = productRepository.findById(variantDTO.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + variantDTO.getProductId()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Không tìm thấy sản phẩm với ID: " + variantDTO.getProductId()));
 
         ProductVariant variant = convertToEntity(variantDTO);
         variant.setProduct(product);
@@ -51,7 +52,8 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     }
 
     @Override
-    public Page<ProductVariant> getVariantsPage(Pageable pageable, Long productId, VariantType variantType, Boolean isActive) {
+    public Page<ProductVariant> getVariantsPage(Pageable pageable, Long productId, VariantType variantType,
+            Boolean isActive) {
         return variantRepository.findVariantsWithFilters(productId, variantType, isActive, pageable);
     }
 
@@ -86,8 +88,8 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         ProductVariant existing = variantRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy variant với ID: " + id));
 
-        if (variant.getSku() != null && !variant.getSku().equals(existing.getSku()) 
-            && variantRepository.existsBySku(variant.getSku())) {
+        if (variant.getSku() != null && !variant.getSku().equals(existing.getSku())
+                && variantRepository.existsBySku(variant.getSku())) {
             throw new IllegalArgumentException("SKU variant đã tồn tại");
         }
 
@@ -112,7 +114,8 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
         if (variantDTO.getProductId() != null && !variantDTO.getProductId().equals(existing.getProduct().getId())) {
             Product product = productRepository.findById(variantDTO.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + variantDTO.getProductId()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Không tìm thấy sản phẩm với ID: " + variantDTO.getProductId()));
             existing.setProduct(product);
         }
 
@@ -153,6 +156,7 @@ public class ProductVariantServiceImpl implements ProductVariantService {
                 .stockQuantity(variant.getStockQuantity())
                 .sku(variant.getSku())
                 .sortOrder(variant.getSortOrder())
+                .isDefault(variant.getIsDefault())
                 .isActive(variant.getIsActive())
                 .createdAt(variant.getCreatedAt())
                 .updatedAt(variant.getUpdatedAt())
@@ -174,8 +178,8 @@ public class ProductVariantServiceImpl implements ProductVariantService {
                 .stockQuantity(dto.getStockQuantity())
                 .sku(dto.getSku())
                 .sortOrder(dto.getSortOrder())
+                .isDefault(dto.getIsDefault() != null ? dto.getIsDefault() : false)
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
                 .build();
     }
 }
-
