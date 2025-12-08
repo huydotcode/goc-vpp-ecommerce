@@ -1,8 +1,15 @@
 package com.example.learnspring1.controller;
 
 import com.example.learnspring1.domain.Order;
+import com.example.learnspring1.domain.User;
+import com.example.learnspring1.domain.dto.CheckoutRequestDTO;
 import com.example.learnspring1.service.OrderService;
+import com.example.learnspring1.service.UserService;
 import com.example.learnspring1.utils.SecurityUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +21,26 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/orders")
+@Tag(name = "Order", description = "Quản lý đơn hàng")
+@SecurityRequirement(name = "Bearer Authentication")
 public class OrderController {
 
     private final OrderService orderService;
+    private final UserService userService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, UserService userService) {
         this.orderService = orderService;
+        this.userService = userService;
+    }
+
+    private User getCurrentUser() {
+        String currentUserEmail = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("User not authenticated"));
+        User user = userService.getUserByEmail(currentUserEmail);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        return user;
     }
 
     public static class CreateCODOrderRequest {
@@ -79,6 +100,32 @@ public class OrderController {
         }
     }
 
+    @Operation(summary = "Checkout từ giỏ hàng", description = "Tạo đơn hàng từ giỏ hàng, trừ stock, và xóa giỏ hàng")
+    @PostMapping("/checkout")
+    public ResponseEntity<Map<String, Object>> checkout(@Valid @RequestBody CheckoutRequestDTO request) {
+        try {
+            User currentUser = getCurrentUser();
+            Order order = orderService.checkoutFromCart(currentUser, request);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("orderCode", order.getOrderCode());
+            response.put("status", order.getStatus().name());
+            response.put("paymentMethod", order.getPaymentMethod().name());
+            response.put("totalAmount", order.getTotalAmount());
+            response.put("message", "Order created successfully");
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to create order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
     @PostMapping("/cod")
     public ResponseEntity<Map<String, Object>> createCODOrder(@RequestBody CreateCODOrderRequest request) {
         long amount = request.getAmount() != null ? request.getAmount() : 0L;
@@ -105,8 +152,7 @@ public class OrderController {
                     description,
                     request.getCustomerName(),
                     request.getCustomerEmail(),
-                    request.getCustomerPhone()
-            );
+                    request.getCustomerPhone());
 
             Map<String, Object> response = new HashMap<>();
             response.put("orderCode", order.getOrderCode());
@@ -129,7 +175,7 @@ public class OrderController {
     @GetMapping("/{orderCode}")
     public ResponseEntity<Map<String, Object>> getOrderByCode(@PathVariable String orderCode) {
         Optional<Order> orderOpt = orderService.getOrderByCode(orderCode);
-        
+
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
             Map<String, Object> response = new HashMap<>();
@@ -142,7 +188,7 @@ public class OrderController {
             response.put("customerPhone", order.getCustomerPhone());
             response.put("description", order.getDescription());
             response.put("createdAt", order.getCreatedAt());
-            
+
             return ResponseEntity.ok(response);
         } else {
             Map<String, Object> error = new HashMap<>();
@@ -154,17 +200,16 @@ public class OrderController {
     @PutMapping("/{orderCode}/status")
     public ResponseEntity<Map<String, Object>> updateOrderStatus(
             @PathVariable String orderCode,
-            @RequestParam String status
-    ) {
+            @RequestParam String status) {
         try {
             Order.OrderStatus orderStatus = Order.OrderStatus.valueOf(status.toUpperCase());
             Order order = orderService.updateOrderStatus(orderCode, orderStatus);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("orderCode", order.getOrderCode());
             response.put("status", order.getStatus().name());
             response.put("message", "Order status updated successfully");
-            
+
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, Object> error = new HashMap<>();
@@ -177,4 +222,3 @@ public class OrderController {
         }
     }
 }
-
