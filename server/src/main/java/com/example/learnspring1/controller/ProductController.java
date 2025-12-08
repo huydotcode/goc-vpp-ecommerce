@@ -15,12 +15,17 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
+
 import com.example.learnspring1.domain.Product;
 import com.example.learnspring1.domain.dto.PaginatedResponseDTO;
 import com.example.learnspring1.domain.dto.MetadataDTO;
 import com.example.learnspring1.service.ProductService;
+import com.example.learnspring1.service.UserProductHistoryService;
+import com.example.learnspring1.utils.SecurityUtil;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/products")
@@ -29,9 +34,11 @@ import jakarta.validation.Valid;
 public class ProductController {
 
     private final ProductService productService;
+    private final UserProductHistoryService userProductHistoryService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, UserProductHistoryService userProductHistoryService) {
         this.productService = productService;
+        this.userProductHistoryService = userProductHistoryService;
     }
 
     @Operation(summary = "Tạo mới product")
@@ -87,6 +94,51 @@ public class ProductController {
                 .metadata(metadata)
                 .result(result.getContent())
                 .build();
+    }
+
+    @Operation(summary = "Gợi ý sản phẩm cho trang chủ / tìm kiếm nhanh")
+    @GetMapping("/suggestions")
+    public List<Product> getSuggestions(
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "categoryId", required = false) Long categoryId,
+            @RequestParam(name = "limit", defaultValue = "8") int limit) {
+        return productService.suggestProducts(query, categoryId, limit);
+    }
+
+    @Operation(summary = "Gợi ý sản phẩm bằng vector (Gemini + ChromaDB)")
+    @GetMapping("/vector-suggest")
+    public List<Product> getVectorSuggestions(
+            @RequestParam(name = "q") String query,
+            @RequestParam(name = "categoryId", required = false) Long categoryId,
+            @RequestParam(name = "limit", defaultValue = "8") int limit) {
+        return productService.suggestProductsByVector(query, categoryId, limit);
+    }
+
+    @Operation(summary = "Track sản phẩm người dùng đã xem/click")
+    @PostMapping("/{id}/view")
+    public void trackProductView(@PathVariable("id") Long productId) {
+        Optional<String> currentUser = SecurityUtil.getCurrentUserLogin();
+        if (currentUser.isPresent()) {
+            userProductHistoryService.addProductView(currentUser.get(), productId);
+        }
+    }
+
+    @Operation(summary = "Gợi ý sản phẩm dựa trên lịch sử click/view của người dùng")
+    @GetMapping("/history-suggest")
+    public List<Product> getHistoryBasedSuggestions(
+            @RequestParam(name = "categoryId", required = false) Long categoryId,
+            @RequestParam(name = "limit", defaultValue = "8") int limit) {
+        Optional<String> currentUser = SecurityUtil.getCurrentUserLogin();
+        if (currentUser.isEmpty()) {
+            return productService.getBestSellers(PageRequest.of(0, limit)).getContent();
+        }
+        
+        List<Long> viewedProductIds = userProductHistoryService.getUserHistory(currentUser.get(), 20);
+        if (viewedProductIds.isEmpty()) {
+            return productService.getBestSellers(PageRequest.of(0, limit)).getContent();
+        }
+        
+        return productService.suggestProductsByUserHistory(viewedProductIds, categoryId, limit);
     }
 
     @Operation(summary = "Lấy danh sách sản phẩm bán chạy / nổi bật")

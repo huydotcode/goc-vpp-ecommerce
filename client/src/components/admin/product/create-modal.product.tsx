@@ -21,6 +21,7 @@ import { extractErrorMessage } from "../../../utils/error";
 import type { Category } from "@/types/category.types";
 import type { RcFile } from "antd/es/upload";
 import VariantManager from "./variant-manager.product";
+import { VariantType } from "@/types/variant.types";
 
 interface ProductCreateProps {
   isOpenCreateModal: boolean;
@@ -214,13 +215,27 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       }
 
       // Lấy ảnh đầu tiên làm thumbnail
+      const thumbnailUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl;
+      
+      // Tự động tạo default variant nếu không có variants
+      const defaultVariant = {
+        variantType: VariantType.OTHER,
+        variantValue: "Default",
+        price: values.price || values.discountPrice || 0,
+        stockQuantity: (values as any).stockQuantity || 0,
+        sku: values.sku || undefined,
+        imageUrl: thumbnailUrl || undefined,
+        isActive: values.isActive ?? true,
+        isDefault: true,
+      };
+
       const productData: CreateProductRequest = {
         ...values,
-        thumbnailUrl:
-          uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl,
+        thumbnailUrl,
         isActive: values.isActive ?? true,
         isFeatured: values.isFeatured ?? false,
         categoryIds: values.categoryIds || [],
+        variants: [defaultVariant], // Bắt buộc có ít nhất 1 variant
       };
       const createdProduct = await productService.createProduct(productData);
 

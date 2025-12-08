@@ -127,4 +127,33 @@ public class Product {
         this.deletedBy = user;
         this.isActive = false;
     }
+
+    /**
+     * Tính tổng stock từ tất cả variants active của sản phẩm
+     */
+    @Transient
+    @JsonProperty("totalStockQuantity")
+    public Integer getTotalStockQuantity() {
+        if (variants == null || variants.isEmpty()) {
+            return 0;
+        }
+        return variants.stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()) && v.getDeletedBy() == null)
+                .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                .sum();
+    }
+
+    /**
+     * Kiểm tra sản phẩm có còn hàng không (có ít nhất 1 variant có stock > 0)
+     */
+    @Transient
+    @JsonProperty("hasStock")
+    public Boolean getHasStock() {
+        if (variants == null || variants.isEmpty()) {
+            return false;
+        }
+        return variants.stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()) && v.getDeletedBy() == null)
+                .anyMatch(v -> v.getStockQuantity() != null && v.getStockQuantity() > 0);
+    }
 }

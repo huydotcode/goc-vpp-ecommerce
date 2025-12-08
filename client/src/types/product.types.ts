@@ -23,6 +23,8 @@ export interface Product {
   description?: string | null;
   price?: number | null; // BigDecimal as number
   discountPrice?: number | null; // BigDecimal as number
+  totalStockQuantity?: number | null; // Tổng stock từ tất cả variants (computed)
+  hasStock?: boolean | null; // Có còn hàng không (computed)
   sku?: string | null;
   brand?: string | null;
   color?: string | null;
@@ -58,6 +60,34 @@ export interface ProductFilters {
   direction?: "asc" | "desc";
 }
 
+export interface ProductSuggestionParams {
+  q?: string;
+  categoryId?: number;
+  limit?: number;
+}
+
+export interface ProductVectorSuggestionParams {
+  q: string;
+  categoryId?: number;
+  limit?: number;
+}
+
+import type { VariantType } from "./variant.types";
+
+// Variant khi tạo product mới (productId chưa có)
+export interface CreateProductVariantRequest {
+  variantType: VariantType;
+  variantValue: string;
+  colorCode?: string | null;
+  imageUrl?: string | null;
+  price?: number | null;
+  stockQuantity?: number | null;
+  sku?: string | null;
+  sortOrder?: number | null;
+  isActive?: boolean;
+  isDefault?: boolean;
+}
+
 export interface CreateProductRequest {
   name: string;
   description?: string;
@@ -74,6 +104,7 @@ export interface CreateProductRequest {
   categoryIds?: number[]; // For many-to-many relationship
   isActive?: boolean;
   isFeatured?: boolean;
+  variants?: CreateProductVariantRequest[]; // Bắt buộc phải có ít nhất 1 variant
 }
 
 export interface UpdateProductRequest {
@@ -92,4 +123,5 @@ export interface UpdateProductRequest {
   categoryIds?: number[];
   isActive?: boolean;
   isFeatured?: boolean;
+  // Stock được quản lý qua variants
 }
