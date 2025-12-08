@@ -56,6 +56,9 @@ public class Order {
     @Column(length = 20)
     private String customerPhone;
 
+    @Column(name = "customer_address", length = 500)
+    private String customerAddress;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default
@@ -88,15 +91,14 @@ public class Order {
         PAID,
         CANCELLED,
         REFUNDED,
-        CONFIRMED,      // Đã xác nhận (cho COD)
-        SHIPPING,       // Đang giao hàng
-        DELIVERED,      // Đã giao hàng
-        COMPLETED       // Hoàn thành (đã nhận hàng và thanh toán cho COD)
+        CONFIRMED, // Đã xác nhận (cho COD)
+        SHIPPING, // Đang giao hàng
+        DELIVERED, // Đã giao hàng
+        COMPLETED // Hoàn thành (đã nhận hàng và thanh toán cho COD)
     }
 
     public enum PaymentMethod {
-        PAYOS,          // Thanh toán qua PayOS
-        COD             // Trả tiền khi nhận hàng (Cash on Delivery)
+        PAYOS, // Thanh toán qua PayOS
+        COD // Trả tiền khi nhận hàng (Cash on Delivery)
     }
 }
-
