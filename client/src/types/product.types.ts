@@ -23,7 +23,6 @@ export interface Product {
   description?: string | null;
   price?: number | null; // BigDecimal as number
   discountPrice?: number | null; // BigDecimal as number
-  stockQuantity?: number | null;
   sku?: string | null;
   brand?: string | null;
   color?: string | null;
@@ -64,7 +63,6 @@ export interface CreateProductRequest {
   description?: string;
   price?: number;
   discountPrice?: number;
-  stockQuantity?: number;
   sku?: string;
   brand?: string;
   color?: string;
@@ -83,7 +81,6 @@ export interface UpdateProductRequest {
   description?: string;
   price?: number;
   discountPrice?: number;
-  stockQuantity?: number;
   sku?: string;
   brand?: string;
   color?: string;
@@ -96,4 +93,3 @@ export interface UpdateProductRequest {
   isActive?: boolean;
   isFeatured?: boolean;
 }
-
