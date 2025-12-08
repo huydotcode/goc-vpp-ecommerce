@@ -24,10 +24,10 @@ public class PayOSController {
     private final PayOSService payOSService;
     private final OrderService orderService;
 
-    @Value("${payos.frontend-return-url:http://localhost:5173/payos-result}")
+    @Value("${payos.frontend-return-url:http://localhost:5173/order-result}")
     private String frontendReturnUrl;
 
-    @Value("${payos.frontend-cancel-url:http://localhost:5173/cart-vnpay}")
+    @Value("${payos.frontend-cancel-url:http://localhost:5173/cart}")
     private String frontendCancelUrl;
 
     public PayOSController(PayOSService payOSService, OrderService orderService) {
@@ -154,28 +154,35 @@ public class PayOSController {
                 }
             }
 
-            // Lấy user email từ SecurityContext
-            String userEmail = SecurityUtil.getCurrentUserLogin().orElse(null);
-
-            // Lưu order vào DB với status PENDING (chờ thanh toán)
-            try {
-                Order order = orderService.createOrder(
-                        orderCode,
-                        userEmail,
-                        BigDecimal.valueOf(amount),
-                        Order.PaymentMethod.PAYOS,
-                        paymentLinkId,
-                        description,
-                        request.getCustomerName(),
-                        request.getCustomerEmail(),
-                        request.getCustomerPhone()
-                );
-                System.out.println("PayOS Order created: " + order.getOrderCode() + " with status: " + order.getStatus());
-            } catch (Exception e) {
-                System.err.println("Error creating order: " + e.getMessage());
-                e.printStackTrace();
-                // Không throw exception để không ảnh hưởng đến payment flow
-                // Nhưng log lại để debug
+            // Nếu có orderCode từ checkout, cập nhật paymentLinkId cho order đó
+            if (orderCode != null && !orderCode.isEmpty()) {
+                try {
+                    orderService.updatePaymentLinkId(orderCode, paymentLinkId);
+                    System.out.println("PayOS paymentLinkId updated for order: " + orderCode);
+                } catch (Exception e) {
+                    System.err.println("Error updating order paymentLinkId: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                // Legacy flow: Tạo order mới nếu không có orderCode (backward compatibility)
+                String userEmail = SecurityUtil.getCurrentUserLogin().orElse(null);
+                try {
+                    Order order = orderService.createOrder(
+                            String.valueOf(System.currentTimeMillis()),
+                            userEmail,
+                            BigDecimal.valueOf(amount),
+                            Order.PaymentMethod.PAYOS,
+                            paymentLinkId,
+                            description,
+                            request.getCustomerName(),
+                            request.getCustomerEmail(),
+                            request.getCustomerPhone());
+                    System.out.println(
+                            "PayOS Order created: " + order.getOrderCode() + " with status: " + order.getStatus());
+                } catch (Exception e) {
+                    System.err.println("Error creating order: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
 
             return result;
