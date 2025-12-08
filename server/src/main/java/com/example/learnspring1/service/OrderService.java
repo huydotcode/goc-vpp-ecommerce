@@ -16,7 +16,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
-    private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final CartService cartService;
 
     public OrderService(
@@ -24,13 +24,13 @@ public class OrderService {
             OrderItemRepository orderItemRepository,
             UserRepository userRepository,
             CartRepository cartRepository,
-            ProductRepository productRepository,
+            ProductVariantRepository productVariantRepository,
             CartService cartService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
-        this.productRepository = productRepository;
+        this.productVariantRepository = productVariantRepository;
         this.cartService = cartService;
     }
 
@@ -121,21 +121,26 @@ public class OrderService {
         // Validate và trừ stock cho tất cả items
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
+            ProductVariant variant = cartItem.getVariant();
+            if (variant == null) {
+                variant = productVariantRepository.findByProductIdAndIsDefaultTrue(product.getId())
+                        .orElseThrow(() -> new RuntimeException("Variant not found for product: " + product.getName()));
+            }
 
             // Kiểm tra product active
             if (product.getIsActive() == null || !product.getIsActive()) {
                 throw new RuntimeException("Product " + product.getName() + " is not available");
             }
 
-            // Kiểm tra stock
-            if (product.getStockQuantity() == null || product.getStockQuantity() < cartItem.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+            // Kiểm tra stock trên variant
+            if (variant.getIsActive() == null || !variant.getIsActive()) {
+                throw new RuntimeException("Variant for product " + product.getName() + " is not available");
             }
-
-            // Trừ stock
-            int newStock = product.getStockQuantity() - cartItem.getQuantity();
-            product.setStockQuantity(newStock);
-            productRepository.save(product);
+            if (variant.getStockQuantity() == null || variant.getStockQuantity() < cartItem.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for variant of product: " + product.getName());
+            }
+            variant.setStockQuantity(variant.getStockQuantity() - cartItem.getQuantity());
+            productVariantRepository.save(variant);
         }
 
         // Tính tổng tiền từ cart items
@@ -176,6 +181,7 @@ public class OrderService {
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(cartItem.getProduct())
+                    .variant(cartItem.getVariant())
                     .productName(cartItem.getProduct().getName())
                     .unitPrice(cartItem.getUnitPrice())
                     .quantity(cartItem.getQuantity())

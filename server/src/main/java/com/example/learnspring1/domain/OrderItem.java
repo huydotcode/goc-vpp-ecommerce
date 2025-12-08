@@ -28,6 +28,10 @@ public class OrderItem {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Column(nullable = false, length = 200)
     private String productName;
 
@@ -40,4 +44,3 @@ public class OrderItem {
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal subtotal;
 }
-

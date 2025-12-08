@@ -6,6 +6,7 @@ import com.example.learnspring1.domain.dto.CartResponseDTO;
 import com.example.learnspring1.repository.CartItemRepository;
 import com.example.learnspring1.repository.CartRepository;
 import com.example.learnspring1.repository.ProductRepository;
+import com.example.learnspring1.repository.ProductVariantRepository;
 import com.example.learnspring1.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,19 @@ public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
+
+    private ProductVariant resolveVariantOrDefault(Product product, Long variantId) {
+        // Nếu product có variantId -> lấy đúng variant
+        if (variantId != null) {
+            return productVariantRepository.findById(variantId)
+                    .filter(v -> v.getProduct().getId().equals(product.getId()))
+                    .orElseThrow(() -> new RuntimeException("Variant không hợp lệ"));
+        }
+        // Nếu không truyền variantId, lấy default variant nếu có
+        return productVariantRepository.findByProductIdAndIsDefaultTrue(product.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy default variant"));
+    }
 
     @Override
     public CartResponseDTO getCart(User user) {
@@ -41,9 +55,12 @@ public class CartServiceImpl implements CartService {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Kiểm tra tồn kho
-        if (product.getStockQuantity() == null || product.getStockQuantity() < request.getQuantity()) {
+        ProductVariant variant = resolveVariantOrDefault(product, request.getVariantId());
+        if (variant.getStockQuantity() == null || variant.getStockQuantity() < request.getQuantity()) {
             throw new RuntimeException("Insufficient stock");
+        }
+        if (variant.getIsActive() == null || !variant.getIsActive()) {
+            throw new RuntimeException("Variant is not available");
         }
 
         // Kiểm tra sản phẩm có active không
@@ -58,22 +75,27 @@ public class CartServiceImpl implements CartService {
                 });
 
         // Kiểm tra sản phẩm đã có trong giỏ chưa
-        CartItem existingItem = cartItemRepository.findByCartAndProduct(cart, product)
+        CartItem existingItem = cartItemRepository.findByCartAndProductAndVariant(cart, product, variant)
                 .orElse(null);
 
         if (existingItem != null) {
             // Cập nhật số lượng
             int newQuantity = existingItem.getQuantity() + request.getQuantity();
-            if (product.getStockQuantity() < newQuantity) {
+            if (variant.getStockQuantity() == null || variant.getStockQuantity() < newQuantity) {
                 throw new RuntimeException("Insufficient stock");
             }
             existingItem.setQuantity(newQuantity);
             cartItemRepository.save(existingItem);
         } else {
             // Thêm mới
-            BigDecimal price = product.getDiscountPrice() != null
-                    ? product.getDiscountPrice()
-                    : product.getPrice();
+            BigDecimal price;
+            if (variant != null && variant.getPrice() != null) {
+                price = variant.getPrice();
+            } else {
+                price = product.getDiscountPrice() != null
+                        ? product.getDiscountPrice()
+                        : product.getPrice();
+            }
 
             if (price == null) {
                 throw new RuntimeException("Product price is not set");
@@ -82,6 +104,7 @@ public class CartServiceImpl implements CartService {
             CartItem newItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
+                    .variant(variant)
                     .quantity(request.getQuantity())
                     .unitPrice(price)
                     .build();
@@ -109,8 +132,11 @@ public class CartServiceImpl implements CartService {
         }
 
         // Kiểm tra tồn kho
-        if (item.getProduct().getStockQuantity() == null ||
-                item.getProduct().getStockQuantity() < quantity) {
+        if (item.getVariant() == null) {
+            throw new RuntimeException("Variant not found for cart item");
+        }
+        if (item.getVariant().getStockQuantity() == null ||
+                item.getVariant().getStockQuantity() < quantity) {
             throw new RuntimeException("Insufficient stock");
         }
 
@@ -174,6 +200,15 @@ public class CartServiceImpl implements CartService {
                     itemDTO.setId(item.getId());
                     itemDTO.setProductId(item.getProduct().getId());
                     itemDTO.setProductName(item.getProduct().getName());
+                    if (item.getVariant() != null) {
+                        itemDTO.setVariantId(item.getVariant().getId());
+                        itemDTO.setVariantName(item.getVariant().getVariantValue());
+                        itemDTO.setSku(item.getVariant().getSku());
+                    } else {
+                        itemDTO.setVariantId(null);
+                        itemDTO.setVariantName(null);
+                        itemDTO.setSku(item.getProduct().getSku());
+                    }
 
                     // Lấy ảnh đầu tiên của sản phẩm
                     if (item.getProduct().getThumbnailUrl() != null) {
