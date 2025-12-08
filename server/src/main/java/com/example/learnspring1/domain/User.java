@@ -3,11 +3,13 @@ package com.example.learnspring1.domain;
 
 import java.time.Instant;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -22,7 +24,6 @@ import lombok.Setter;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
-
 
 @Entity
 @Table(name = "users")
@@ -46,8 +47,8 @@ public class User {
     @Email(message = "email should be valid")
     private String email;
 
-    @NotBlank(message = "password is required", groups = {CreateValidation.class})
-    @Column(nullable = true)  // Nullable for OAuth2 users
+    @NotBlank(message = "password is required", groups = { CreateValidation.class })
+    @Column(nullable = true) // Nullable for OAuth2 users
     private String password;
 
     @Column(nullable = true)
@@ -55,10 +56,10 @@ public class User {
 
     // OAuth2 fields
     @Column(name = "provider", length = 50)
-    private String provider;  // "LOCAL", "GOOGLE", etc.
+    private String provider; // "LOCAL", "GOOGLE", etc.
 
     @Column(name = "provider_id", length = 255)
-    private String providerId;  // ID from OAuth2 provider
+    private String providerId; // ID from OAuth2 provider
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)
@@ -85,6 +86,9 @@ public class User {
 
     @Column(name = "deleted_by", length = 100)
     private String deletedBy;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<UserAddress> addresses;
 
     @PrePersist
     public void prePersist() {
