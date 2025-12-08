@@ -1,9 +1,9 @@
 import type { PaginatedResponse } from "@/types/common.types";
 import type {
-  User,
-  UserFilters,
   CreateUserRequest,
   UpdateUserRequest,
+  User,
+  UserFilters,
 } from "@/types/user.types";
 import apiClient from "./client";
 import { API_ENDPOINTS } from "./endpoints";

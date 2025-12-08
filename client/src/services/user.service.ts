@@ -1,16 +1,16 @@
-import { userApi } from "@/api/user.api";
 import { uploadApi } from "@/api/upload.api";
-import type {
-  User,
-  UserFilters,
-  CreateUserRequest,
-  UpdateUserRequest,
-} from "@/types/user.types";
+import { userApi } from "@/api/user.api";
 import type { PaginatedResponse } from "@/types/common.types";
 import type { UploadResponse } from "@/types/upload.types";
+import type {
+  CreateUserRequest,
+  UpdateUserRequest,
+  User,
+  UserFilters,
+} from "@/types/user.types";
 
 // Re-export types để backward compatibility
-export type { User as UserDTO, CreateUserRequest, UpdateUserRequest };
+export type { CreateUserRequest, UpdateUserRequest, User as UserDTO };
 
 export const userService = {
   /**

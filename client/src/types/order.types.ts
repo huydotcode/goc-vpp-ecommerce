@@ -56,6 +56,7 @@ export interface Order {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  customerAddress?: string | null;
   items: OrderItem[];
   createdAt: string;
   updatedAt?: string | null;
