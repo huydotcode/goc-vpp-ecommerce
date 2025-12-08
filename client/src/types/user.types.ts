@@ -54,3 +54,33 @@ export interface UpdateUserRequest {
   avatarUrl?: string;
   isActive?: boolean;
 }
+
+export interface UserAddress {
+  id: number;
+  userId: number;
+  isDefault: boolean;
+  phone?: string | null;
+  provinceCode?: string | null;
+  provinceName?: string | null;
+  districtCode?: string | null;
+  districtName?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  street?: string | null;
+  fullAddress?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface UpdateAddressRequest {
+  isDefault?: boolean;
+  phone?: string;
+  provinceCode?: string;
+  provinceName?: string;
+  districtCode?: string;
+  districtName?: string;
+  wardCode?: string;
+  wardName?: string;
+  street?: string;
+  fullAddress?: string;
+}

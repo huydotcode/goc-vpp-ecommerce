@@ -9,6 +9,9 @@ export const API_ENDPOINTS = {
   USERS_ADVANCED: "/users/advanced",
   USERS_FILTER: "/users/filter",
 
+  // User Addresses
+  USER_ADDRESSES: "/user-addresses",
+
   // Categories
   CATEGORIES: "/categories",
   CATEGORIES_ADVANCED: "/categories/advanced",
