@@ -1,7 +1,10 @@
 export interface CartItem {
   id: number;
   productId: number;
+  variantId?: number | null;
   productName: string;
+  variantName?: string | null;
+  sku?: string | null;
   productImageUrl?: string | null;
   unitPrice: number;
   quantity: number;
@@ -22,6 +25,7 @@ export interface CartResponse {
 
 export interface AddCartItemRequest {
   productId: number;
+  variantId?: number | null;
   quantity: number;
 }
 
