@@ -90,4 +90,55 @@ export const productApi = {
   deleteProduct: async (id: number): Promise<void> => {
     await apiClient.delete(`${API_ENDPOINTS.PRODUCTS}/${id}`);
   },
+
+  /**
+   * Gợi ý sản phẩm (dùng cho Home / quick search)
+   */
+  getSuggestions: async (params: {
+    q?: string;
+    categoryId?: number;
+    limit?: number;
+  }): Promise<Product[]> => {
+    const response = await apiClient.get<Product[]>(
+      API_ENDPOINTS.PRODUCTS_SUGGESTIONS,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * Gợi ý sản phẩm bằng vector (Gemini + ChromaDB)
+   */
+  getVectorSuggestions: async (params: {
+    q: string;
+    categoryId?: number;
+    limit?: number;
+  }): Promise<Product[]> => {
+    const response = await apiClient.get<Product[]>(
+      API_ENDPOINTS.PRODUCTS_VECTOR_SUGGEST,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * Track sản phẩm người dùng đã xem/click
+   */
+  trackProductView: async (productId: number): Promise<void> => {
+    await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`);
+  },
+
+  /**
+   * Gợi ý sản phẩm dựa trên lịch sử click/view
+   */
+  getHistoryBasedSuggestions: async (params: {
+    categoryId?: number;
+    limit?: number;
+  }): Promise<Product[]> => {
+    const response = await apiClient.get<Product[]>(
+      API_ENDPOINTS.PRODUCTS_HISTORY_SUGGEST,
+      { params }
+    );
+    return response.data;
+  },
 };

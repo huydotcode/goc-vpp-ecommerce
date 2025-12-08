@@ -36,6 +36,12 @@ out/
 ### VS Code ###
 .vscode/
 
+### Node.js ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 ### Local Environment / Secrets ###
 application.properties
 application-local.properties

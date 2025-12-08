@@ -3,6 +3,8 @@ import { uploadApi } from "@/api/upload.api";
 import type {
   Product,
   ProductFilters,
+  ProductSuggestionParams,
+  ProductVectorSuggestionParams,
   CreateProductRequest,
   UpdateProductRequest,
   ProductImage,
@@ -80,6 +82,41 @@ export const productService = {
    */
   deleteProduct: async (id: number): Promise<void> => {
     return productApi.deleteProduct(id);
+  },
+
+  /**
+   * Gợi ý sản phẩm
+   */
+  getSuggestions: async (
+    params: ProductSuggestionParams
+  ): Promise<Product[]> => {
+    return productApi.getSuggestions(params);
+  },
+
+  /**
+   * Gợi ý sản phẩm bằng vector
+   */
+  getVectorSuggestions: async (
+    params: ProductVectorSuggestionParams
+  ): Promise<Product[]> => {
+    return productApi.getVectorSuggestions(params);
+  },
+
+  /**
+   * Track sản phẩm đã xem
+   */
+  trackProductView: async (productId: number): Promise<void> => {
+    return productApi.trackProductView(productId);
+  },
+
+  /**
+   * Gợi ý sản phẩm dựa trên lịch sử
+   */
+  getHistoryBasedSuggestions: async (params: {
+    categoryId?: number;
+    limit?: number;
+  }): Promise<Product[]> => {
+    return productApi.getHistoryBasedSuggestions(params);
   },
 
   /**

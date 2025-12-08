@@ -43,4 +43,20 @@ public interface ProductService {
      * trong 90 ngày gần nhất với trạng thái đơn hàng COMPLETED.
      */
     Page<Product> getBestSellers(Pageable pageable);
+
+    /**
+     * Gợi ý sản phẩm cho người dùng (ưu tiên nổi bật + phù hợp truy vấn).
+     */
+    List<Product> suggestProducts(String query, Long categoryId, int limit);
+
+    /**
+     * Gợi ý sản phẩm bằng vector search (Gemini embedding + ChromaDB).
+     */
+    List<Product> suggestProductsByVector(String query, Long categoryId, int limit);
+
+    /**
+     * Gợi ý sản phẩm dựa trên lịch sử click/view của người dùng.
+     * Tính vector trung bình từ các sản phẩm đã xem và query ChromaDB.
+     */
+    List<Product> suggestProductsByUserHistory(List<Long> viewedProductIds, Long categoryId, int limit);
 }

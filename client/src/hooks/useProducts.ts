@@ -2,6 +2,8 @@ import { productService } from "@/services/product.service";
 import type {
   CreateProductRequest,
   ProductFilters,
+  ProductSuggestionParams,
+  ProductVectorSuggestionParams,
   UpdateProductRequest,
 } from "@/types/product.types";
 import { handleApiError } from "@/utils/error";
@@ -18,6 +20,10 @@ export const productKeys = {
   detail: (id: number) => [...productKeys.details(), id] as const,
   bestSellers: (size: number) =>
     [...productKeys.all, "best-sellers", { size }] as const,
+  suggestions: (params: ProductSuggestionParams) =>
+    [...productKeys.all, "suggestions", params] as const,
+  vectorSuggestions: (params: ProductVectorSuggestionParams) =>
+    [...productKeys.all, "vector-suggestions", params] as const,
 };
 
 // Get all products with pagination and filters
@@ -47,6 +53,69 @@ export const useBestSellers = (size = 8, enabled = true) => {
     queryKey: productKeys.bestSellers(size),
     queryFn: () => productService.getBestSellers({ size }),
     enabled,
+  });
+};
+
+// Get product suggestions (AI-like)
+export const useProductSuggestions = (
+  params: ProductSuggestionParams,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: productKeys.suggestions(params),
+    queryFn: () => productService.getSuggestions(params),
+    enabled,
+  });
+};
+
+// Get product vector suggestions (Gemini + ChromaDB)
+export const useProductVectorSuggestions = (
+  params: ProductVectorSuggestionParams,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: productKeys.vectorSuggestions(params),
+    queryFn: () => productService.getVectorSuggestions(params),
+    enabled: enabled && !!params.q && params.q.trim().length > 0,
+  });
+};
+
+// Track product view mutation
+export const useTrackProductView = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (productId: number) => productService.trackProductView(productId),
+    onSuccess: () => {
+      // Invalidate history suggestions để refresh gợi ý
+      queryClient.invalidateQueries({
+        queryKey: [...productKeys.all, "history-suggestions"],
+      });
+    },
+    onError: handleApiError,
+  });
+};
+
+// Get history-based suggestions
+export const useHistoryBasedSuggestions = (
+  params: { categoryId?: number; limit?: number } = {},
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: [...productKeys.all, "history-suggestions", params],
+    queryFn: async () => {
+      console.log("[useHistoryBasedSuggestions] Calling API with params:", params, "enabled:", enabled);
+      try {
+        const result = await productService.getHistoryBasedSuggestions(params);
+        console.log("[useHistoryBasedSuggestions] API result:", result?.length || 0, "products");
+        return result;
+      } catch (error) {
+        console.error("[useHistoryBasedSuggestions] API error:", error);
+        throw error;
+      }
+    },
+    enabled,
+    retry: 1,
   });
 };
 

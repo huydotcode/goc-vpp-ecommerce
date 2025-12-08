@@ -6,6 +6,8 @@ import {
   FeaturedProducts,
   HeroBanner,
   NewArrivals,
+  HistoryBasedSuggestions,
+  AISearchTest,
   PromotionsSection,
   BlogTipsSection,
 } from "@/components/home";
@@ -19,6 +21,12 @@ const Home: React.FC = () => {
 
       {/* Quick Categories */}
       <CategoryGrid />
+
+      {/* AI Search Test */}
+      <AISearchTest />
+
+      {/* History-based Suggestions */}
+      <HistoryBasedSuggestions limit={8} />
 
       {/* Promotions Section */}
       <PromotionsSection />

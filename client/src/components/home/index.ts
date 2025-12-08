@@ -9,4 +9,6 @@ export { default as BenefitsSection } from "./BenefitsSection";
 export { default as BrandCarousel } from "./BrandCarousel";
 export { default as BlogTipsSection } from "./BlogTipsSection";
 export { default as SearchFilterBar } from "./SearchFilterBar";
+export { default as HistoryBasedSuggestions } from "./HistoryBasedSuggestions";
+export { default as AISearchTest } from "./AISearchTest";
 export { default as ProductCard } from "../ProductCard";

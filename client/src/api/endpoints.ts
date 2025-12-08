@@ -22,6 +22,10 @@ export const API_ENDPOINTS = {
   PRODUCTS_ADVANCED: "/products/advanced",
   PRODUCTS_PAGE: "/products/page",
   PRODUCTS_BEST_SELLERS: "/products/best-sellers",
+  PRODUCTS_SUGGESTIONS: "/products/suggestions",
+  PRODUCTS_VECTOR_SUGGEST: "/products/vector-suggest",
+  PRODUCTS_TRACK_VIEW: "/products", // Base path, sẽ append /{id}/view
+  PRODUCTS_HISTORY_SUGGEST: "/products/history-suggest",
 
   // Promotions
   PROMOTIONS: "/promotions",

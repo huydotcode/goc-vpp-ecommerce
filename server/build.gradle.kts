@@ -43,6 +43,9 @@ dependencies {
 	// https://mvnrepository.com/artifact/com.cloudinary/cloudinary-http44
 	implementation("com.cloudinary:cloudinary-http44:1.39.0")
 
+	// OkHttp for ChromaDB REST API calls
+	implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

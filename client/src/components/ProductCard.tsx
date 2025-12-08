@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
+import { useTrackProductView } from "@/hooks/useProducts";
 import type { ProductDTO } from "@/services/product.service";
 import type { ProductVariant } from "@/types/variant.types";
 import { formatPrice } from "@/utils/format";
@@ -39,6 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { addItem, adding } = useCart();
+  const trackProductView = useTrackProductView();
   const [addingProductId, setAddingProductId] = useState<number | null>(null);
   const [variantModalOpen, setVariantModalOpen] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
@@ -115,6 +117,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         return;
       }
 
+
       // Nếu có nhiều variant, yêu cầu chọn
       if (!isPromotion && variants.length > 1) {
         setVariantModalOpen(true);
@@ -137,6 +140,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
           stockQuantity !== undefined &&
           stockQuantity <= 0
         ) {
+
           toast.warning("Sản phẩm đã hết hàng");
           return;
         }
@@ -213,6 +217,12 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
     ) {
       return;
     }
+    // Track product view khi click vào card
+    trackProductView.mutate(id, {
+      onError: () => {
+        // Silent fail - không hiển thị lỗi nếu track thất bại
+      },
+    });
     navigate(`/products/${id}`);
   };
 
@@ -258,13 +268,17 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
   const isOutOfStock =
     !isPromotion &&
     (() => {
-      const stockQuantity =
-        variants.length > 1 ? undefined : defaultVariant?.stockQuantity;
-      return (
-        stockQuantity !== null &&
-        stockQuantity !== undefined &&
-        stockQuantity <= 0
-      );
+      const product = (props as DefaultProductCardProps).product;
+      // Kiểm tra stock từ variants hoặc hasStock computed field
+      if (product.hasStock === false) {
+        return true;
+      }
+      if (product.variants && product.variants.length > 0) {
+        return !product.variants.some(
+          v => v.isActive && (v.stockQuantity ?? 0) > 0
+        );
+      }
+      return false;
     })();
 
   return (
