@@ -25,6 +25,7 @@ export interface CheckoutRequest {
   customerPhone: string;
   address: string;
   description?: string;
+  cartItemIds?: number[]; // Optional: nếu không có thì checkout tất cả items trong cart
 }
 
 export interface CheckoutResponse {
