@@ -3,6 +3,8 @@ package com.example.learnspring1.controller;
 import com.example.learnspring1.domain.Order;
 import com.example.learnspring1.domain.User;
 import com.example.learnspring1.domain.dto.CheckoutRequestDTO;
+import com.example.learnspring1.domain.dto.OrderSummaryDTO;
+import com.example.learnspring1.domain.dto.OrderItemSummaryDTO;
 import com.example.learnspring1.service.OrderService;
 import com.example.learnspring1.service.UserService;
 import com.example.learnspring1.utils.SecurityUtil;
@@ -195,6 +197,45 @@ public class OrderController {
             error.put("error", "Order not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getMyOrders() {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(
+                orderService.getOrdersWithItemsByUserId(currentUser.getId()).stream().map(this::toSummaryDTO).toList());
+    }
+
+    private OrderSummaryDTO toSummaryDTO(Order order) {
+        return OrderSummaryDTO.builder()
+                .id(order.getId())
+                .orderCode(order.getOrderCode())
+                .totalAmount(order.getTotalAmount())
+                .status(order.getStatus())
+                .paymentMethod(order.getPaymentMethod())
+                .createdAt(order.getCreatedAt())
+                .items(order.getItems() != null
+                        ? order.getItems().stream()
+                                .map(oi -> OrderItemSummaryDTO.builder()
+                                        .productName(oi.getProductName())
+                                        .quantity(oi.getQuantity())
+                                        .unitPrice(oi.getUnitPrice())
+                                        .subtotal(oi.getSubtotal())
+                                        .imageUrl(resolveImage(oi))
+                                        .build())
+                                .toList()
+                        : java.util.Collections.emptyList())
+                .build();
+    }
+
+    private String resolveImage(com.example.learnspring1.domain.OrderItem oi) {
+        if (oi.getVariant() != null && oi.getVariant().getImageUrl() != null) {
+            return oi.getVariant().getImageUrl();
+        }
+        if (oi.getProduct() != null) {
+            return oi.getProduct().getThumbnailUrl();
+        }
+        return null;
     }
 
     @PutMapping("/{orderCode}/status")
