@@ -22,6 +22,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import OrderResult from "./pages/OrderResult";
 import OrdersPage from "./pages/Orders";
+import OrderDetailPage from "./pages/OrderDetail";
 import ProductDetailPage from "./pages/ProductDetail";
 import RegisterPage from "./pages/Register";
 import UserProfilePage from "./pages/UserProfile";
@@ -93,6 +94,7 @@ function AppRoutes(): JSX.Element {
           <Route index element={<UserProfilePage />} />
           <Route path="profile" element={<UserProfilePage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:orderCode" element={<OrderDetailPage />} />
         </Route>
         <Route
           path="checkout"

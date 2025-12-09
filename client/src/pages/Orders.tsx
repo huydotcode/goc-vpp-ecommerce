@@ -92,11 +92,7 @@ const OrdersPage: React.FC = () => {
             key={order.id}
             hoverable
             onClick={() =>
-              navigate(
-                order.orderCode
-                  ? `/order/${order.orderCode}`
-                  : `/order/${order.id}`
-              )
+              navigate(`/user/orders/${order.orderCode || order.id}`)
             }
             className="transition-shadow"
             style={{ border: "1px solid #e5e7eb" }}
