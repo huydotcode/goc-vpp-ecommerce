@@ -7,7 +7,6 @@
   --color-primary-light: #f87171; /* Red-400 - Nhạt hơn */
   --color-primary-dark: #dc2626; /* Red-600 - Đậm hơn */
   --color-primary-darker: #b91c1c; /* Red-700 - Rất đậm */
-
   --color-secondary: #4ecdc4;
   --color-secondary-light: #6ed4cd;
   --color-secondary-dark: #3ba39c;
@@ -49,7 +48,6 @@
   --spacing-xl: 2rem; /* 32px */
   --spacing-2xl: 3rem; /* 48px */
   --spacing-3xl: 4rem; /* 64px */
-
   /* Border radius */
   --radius-sm: 0.25rem; /* 4px */
   --radius-md: 0.375rem; /* 6px */
@@ -66,7 +64,6 @@
   --font-size-2xl: 1.5rem; /* 24px */
   --font-size-3xl: 1.875rem; /* 30px */
   --font-size-4xl: 2.25rem; /* 36px */
-
   /* Font weights */
   --font-weight-light: 300;
   --font-weight-normal: 400;
@@ -175,5 +172,83 @@ button {
 }
 
 .slick-thumb {
-    bottom: -45px;
+  bottom: -45px;
+}
+
+.blog-content-html {
+  /* Tăng độ rộng và khoảng cách giữa các dòng */
+  line-height: 1.85;
+  font-family: inherit;
+  font-size: 17px; /* Tăng kích thước cơ bản để dễ đọc */
+  color: var(--color-gray-900); /* Màu chữ tối hơn cho độ tương phản cao */
+
+  /* Reset lề đã fix trước đó */
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.blog-content-html > *,
+.blog-content-html p,
+.blog-content-html h1,
+.blog-content-html h2,
+.blog-content-html h3,
+.blog-content-html ul,
+.blog-content-html ol,
+.blog-content-html blockquote,
+.blog-content-html div,
+.blog-content-html span {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  text-indent: 0 !important;
+  white-space: normal !important;
+  margin-bottom: var(--spacing-md);
+}
+
+.blog-content-html h2 {
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  margin-top: var(--spacing-2xl);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: 0.5rem;
+  color: var(--color-primary-dark);
+  border-bottom: 2px solid var(--color-red-200);
+}
+
+.blog-content-html h3 {
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-semibold);
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-gray-800);
+}
+
+.blog-content-html p {
+  margin-bottom: var(--spacing-lg);
+  text-align: justify;
+}
+
+.blog-content-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  margin: var(--spacing-xl) auto;
+  display: block;
+  box-shadow: var(--shadow-sm);
+}
+
+.blog-content-html ul,
+.blog-content-html ol {
+  padding-left: 1.8rem !important;
+  line-height: 1.7;
+}
+
+.blog-content-html blockquote {
+  margin: var(--spacing-xl) 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-left: 4px solid var(--color-primary);
+  background-color: var(--color-red-50);
+  font-style: italic;
+  color: var(--color-gray-700);
+  border-radius: var(--radius-md);
 }

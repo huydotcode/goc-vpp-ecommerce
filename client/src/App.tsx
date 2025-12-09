@@ -29,6 +29,8 @@ import VnPayResult from "./pages/VnPayResult";
 import Forbidden from "./pages/errors/Forbidden";
 import NotFound from "./pages/errors/NotFound";
 import Unauthorized from "./pages/errors/Unauthorized";
+import BlogListPage from "./pages/BlogListPage";
+import BlogDetailPage from "./pages/BlogDetailPage";
 
 function App(): JSX.Element {
   return (
@@ -78,6 +80,8 @@ function AppRoutes(): JSX.Element {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="login" element={<Login />} />
         <Route path="products/:id" element={<ProductDetailPage />} />
+        <Route path="blogs" element={<BlogListPage />} />
+        <Route path="blogs/:slug" element={<BlogDetailPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="cart-vnpay" element={<CartVnPayMock />} />
         <Route path="vnpay-result" element={<VnPayResult />} />
