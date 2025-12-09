@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
 
   // Users
   USERS: "/users",
+  USERS_ME: "/users/me",
   USERS_ADVANCED: "/users/advanced",
   USERS_FILTER: "/users/filter",
 

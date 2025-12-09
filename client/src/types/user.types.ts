@@ -15,6 +15,11 @@ export interface User {
   username: string;
   email: string;
   avatarUrl?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  dateOfBirth?: string | null; // ISO date
   isActive: boolean;
   role: UserRole;
   createdAt: string; // ISO date string
@@ -44,6 +49,11 @@ export interface CreateUserRequest {
   role: UserRole;
   avatarUrl?: string;
   isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  dateOfBirth?: string;
 }
 
 export interface UpdateUserRequest {
@@ -53,6 +63,23 @@ export interface UpdateUserRequest {
   role?: UserRole;
   avatarUrl?: string;
   isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  dateOfBirth?: string;
+}
+
+export interface UpdateProfileRequest {
+  username: string;
+  email?: string;
+  password?: string;
+  avatarUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  dateOfBirth?: string;
 }
 
 export interface UserAddress {

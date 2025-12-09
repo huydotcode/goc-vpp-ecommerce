@@ -4,6 +4,7 @@ import type {
   UpdateUserRequest,
   User,
   UserFilters,
+  UpdateProfileRequest,
 } from "@/types/user.types";
 import apiClient from "./client";
 import { API_ENDPOINTS } from "./endpoints";
@@ -69,6 +70,14 @@ export const userApi = {
    */
   deleteUser: async (id: number): Promise<void> => {
     await apiClient.delete(`${API_ENDPOINTS.USERS}/${id}`);
+  },
+
+  /**
+   * Update current logged-in user's profile
+   */
+  updateProfile: async (payload: UpdateProfileRequest): Promise<User> => {
+    const response = await apiClient.put<User>(API_ENDPOINTS.USERS_ME, payload);
+    return response.data;
   },
 
   /**

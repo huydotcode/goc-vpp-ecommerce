@@ -7,10 +7,12 @@ import type {
   UpdateUserRequest,
   User,
   UserFilters,
+  UpdateProfileRequest,
 } from "@/types/user.types";
 
 // Re-export types để backward compatibility
 export type { CreateUserRequest, UpdateUserRequest, User as UserDTO };
+export type { UpdateProfileRequest };
 
 export const userService = {
   /**
@@ -63,6 +65,13 @@ export const userService = {
     userData: UpdateUserRequest
   ): Promise<User> => {
     return userApi.updateUser(id, userData);
+  },
+
+  /**
+   * Update current user profile
+   */
+  updateProfile: async (payload: UpdateProfileRequest): Promise<User> => {
+    return userApi.updateProfile(payload);
   },
 
   /**
