@@ -52,4 +52,19 @@ export const orderApi = {
 
     throw new Error("Không đọc được order từ response");
   },
+
+  getMyOrders: async (): Promise<Order[]> => {
+    const res = (await apiClient.get(API_ENDPOINTS.ORDERS)) as
+      | Order[]
+      | ApiResponseWrapper<Order[]>;
+
+    if (Array.isArray(res)) {
+      return res;
+    }
+    if (res && typeof res === "object" && "data" in res && res.data) {
+      return (res as ApiResponseWrapper<Order[]>).data;
+    }
+
+    throw new Error("Không đọc được danh sách đơn hàng");
+  },
 };
