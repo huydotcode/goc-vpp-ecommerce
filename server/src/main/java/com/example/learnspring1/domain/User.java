@@ -2,6 +2,7 @@
 package com.example.learnspring1.domain;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -24,6 +25,7 @@ import lombok.Setter;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.validation.constraints.PastOrPresent;
 
 @Entity
 @Table(name = "users")
@@ -53,6 +55,23 @@ public class User {
 
     @Column(nullable = true)
     private String avatarUrl;
+
+    @Column(name = "first_name", length = 100)
+    private String firstName;
+
+    @Column(name = "last_name", length = 100)
+    private String lastName;
+
+    @Column(name = "phone", length = 20, unique = true)
+    private String phone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 20)
+    private Gender gender;
+
+    @PastOrPresent
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
     // OAuth2 fields
     @Column(name = "provider", length = 50)
