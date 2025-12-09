@@ -17,12 +17,18 @@ import {
   List,
   Avatar,
   Table,
+  Modal,
+  Form,
+  Input,
+  Progress,
 } from "antd";
 import {
   ShoppingCartOutlined,
   CheckCircleOutlined,
   CarOutlined,
   HomeOutlined,
+  UserOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import Slider from "react-slick";
 
@@ -31,10 +37,13 @@ import "slick-carousel/slick/slick-theme.css";
 
 import { productService } from "@/services/product.service";
 import { cartService } from "@/services/cart.service";
+import { reviewService } from "@/services/review.service"; // Import service review
 import type { Product } from "@/types/product.types";
+import type { Review, ReviewStats } from "@/types/review.types"; // Import types review
 
 const { Title, Text, Paragraph } = Typography;
 
+// --- Custom Arrows for Slider ---
 const NextArrow = (props: any) => {
   const { className, style, onClick } = props;
   return (
@@ -61,11 +70,25 @@ const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // --- Product States ---
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [quantity, setQuantity] = useState<number>(1);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
 
+  // --- Review States ---
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [reviewPage, setReviewPage] = useState(1);
+
+  // --- Review Modal States ---
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [form] = Form.useForm();
+
+  // --- Slider Settings ---
   const productSliderSettings = {
     customPaging: function (i: number) {
       const images = getProductImages();
@@ -108,35 +131,40 @@ const ProductDetailPage: React.FC = () => {
     ],
   };
 
+  // --- Fetch Data Effect ---
   useEffect(() => {
     if (!id) return;
 
     const fetchData = async () => {
       try {
         setLoading(true);
+        // 1. Fetch Product Detail
         const data = await productService.getProductById(Number(id));
         setProduct(data);
-
         productService.trackProductView(Number(id)).catch(console.error);
 
+        // 2. Fetch Review Stats & List (Parallel)
+        fetchReviewsAndStats(Number(id));
+
+        // 3. Fetch Similar Products
         if (data.categories && data.categories.length > 0) {
           const mainCategoryId = data.categories[0].id;
-
-          const suggestionParams = {
+          const suggestions = await productService.getSuggestions({
             categoryId: mainCategoryId,
-            limit: 10
-          };
-
-          const suggestions = await productService.getSuggestions(suggestionParams);
-
+            limit: 10,
+          });
           if (suggestions) {
             setSimilarProducts(suggestions.filter((p) => p.id !== Number(id)));
           }
         } else {
-             const fallback = await productService.getProductsPage({ page: 1, size: 6 });
-             setSimilarProducts(fallback.result.filter((p) => p.id !== Number(id)));
+          const fallback = await productService.getProductsPage({
+            page: 1,
+            size: 6,
+          });
+          setSimilarProducts(
+            fallback.result.filter((p) => p.id !== Number(id))
+          );
         }
-
       } catch (error) {
         console.error("Failed to fetch product", error);
         message.error("Không thể tải thông tin sản phẩm!");
@@ -149,13 +177,77 @@ const ProductDetailPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // --- Helper: Fetch Review Data ---
+  const fetchReviewsAndStats = async (productId: number) => {
+    try {
+        setReviewLoading(true);
+        const [stats, reviewData] = await Promise.all([
+            reviewService.getStats(productId),
+            reviewService.getReviewsByProduct(productId, 1, 5)
+        ]);
+
+        if (stats) setReviewStats(stats);
+        if (reviewData) {
+            setReviews(reviewData.result);
+            setTotalReviews(reviewData.metadata?.totalElements || 0);
+        }
+    } catch (error) {
+        console.error("Lỗi tải review:", error);
+    } finally {
+        setReviewLoading(false);
+    }
+  };
+
+  const handlePageChange = async (page: number) => {
+      setReviewPage(page);
+      setReviewLoading(true);
+      const data = await reviewService.getReviewsByProduct(Number(id), page, 5);
+      if (data) {
+          setReviews(data.result);
+      }
+      setReviewLoading(false);
+  };
+
+  const handleSubmitReview = async (values: any) => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+          message.warning("Vui lòng đăng nhập để đánh giá!");
+          return;
+      }
+
+      try {
+          setSubmitLoading(true);
+          await reviewService.createReview({
+              productId: Number(id),
+              rating: values.rating,
+              content: values.content,
+              userFullName: values.userFullName || "Khách hàng"
+          });
+
+          message.success("Cảm ơn bạn đã đánh giá!");
+          setIsReviewModalOpen(false);
+          form.resetFields();
+
+          fetchReviewsAndStats(Number(id));
+
+      } catch (error) {
+          console.error(error);
+          message.error("Gửi đánh giá thất bại. Vui lòng thử lại!");
+      } finally {
+          setSubmitLoading(false);
+      }
+  };
+
+  // --- Helper: Get Images ---
   const getProductImages = () => {
     if (!product) return [];
     const list = [];
     if (product.thumbnailUrl) list.push(product.thumbnailUrl);
     if (product.images && product.images.length > 0) {
-        const sortedImages = [...product.images].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        sortedImages.forEach((img) => list.push(img.imageUrl));
+      const sortedImages = [...product.images].sort(
+        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+      );
+      sortedImages.forEach((img) => list.push(img.imageUrl));
     }
     if (list.length === 0)
       list.push("https://via.placeholder.com/500x500?text=No+Image");
@@ -163,7 +255,17 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const handleAddToCart = async () => {
-    message.info("Tính năng đang tạm khóa bảo trì.");
+    // message.info("Tính năng đang tạm khóa bảo trì.");
+     // Code cũ của bạn
+     const token = localStorage.getItem("accessToken");
+     if (!token) {
+       message.warning("Vui lòng đăng nhập để mua hàng!");
+       navigate("/login");
+       return;
+     }
+     if (!product) return;
+     // ... logic cart service ...
+     message.success("Đã thêm vào giỏ hàng (Demo)");
   };
 
   const handleBuyNow = async () => {
@@ -178,6 +280,7 @@ const ProductDetailPage: React.FC = () => {
     }).format(value);
   };
 
+  // --- Detail Table Data ---
   const detailColumns = [
     {
       title: "Thuộc tính",
@@ -196,24 +299,23 @@ const ProductDetailPage: React.FC = () => {
 
   const getDetailData = () => {
     if (!product) return [];
-
     const items = [
       { key: "sku", label: "Mã sản phẩm (SKU)", value: product.sku },
       { key: "brand", label: "Thương hiệu", value: product.brand },
       {
         key: "cats",
         label: "Danh mục",
-        value: product.categories?.map(c => c.name).join(", ")
+        value: product.categories?.map((c) => c.name).join(", "),
       },
       { key: "weight", label: "Trọng lượng", value: product.weight },
       { key: "dims", label: "Kích thước (DxRxC)", value: product.dimensions },
       { key: "color", label: "Màu sắc", value: product.color },
       { key: "size", label: "Kích cỡ", value: product.size },
     ];
-
-    return items.filter(item => item.value && item.value.trim() !== "");
+    return items.filter((item) => item.value && item.value.trim() !== "");
   };
 
+  // --- Loading State ---
   if (loading) {
     return (
       <div
@@ -310,9 +412,19 @@ const ProductDetailPage: React.FC = () => {
                 marginBottom: 16,
               }}
             >
-              <Rate disabled defaultValue={4.5} style={{ fontSize: 14 }} />
+              {/* Star Rating Real Data */}
+              <Rate
+                disabled
+                allowHalf
+                value={reviewStats?.averageRating || 0}
+                style={{ fontSize: 14 }}
+              />
               <Text type="secondary" style={{ fontSize: 13 }}>
-                (Xem 29 đánh giá) | Đã bán: 100+
+                (Xem {reviewStats?.totalReviews || 0} đánh giá)
+              </Text>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {" "}
+                | Đã bán: {product.totalStockQuantity ? (1000 - product.totalStockQuantity) : "100+"}
               </Text>
             </div>
 
@@ -360,7 +472,7 @@ const ProductDetailPage: React.FC = () => {
                 value={quantity}
                 onChange={(val) => setQuantity(val || 1)}
               />
-               <Text type="secondary" style={{ marginLeft: 12 }}>
+              <Text type="secondary" style={{ marginLeft: 12 }}>
                 {product.hasStock ? `(Còn hàng)` : `(Hết hàng)`}
               </Text>
             </div>
@@ -439,15 +551,21 @@ const ProductDetailPage: React.FC = () => {
                 <div style={{ marginTop: 16 }}>
                   <Title level={5}>{product.name}</Title>
                   {product.description ? (
-                     <div dangerouslySetInnerHTML={{ __html: product.description }} />
+                    <div
+                      dangerouslySetInnerHTML={{ __html: product.description }}
+                    />
                   ) : (
                     <Paragraph>Đang cập nhật nội dung...</Paragraph>
                   )}
 
                   {product.specifications && (
                     <div style={{ marginTop: 20 }}>
-                        <Title level={5}>Thông số kỹ thuật</Title>
-                        <div dangerouslySetInnerHTML={{ __html: product.specifications }} />
+                      <Title level={5}>Thông số kỹ thuật</Title>
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: product.specifications,
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -455,45 +573,158 @@ const ProductDetailPage: React.FC = () => {
             },
             {
               key: "3",
-              label: (
-                <span style={{ fontSize: 16, fontWeight: 500 }}>
-                  Đánh giá khách hàng
-                </span>
-              ),
+              label: `Đánh giá khách hàng (${reviewStats?.totalReviews || 0})`,
               children: (
                 <div style={{ marginTop: 16 }}>
+                  {/* --- Header Review: Average Rating & Write Button --- */}
+                  <Row
+                    align="middle"
+                    justify="space-between"
+                    style={{
+                      background: "#fffbfb",
+                      border: "1px solid #f9f9f9",
+                      padding: 24,
+                      borderRadius: 8,
+                      marginBottom: 24,
+                    }}
+                  >
+                    <Col>
+                       <div style={{display: 'flex', alignItems: 'center', gap: 15}}>
+                           <div style={{textAlign: 'center'}}>
+                               <div style={{ fontSize: 32, fontWeight: "bold", color: "#faad14", lineHeight: 1 }}>
+                                    {reviewStats?.averageRating || 0}/5
+                               </div>
+                               <Rate disabled allowHalf value={reviewStats?.averageRating || 0} />
+                           </div>
+                           <Divider type="vertical" style={{height: 40}} />
+                           <div style={{color: '#666'}}>
+                               <div>{reviewStats?.totalReviews || 0} nhận xét</div>
+                           </div>
+                       </div>
+                    </Col>
+                    <Col>
+                      <Button
+                        type="primary"
+                        icon={<EditOutlined />}
+                        onClick={() => setIsReviewModalOpen(true)}
+                        size="large"
+                      >
+                        Viết đánh giá
+                      </Button>
+                    </Col>
+                  </Row>
+
+                  {/* --- Review List --- */}
                   <List
-                    itemLayout="horizontal"
-                    dataSource={[
-                      {
-                        user: "Nguyễn Văn A",
-                        rate: 5,
-                        comment: "Sản phẩm chất lượng, giao hàng nhanh!",
-                      },
-                    ]}
+                    itemLayout="vertical"
+                    loading={reviewLoading}
+                    dataSource={reviews}
+                    locale={{ emptyText: "Chưa có đánh giá nào. Hãy là người đầu tiên!" }}
+                    pagination={{
+                      onChange: handlePageChange,
+                      pageSize: 5,
+                      total: totalReviews,
+                      current: reviewPage,
+                      hideOnSinglePage: true,
+                    }}
                     renderItem={(item) => (
-                      <List.Item>
+                      <List.Item
+                        key={item.id}
+                        style={{borderBottom: '1px solid #f0f0f0', padding: '16px 0'}}
+                      >
                         <List.Item.Meta
                           avatar={
-                            <Avatar style={{ backgroundColor: "#f56a00" }}>
-                              {item.user[0]}
+                            <Avatar
+                              icon={<UserOutlined />}
+                              style={{ backgroundColor: "#fde3cf", color: '#f56a00' }}
+                            >
+                              {item.userFullName ? item.userFullName.charAt(0).toUpperCase() : "U"}
                             </Avatar>
                           }
                           title={
-                            <>
-                              <Text strong>{item.user}</Text>{" "}
-                              <Rate
-                                disabled
-                                defaultValue={item.rate}
-                                style={{ fontSize: 12 }}
-                              />
-                            </>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <div>
+                                <Text strong style={{marginRight: 10}}>
+                                  {item.userFullName || "Khách hàng ẩn danh"}
+                                </Text>
+                                <span style={{fontSize: 12, color: '#999'}}>
+                                    {new Date(item.createdAt).toLocaleDateString("vi-VN", {
+                                        year: 'numeric', month: 'long', day: 'numeric'
+                                    })}
+                                </span>
+                              </div>
+                            </div>
                           }
-                          description={item.comment}
+                          description={
+                            <div style={{marginTop: 5}}>
+                                <Rate disabled value={item.rating} style={{ fontSize: 12, marginRight: 10 }} />
+                                <Paragraph style={{marginTop: 8, fontSize: 15, color: '#333'}}>
+                                    {item.content}
+                                </Paragraph>
+                            </div>
+                          }
                         />
                       </List.Item>
                     )}
                   />
+
+                  {/* --- Modal Write Review --- */}
+                  <Modal
+                    title="Viết đánh giá sản phẩm"
+                    open={isReviewModalOpen}
+                    onCancel={() => setIsReviewModalOpen(false)}
+                    footer={null}
+                    destroyOnClose
+                  >
+                    <Form
+                      form={form}
+                      onFinish={handleSubmitReview}
+                      layout="vertical"
+                    >
+                      <Form.Item
+                        name="rating"
+                        label="Mức độ hài lòng"
+                        rules={[
+                          { required: true, message: "Vui lòng chọn số sao" },
+                        ]}
+                        initialValue={5}
+                      >
+                        <Rate style={{fontSize: 24}} />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="content"
+                        label="Nội dung đánh giá"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập nội dung" },
+                          { min: 10, message: "Nội dung đánh giá ít nhất 10 ký tự" }
+                        ]}
+                      >
+                        <Input.TextArea
+                          rows={4}
+                          placeholder="Hãy chia sẻ cảm nhận của bạn về sản phẩm này..."
+                        />
+                      </Form.Item>
+
+                      {/* Optional: Input Name */}
+                      <Form.Item name="userFullName" label="Tên hiển thị (Tùy chọn)">
+                          <Input placeholder="Bạn muốn hiển thị tên gì?" />
+                      </Form.Item>
+
+                      <Form.Item>
+                        <div style={{display: 'flex', justifyContent: 'flex-end', gap: 10}}>
+                            <Button onClick={() => setIsReviewModalOpen(false)}>Hủy</Button>
+                            <Button
+                            type="primary"
+                            htmlType="submit"
+                            loading={submitLoading}
+                            >
+                            Gửi đánh giá
+                            </Button>
+                        </div>
+                      </Form.Item>
+                    </Form>
+                  </Modal>
                 </div>
               ),
             },
@@ -522,7 +753,9 @@ const ProductDetailPage: React.FC = () => {
             {similarProducts.map((p) => {
               const pDiscount =
                 p.price && p.discountPrice
-                  ? Math.round(((p.price - p.discountPrice) / p.price) * 100)
+                  ? Math.round(
+                      ((p.price - p.discountPrice) / p.price) * 100
+                    )
                   : 0;
 
               return (

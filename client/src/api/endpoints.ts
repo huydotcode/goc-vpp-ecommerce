@@ -49,4 +49,9 @@ export const API_ENDPOINTS = {
   // Orders
   ORDERS: "/orders",
   ORDERS_CHECKOUT: "/orders/checkout",
+
+  // Reviews
+  REVIEWS: "/reviews",
+  REVIEWS_STATS: "/reviews/stats",
+  REVIEWS_PRODUCT: "/reviews/product",
 } as const;
