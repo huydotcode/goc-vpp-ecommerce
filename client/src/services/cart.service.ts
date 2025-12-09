@@ -3,6 +3,7 @@ import type {
   AddCartItemRequest,
   CartResponse,
   UpdateCartItemRequest,
+  UpdateCartItemVariantRequest,
 } from "@/types/cart.types";
 
 export const cartService = {
@@ -11,6 +12,9 @@ export const cartService = {
     cartApi.addItem(payload),
   updateItem: (payload: UpdateCartItemRequest): Promise<CartResponse> =>
     cartApi.updateItem(payload),
+  updateItemVariant: (
+    payload: UpdateCartItemVariantRequest
+  ): Promise<CartResponse> => cartApi.updateItemVariant(payload),
   removeItem: (cartItemId: number): Promise<CartResponse> =>
     cartApi.removeItem(cartItemId),
   clearCart: (): Promise<void> => cartApi.clearCart(),

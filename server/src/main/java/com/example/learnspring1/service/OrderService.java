@@ -7,7 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -16,6 +18,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CartService cartService;
 
@@ -24,12 +27,14 @@ public class OrderService {
             OrderItemRepository orderItemRepository,
             UserRepository userRepository,
             CartRepository cartRepository,
+            CartItemRepository cartItemRepository,
             ProductVariantRepository productVariantRepository,
             CartService cartService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
         this.productVariantRepository = productVariantRepository;
         this.cartService = cartService;
     }
@@ -101,6 +106,18 @@ public class OrderService {
         return orderRepository.findByOrderCode(orderCode);
     }
 
+    public List<Order> getOrdersByUserId(Long userId) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    public List<Order> getOrdersWithItemsByUserId(Long userId) {
+        return orderRepository.findWithItemsByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    public Optional<Order> getOrderWithItemsByCode(String orderCode) {
+        return orderRepository.findWithItemsByOrderCode(orderCode);
+    }
+
     /**
      * Checkout từ Cart: Tạo Order + OrderItems từ Cart, trừ stock, clear cart
      */
@@ -118,8 +135,24 @@ public class OrderService {
             throw new RuntimeException("Cart is empty");
         }
 
-        // Validate và trừ stock cho tất cả items
-        for (CartItem cartItem : cart.getItems()) {
+        // Lọc các items cần checkout
+        List<CartItem> itemsToCheckout;
+        if (request.getCartItemIds() != null && !request.getCartItemIds().isEmpty()) {
+            // Chỉ checkout các items được chọn
+            itemsToCheckout = cart.getItems().stream()
+                    .filter(item -> request.getCartItemIds().contains(item.getId()))
+                    .collect(Collectors.toList());
+        } else {
+            // Checkout tất cả items
+            itemsToCheckout = cart.getItems();
+        }
+
+        if (itemsToCheckout.isEmpty()) {
+            throw new RuntimeException("No items selected for checkout");
+        }
+
+        // Validate và trừ stock cho các items được chọn
+        for (CartItem cartItem : itemsToCheckout) {
             Product product = cartItem.getProduct();
             ProductVariant variant = cartItem.getVariant();
             if (variant == null) {
@@ -143,8 +176,8 @@ public class OrderService {
             productVariantRepository.save(variant);
         }
 
-        // Tính tổng tiền từ cart items
-        BigDecimal totalAmount = cart.getItems().stream()
+        // Tính tổng tiền từ các items được chọn
+        BigDecimal totalAmount = itemsToCheckout.stream()
                 .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -176,8 +209,8 @@ public class OrderService {
 
         order = orderRepository.save(order);
 
-        // Tạo OrderItems từ CartItems
-        for (CartItem cartItem : cart.getItems()) {
+        // Tạo OrderItems từ các items được chọn
+        for (CartItem cartItem : itemsToCheckout) {
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(cartItem.getProduct())
@@ -191,8 +224,10 @@ public class OrderService {
             orderItemRepository.save(orderItem);
         }
 
-        // Clear cart sau khi checkout thành công
-        cartService.deleteCartAfterCheckout(user);
+        // Xóa các items đã checkout khỏi cart (không xóa toàn bộ cart)
+        // Sử dụng orphanRemoval bằng cách xóa khỏi collection để JPA tự động xóa
+        cart.getItems().removeAll(itemsToCheckout);
+        cartRepository.saveAndFlush(cart);
 
         return order;
     }

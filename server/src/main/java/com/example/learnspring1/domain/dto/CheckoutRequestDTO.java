@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class CheckoutRequestDTO {
     @NotNull(message = "Payment method is required")
@@ -23,4 +25,6 @@ public class CheckoutRequestDTO {
     private String address;
 
     private String description; // Optional notes
+
+    private List<Long> cartItemIds; // Optional: nếu null hoặc empty thì checkout tất cả items trong cart
 }

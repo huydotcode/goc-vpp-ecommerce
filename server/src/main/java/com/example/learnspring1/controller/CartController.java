@@ -60,6 +60,16 @@ public class CartController {
         return ResponseEntity.ok(cart);
     }
 
+    @Operation(summary = "Cập nhật variant của sản phẩm", description = "Cập nhật variant của một sản phẩm trong giỏ hàng.")
+    @PutMapping("/items/{cartItemId}/variant")
+    public ResponseEntity<CartResponseDTO> updateItemVariant(
+            @PathVariable Long cartItemId,
+            @RequestParam(required = false) Long variantId) {
+        User currentUser = getCurrentUser();
+        CartResponseDTO cart = cartService.updateItemVariant(currentUser, cartItemId, variantId);
+        return ResponseEntity.ok(cart);
+    }
+
     @Operation(summary = "Xóa sản phẩm khỏi giỏ hàng", description = "Xóa một sản phẩm khỏi giỏ hàng.")
     @DeleteMapping("/items/{cartItemId}")
     public ResponseEntity<CartResponseDTO> removeItem(@PathVariable Long cartItemId) {

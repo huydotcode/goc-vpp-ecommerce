@@ -33,3 +33,8 @@ export interface UpdateCartItemRequest {
   cartItemId: number;
   quantity: number;
 }
+
+export interface UpdateCartItemVariantRequest {
+  cartItemId: number;
+  variantId: number | null;
+}

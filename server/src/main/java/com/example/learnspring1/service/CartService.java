@@ -14,6 +14,9 @@ public interface CartService {
     // Cập nhật số lượng sản phẩm
     CartResponseDTO updateItemQuantity(User user, Long cartItemId, Integer quantity);
 
+    // Cập nhật variant của sản phẩm trong giỏ hàng
+    CartResponseDTO updateItemVariant(User user, Long cartItemId, Long variantId);
+
     // Xóa sản phẩm khỏi giỏ hàng
     CartResponseDTO removeItem(User user, Long cartItemId);
 

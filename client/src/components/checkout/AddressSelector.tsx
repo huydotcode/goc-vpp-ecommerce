@@ -13,8 +13,14 @@ import {
   Empty,
   Spin,
   Checkbox,
+  Modal,
 } from "antd";
-import { PlusOutlined, CheckOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  CheckOutlined,
+  HomeOutlined,
+  PhoneOutlined,
+} from "@ant-design/icons";
 import { toast } from "sonner";
 import { userAddressService } from "@/services/userAddress.service";
 import {
@@ -32,6 +38,8 @@ interface AddressSelectorProps {
   onClose: () => void;
   onSelect: (address: UserAddress) => void;
   selectedAddressId?: number | null;
+  editingAddress?: UserAddress | null;
+  enableSelection?: boolean;
 }
 
 const AddressSelector: React.FC<AddressSelectorProps> = ({
@@ -39,8 +47,13 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
   onClose,
   onSelect,
   selectedAddressId,
+  editingAddress,
+  enableSelection = true,
 }) => {
-  const [mode, setMode] = useState<"select" | "add">("select");
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [mode, setMode] = useState<"select" | "add">(
+    enableSelection ? "select" : "add"
+  );
   const [userAddresses, setUserAddresses] = useState<UserAddress[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -57,16 +70,24 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
   useEffect(() => {
     // Sync local selectedId when parent changes / drawer opens
     if (open) {
-      setSelectedId(selectedAddressId ?? null);
+      setSelectedId(enableSelection ? (selectedAddressId ?? null) : null);
     }
     if (open) {
       loadAddresses();
-      if (mode === "add") {
+      if (!enableSelection) {
+        setMode("add");
         loadProvinces();
+      } else if (mode === "add" || editingAddress) {
+        loadProvinces();
+      }
+      // If editing, switch to add mode and fill form
+      if (editingAddress) {
+        setMode("add");
+        fillFormFromAddress(editingAddress);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode]);
+  }, [open, mode, editingAddress]);
 
   const loadAddresses = async () => {
     setLoading(true);
@@ -154,6 +175,30 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
     form.setFieldsValue({ fullAddress });
   };
 
+  const fillFormFromAddress = async (address: UserAddress) => {
+    if (!address) return;
+
+    form.setFieldsValue({
+      phone: address.phone || "",
+      provinceCode: address.provinceCode || undefined,
+      districtCode: address.districtCode || undefined,
+      wardCode: address.wardCode || undefined,
+      street: address.street || "",
+      fullAddress: address.fullAddress || "",
+      isDefault: address.isDefault || false,
+    });
+
+    // Load districts and wards if province/district codes exist
+    if (address.provinceCode) {
+      await handleProvinceChange(address.provinceCode);
+      if (address.districtCode) {
+        setTimeout(async () => {
+          await handleDistrictChange(address.districtCode!);
+        }, 300);
+      }
+    }
+  };
+
   const handleAddAddress = async (values: UpdateAddressRequest) => {
     setSaving(true);
     try {
@@ -171,29 +216,47 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
         province: provinceName,
       });
 
-      const newAddress = await userAddressService.createAddress({
+      const addressData = {
         ...values,
         fullAddress,
         provinceName,
         districtName,
         wardName,
-      });
+      };
 
-      toast.success("Thêm địa chỉ thành công");
+      let updatedAddress: UserAddress;
+      if (editingAddress?.id) {
+        // Update existing address
+        updatedAddress = await userAddressService.updateAddress(
+          editingAddress.id,
+          addressData
+        );
+        toast.success("Cập nhật địa chỉ thành công");
+      } else {
+        // Create new address
+        updatedAddress = await userAddressService.createAddress(addressData);
+        toast.success("Thêm địa chỉ thành công");
+      }
+
       await loadAddresses();
       setMode("select");
       form.resetFields();
-      onSelect(newAddress);
+      onSelect(updatedAddress);
       onClose();
     } catch (error) {
-      console.error("Error adding address:", error);
-      toast.error("Không thể thêm địa chỉ");
+      console.error("Error saving address:", error);
+      toast.error(
+        editingAddress?.id
+          ? "Không thể cập nhật địa chỉ"
+          : "Không thể thêm địa chỉ"
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleSelectAddress = (address: UserAddress) => {
+    if (!enableSelection) return;
     setSelectedId(address.id ?? null);
   };
 
@@ -209,28 +272,148 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
 
   return (
     <Drawer
-      title="Chọn địa chỉ giao hàng"
+      title={
+        editingAddress
+          ? "Chỉnh sửa địa chỉ"
+          : enableSelection
+            ? "Chọn địa chỉ giao hàng"
+            : "Thêm địa chỉ mới"
+      }
       open={open}
       onClose={onClose}
       width={720}
       extra={
-        mode === "select" ? (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setMode("add");
-              loadProvinces();
-            }}
-          >
-            Thêm địa chỉ mới
-          </Button>
-        ) : (
-          <Button onClick={() => setMode("select")}>Quay lại</Button>
-        )
+        enableSelection ? (
+          mode === "select" ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setMode("add");
+                loadProvinces();
+              }}
+            >
+              Thêm địa chỉ mới
+            </Button>
+          ) : (
+            <Button onClick={() => setMode("select")}>Quay lại</Button>
+          )
+        ) : null
       }
     >
-      {mode === "select" ? (
+      {modalContextHolder}
+      {!enableSelection ? (
+        <Form
+          layout="vertical"
+          form={form}
+          onFinish={handleAddAddress}
+          autoComplete="off"
+        >
+          <Title level={5}>Thông tin địa chỉ</Title>
+          <Divider />
+          <Form.Item
+            label="Số điện thoại"
+            name="phone"
+            rules={[{ required: true, message: "Vui lòng nhập số điện thoại" }]}
+          >
+            <Input placeholder="Nhập số điện thoại" />
+          </Form.Item>
+          <Form.Item
+            label="Tỉnh/Thành phố"
+            name="provinceCode"
+            rules={[
+              { required: true, message: "Vui lòng chọn tỉnh/thành phố" },
+            ]}
+          >
+            <Select
+              placeholder="Chọn tỉnh/thành phố"
+              loading={loadingProvinces}
+              onChange={(value) => {
+                handleProvinceChange(value);
+                setTimeout(() => updateFullAddress(), 100);
+              }}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={provinces.map((p) => ({
+                label: p.name,
+                value: p.code,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Quận/Huyện"
+            name="districtCode"
+            rules={[{ required: true, message: "Vui lòng chọn quận/huyện" }]}
+          >
+            <Select
+              placeholder="Chọn quận/huyện"
+              loading={loadingDistricts}
+              onChange={(value) => {
+                handleDistrictChange(value);
+                setTimeout(() => updateFullAddress(), 100);
+              }}
+              disabled={!form.getFieldValue("provinceCode")}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={districts.map((d) => ({
+                label: d.name,
+                value: d.code,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Phường/Xã"
+            name="wardCode"
+            rules={[{ required: true, message: "Vui lòng chọn phường/xã" }]}
+          >
+            <Select
+              placeholder="Chọn phường/xã"
+              loading={loadingWards}
+              onChange={() => setTimeout(() => updateFullAddress(), 100)}
+              disabled={!form.getFieldValue("districtCode")}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={wards.map((w) => ({
+                label: w.name,
+                value: w.code,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="Địa chỉ (đường, số nhà)" name="street">
+            <Input
+              placeholder="Số nhà, tên đường"
+              onChange={() => setTimeout(() => updateFullAddress(), 100)}
+            />
+          </Form.Item>
+          <Form.Item label="Địa chỉ đầy đủ" name="fullAddress">
+            <Input.TextArea
+              rows={2}
+              placeholder="Địa chỉ đầy đủ sẽ được tự động gợi ý"
+            />
+          </Form.Item>
+          <Form.Item name="isDefault" valuePropName="checked">
+            <Checkbox>Đặt làm địa chỉ mặc định</Checkbox>
+          </Form.Item>
+          <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+            <Button onClick={onClose}>Hủy</Button>
+            <Button type="primary" htmlType="submit" loading={saving}>
+              {editingAddress ? "Cập nhật địa chỉ" : "Thêm địa chỉ"}
+            </Button>
+          </Space>
+        </Form>
+      ) : mode === "select" ? (
         <div>
           {loading ? (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
@@ -249,25 +432,32 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
                     hoverable
                     style={{
                       border:
-                        selectedId === address.id
-                          ? "2px solid #1890ff"
-                          : "1px solid #d9d9d9",
-                      cursor: "pointer",
+                        enableSelection && selectedId === address.id
+                          ? "2px solid #111827" // gray-900
+                          : "1px solid #e5e7eb", // gray-200
+                      boxShadow: "none",
+                      cursor: enableSelection ? "pointer" : "default",
+                      transition: "border-color 0.2s ease",
                     }}
-                    onClick={() => handleSelectAddress(address)}
+                    onClick={() => {
+                      if (enableSelection) handleSelectAddress(address);
+                    }}
                   >
                     <div
                       style={{
                         display: "flex",
                         gap: 12,
                         alignItems: "flex-start",
+                        padding: "2px 0",
                       }}
                     >
-                      <Checkbox
-                        checked={selectedId === address.id}
-                        onChange={() => handleSelectAddress(address)}
-                        style={{ marginTop: 4 }}
-                      />
+                      {enableSelection && (
+                        <Checkbox
+                          checked={selectedId === address.id}
+                          onChange={() => handleSelectAddress(address)}
+                          style={{ marginTop: 4 }}
+                        />
+                      )}
                       <div style={{ flex: 1 }}>
                         <div
                           style={{
@@ -278,42 +468,114 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
                             flexWrap: "wrap",
                           }}
                         >
-                          <Text strong>{address.fullAddress || "Địa chỉ"}</Text>
+                          <Text
+                            strong
+                            style={{
+                              display: "flex",
+                              gap: 6,
+                              alignItems: "center",
+                            }}
+                          >
+                            <HomeOutlined style={{ marginRight: 4 }} />
+                            {address.fullAddress || "Địa chỉ"}
+                          </Text>
                           {address.isDefault && (
                             <Tag color="blue">Mặc định</Tag>
                           )}
-                          {selectedId === address.id && (
-                            <Tag color="green" icon={<CheckOutlined />}>
-                              Đã chọn
-                            </Tag>
-                          )}
                         </div>
                         {address.phone && (
-                          <Text type="secondary" style={{ fontSize: 14 }}>
-                            📞 {address.phone}
+                          <Text
+                            type="secondary"
+                            style={{
+                              fontSize: 14,
+                              display: "flex",
+                              gap: 6,
+                              alignItems: "center",
+                            }}
+                          >
+                            <PhoneOutlined />
+                            {address.phone}
                           </Text>
                         )}
+                        {enableSelection && selectedId === address.id && (
+                          <Tag color="green" icon={<CheckOutlined />}>
+                            Đã chọn
+                          </Tag>
+                        )}
+                      </div>
+                      <div>
+                        <Button
+                          danger
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            modal.confirm({
+                              title: "Xóa địa chỉ",
+                              content: "Bạn có chắc chắn muốn xóa địa chỉ này?",
+                              okText: "Xóa",
+                              okType: "danger",
+                              cancelText: "Hủy",
+                              centered: true,
+                              onOk: async () => {
+                                try {
+                                  await userAddressService.deleteAddress(
+                                    address.id
+                                  );
+                                  toast.success("Đã xóa địa chỉ");
+                                  await loadAddresses();
+                                  if (selectedId === address.id) {
+                                    setSelectedId(null);
+                                  }
+                                } catch (err) {
+                                  console.error("Delete address error", err);
+                                  toast.error("Xóa địa chỉ thất bại");
+                                }
+                              },
+                            });
+                          }}
+                        >
+                          Xóa
+                        </Button>
                       </div>
                     </div>
                   </Card>
                 ))}
               </Space>
               <Divider style={{ margin: "16px 0" }} />
-              <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                <Button onClick={() => setMode("add")} icon={<PlusOutlined />}>
-                  Thêm địa chỉ mới
-                </Button>
-                <Space>
-                  <Button onClick={onClose}>Hủy</Button>
+              {enableSelection ? (
+                <Space
+                  style={{ width: "100%", justifyContent: "space-between" }}
+                >
                   <Button
-                    type="primary"
-                    onClick={handleUseSelected}
-                    disabled={!selectedId}
+                    onClick={() => setMode("add")}
+                    icon={<PlusOutlined />}
                   >
-                    Dùng địa chỉ này
+                    Thêm địa chỉ mới
                   </Button>
+                  <Space>
+                    <Button onClick={onClose}>Hủy</Button>
+                    <Button
+                      type="primary"
+                      onClick={handleUseSelected}
+                      disabled={!selectedId}
+                    >
+                      Dùng địa chỉ này
+                    </Button>
+                  </Space>
                 </Space>
-              </Space>
+              ) : (
+                <Space
+                  style={{ width: "100%", justifyContent: "space-between" }}
+                >
+                  <Button
+                    onClick={() => setMode("add")}
+                    icon={<PlusOutlined />}
+                  >
+                    Thêm địa chỉ mới
+                  </Button>
+                  <Button onClick={onClose}>Đóng</Button>
+                </Space>
+              )}
             </>
           ) : (
             <Empty
@@ -469,7 +731,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({
                 loading={saving}
                 disabled={saving}
               >
-                Lưu địa chỉ
+                {editingAddress ? "Cập nhật địa chỉ" : "Lưu địa chỉ"}
               </Button>
               <Button onClick={() => setMode("select")} disabled={saving}>
                 Hủy

@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
 
   // Users
   USERS: "/users",
+  USERS_ME: "/users/me",
   USERS_ADVANCED: "/users/advanced",
   USERS_FILTER: "/users/filter",
 
@@ -54,4 +55,7 @@ export const API_ENDPOINTS = {
   REVIEWS: "/reviews",
   REVIEWS_STATS: "/reviews/stats",
   REVIEWS_PRODUCT: "/reviews/product",
+  
+  // User profile
+  USERS_ME_PASSWORD: "/users/me/password",
 } as const;
