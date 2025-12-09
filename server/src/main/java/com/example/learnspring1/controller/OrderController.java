@@ -5,6 +5,7 @@ import com.example.learnspring1.domain.User;
 import com.example.learnspring1.domain.dto.CheckoutRequestDTO;
 import com.example.learnspring1.domain.dto.OrderSummaryDTO;
 import com.example.learnspring1.domain.dto.OrderItemSummaryDTO;
+import com.example.learnspring1.domain.dto.OrderDetailDTO;
 import com.example.learnspring1.service.OrderService;
 import com.example.learnspring1.service.UserService;
 import com.example.learnspring1.utils.SecurityUtil;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/orders")
@@ -175,28 +175,12 @@ public class OrderController {
     }
 
     @GetMapping("/{orderCode}")
-    public ResponseEntity<Map<String, Object>> getOrderByCode(@PathVariable String orderCode) {
-        Optional<Order> orderOpt = orderService.getOrderByCode(orderCode);
-
-        if (orderOpt.isPresent()) {
-            Order order = orderOpt.get();
-            Map<String, Object> response = new HashMap<>();
-            response.put("orderCode", order.getOrderCode());
-            response.put("status", order.getStatus().name());
-            response.put("paymentMethod", order.getPaymentMethod().name());
-            response.put("totalAmount", order.getTotalAmount());
-            response.put("customerName", order.getCustomerName());
-            response.put("customerEmail", order.getCustomerEmail());
-            response.put("customerPhone", order.getCustomerPhone());
-            response.put("description", order.getDescription());
-            response.put("createdAt", order.getCreatedAt());
-
-            return ResponseEntity.ok(response);
-        } else {
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", "Order not found");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        }
+    public ResponseEntity<?> getOrderByCode(@PathVariable String orderCode) {
+        User currentUser = getCurrentUser();
+        Order order = orderService.getOrderWithItemsByCode(orderCode)
+                .filter(o -> o.getUser() != null && o.getUser().getId().equals(currentUser.getId()))
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        return ResponseEntity.ok(toDetailDTO(order));
     }
 
     @GetMapping
@@ -214,6 +198,33 @@ public class OrderController {
                 .status(order.getStatus())
                 .paymentMethod(order.getPaymentMethod())
                 .createdAt(order.getCreatedAt())
+                .items(order.getItems() != null
+                        ? order.getItems().stream()
+                                .map(oi -> OrderItemSummaryDTO.builder()
+                                        .productName(oi.getProductName())
+                                        .quantity(oi.getQuantity())
+                                        .unitPrice(oi.getUnitPrice())
+                                        .subtotal(oi.getSubtotal())
+                                        .imageUrl(resolveImage(oi))
+                                        .build())
+                                .toList()
+                        : java.util.Collections.emptyList())
+                .build();
+    }
+
+    private OrderDetailDTO toDetailDTO(Order order) {
+        return OrderDetailDTO.builder()
+                .id(order.getId())
+                .orderCode(order.getOrderCode())
+                .totalAmount(order.getTotalAmount())
+                .status(order.getStatus())
+                .paymentMethod(order.getPaymentMethod())
+                .createdAt(order.getCreatedAt())
+                .customerName(order.getCustomerName())
+                .customerEmail(order.getCustomerEmail())
+                .customerPhone(order.getCustomerPhone())
+                .customerAddress(order.getCustomerAddress())
+                .description(order.getDescription())
                 .items(order.getItems() != null
                         ? order.getItems().stream()
                                 .map(oi -> OrderItemSummaryDTO.builder()

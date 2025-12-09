@@ -114,6 +114,10 @@ public class OrderService {
         return orderRepository.findWithItemsByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    public Optional<Order> getOrderWithItemsByCode(String orderCode) {
+        return orderRepository.findWithItemsByOrderCode(orderCode);
+    }
+
     /**
      * Checkout từ Cart: Tạo Order + OrderItems từ Cart, trừ stock, clear cart
      */
