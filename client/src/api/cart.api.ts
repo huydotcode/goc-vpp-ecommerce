@@ -4,6 +4,7 @@ import type {
   AddCartItemRequest,
   CartResponse,
   UpdateCartItemRequest,
+  UpdateCartItemVariantRequest,
 } from "@/types/cart.types";
 
 export const cartApi = {
@@ -27,6 +28,18 @@ export const cartApi = {
     const res = await apiClient.put<CartResponse>(
       `${API_ENDPOINTS.CART_ITEMS}/${cartItemId}?quantity=${quantity}`
     );
+    return res.data;
+  },
+
+  updateItemVariant: async ({
+    cartItemId,
+    variantId,
+  }: UpdateCartItemVariantRequest): Promise<CartResponse> => {
+    const url =
+      variantId !== null && variantId !== undefined
+        ? `${API_ENDPOINTS.CART_ITEMS}/${cartItemId}/variant?variantId=${variantId}`
+        : `${API_ENDPOINTS.CART_ITEMS}/${cartItemId}/variant`;
+    const res = await apiClient.put<CartResponse>(url);
     return res.data;
   },
 

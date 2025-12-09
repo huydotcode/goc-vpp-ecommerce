@@ -1,35 +1,54 @@
-import React from "react";
-import { Table, Tag, Typography } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import React, { useMemo } from "react";
+import { Card, Tag, Typography, Tabs, Empty, Spin, Image } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { handleApiError } from "@/utils/error";
+import { orderService } from "@/services/order.service";
+import { useNavigate } from "react-router-dom";
 
-interface OrderItem {
+type OrderItemSummary = {
+  productName?: string;
+  quantity?: number;
+  imageUrl?: string;
+};
+
+type OrderSummary = {
   id: number;
+  orderCode?: string;
   createdAt: string;
-  status: string;
   totalAmount: number;
-}
-
-const mockOrders: OrderItem[] = [
-  {
-    id: 1,
-    createdAt: "2024-12-01T10:30:00Z",
-    status: "COMPLETED",
-    totalAmount: 1200000,
-  },
-  {
-    id: 2,
-    createdAt: "2024-12-05T14:15:00Z",
-    status: "PENDING",
-    totalAmount: 350000,
-  },
-];
+  status: string;
+  paymentMethod?: string;
+  items?: OrderItemSummary[];
+};
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
   PENDING: "gold",
+  PROCESSING: "blue",
+  SHIPPING: "blue",
+  CONFIRMED: "blue",
   CANCELLED: "red",
+  FAILED: "volcano",
+};
+
+const statusLabel = (status: string) => {
+  switch (status) {
+    case "COMPLETED":
+      return "Hoàn thành";
+    case "PENDING":
+    case "PROCESSING":
+      return "Đang xử lý";
+    case "CONFIRMED":
+      return "Đã xác nhận";
+    case "SHIPPING":
+      return "Đang giao";
+    case "CANCELLED":
+      return "Đã hủy";
+    case "FAILED":
+      return "Thất bại";
+    default:
+      return status;
+  }
 };
 
 const formatCurrency = (value: number) =>
@@ -39,16 +58,17 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 const OrdersPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = React.useState<string | undefined>();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["userOrders"],
+    queryKey: ["userOrders", statusFilter],
     queryFn: async () => {
       try {
-        // TODO: Thay bằng gọi API thật khi backend sẵn sàng
-        // const response = await orderService.getMyOrders();
-        // return response.data;
-        return new Promise<OrderItem[]>((resolve) => {
-          setTimeout(() => resolve(mockOrders), 500);
+        const response = await orderService.getMyOrders({
+          status: statusFilter,
         });
+        return response;
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -56,70 +76,136 @@ const OrdersPage: React.FC = () => {
     },
   });
 
-  const columns: ColumnsType<OrderItem> = [
-    {
-      title: "Mã đơn hàng",
-      dataIndex: "id",
-      key: "id",
-      render: (id: number) => <span>#{id}</span>,
-    },
-    {
-      title: "Ngày đặt",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (value: string) =>
-        new Date(value).toLocaleString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => (
-        <Tag color={statusColorMap[status] || "default"}>
-          {status === "COMPLETED"
-            ? "Hoàn thành"
-            : status === "PENDING"
-              ? "Đang xử lý"
-              : status === "CANCELLED"
-                ? "Đã hủy"
-                : status}
-        </Tag>
-      ),
-    },
-    {
-      title: "Tổng tiền",
-      dataIndex: "totalAmount",
-      key: "totalAmount",
-      align: "right",
-      render: (value: number) => <span>{formatCurrency(value)}</span>,
-    },
+  const renderCards = useMemo(() => {
+    const orders: OrderSummary[] = (data as OrderSummary[]) || [];
+    if (!orders || orders.length === 0) {
+      return (
+        <div className="py-10">
+          <Empty description="Bạn chưa có đơn hàng nào." />
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-3 sm:gap-4">
+        {orders.map((order) => (
+          <Card
+            key={order.id}
+            hoverable
+            onClick={() =>
+              navigate(`/user/orders/${order.orderCode || order.id}`)
+            }
+            className="transition-shadow"
+            style={{ border: "1px solid #e5e7eb" }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex gap-3 flex-1">
+                <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                  {order.items && order.items[0]?.imageUrl ? (
+                    <Image
+                      src={order.items[0].imageUrl}
+                      alt={order.items[0].productName}
+                      preview={false}
+                      width={64}
+                      height={64}
+                      style={{ objectFit: "cover" }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                      No image
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1 flex-1 min-w-0">
+                  <Typography.Text strong>
+                    Đơn hàng #{order.orderCode || order.id}
+                  </Typography.Text>
+                  <div className="text-sm text-gray-500">
+                    {new Date(order.createdAt).toLocaleString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                  {order.items && order.items.length > 0 && (
+                    <div className="text-sm text-gray-600 space-y-1">
+                      {order.items
+                        .slice(0, 2)
+                        .map((item: OrderItemSummary, idx: number) => (
+                          <div key={idx} className="flex justify-between gap-2">
+                            <span className="line-clamp-1">
+                              {item.productName}
+                            </span>
+                            <span className="text-gray-500">
+                              x{item.quantity}
+                            </span>
+                          </div>
+                        ))}
+                      {order.items.length > 2 && (
+                        <div className="text-gray-500">
+                          +{order.items.length - 2} sản phẩm khác
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="text-base font-semibold">
+                    {formatCurrency(Number(order.totalAmount))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <Tag color={statusColorMap[order.status] || "default"}>
+                  {statusLabel(order.status)}
+                </Tag>
+                {order.paymentMethod && (
+                  <Typography.Text type="secondary" className="text-xs">
+                    {order.paymentMethod === "COD"
+                      ? "COD"
+                      : "Thanh toán online"}
+                  </Typography.Text>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }, [data, navigate]);
+
+  const tabs = [
+    { key: "ALL", label: "Tất cả", value: undefined },
+    { key: "PENDING", label: "Đang xử lý", value: "PENDING" },
+    { key: "CONFIRMED", label: "Đã xác nhận", value: "CONFIRMED" },
+    { key: "SHIPPING", label: "Đang giao", value: "SHIPPING" },
+    { key: "COMPLETED", label: "Hoàn thành", value: "COMPLETED" },
+    { key: "CANCELLED", label: "Đã hủy", value: "CANCELLED" },
+    { key: "FAILED", label: "Thất bại", value: "FAILED" },
   ];
 
   return (
     <div className="space-y-4">
-      <div>
-        <Typography.Title level={4}>Đơn hàng của tôi</Typography.Title>
-        <Typography.Paragraph type="secondary">
-          Xem lại lịch sử các đơn hàng bạn đã đặt.
-        </Typography.Paragraph>
+      <div className="flex flex-col flex-wrap gap-3">
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          Đơn hàng của tôi
+        </Typography.Title>
+        <Tabs
+          items={tabs.map((t) => ({ key: t.key, label: t.label }))}
+          activeKey={tabs.find((t) => t.value === statusFilter)?.key || "ALL"}
+          onChange={(key) => {
+            const tab = tabs.find((t) => t.key === key);
+            setStatusFilter(tab?.value);
+          }}
+        />
       </div>
 
-      <Table<OrderItem>
-        rowKey="id"
-        columns={columns}
-        dataSource={data || []}
-        loading={isLoading}
-        pagination={false}
-        locale={{
-          emptyText: "Bạn chưa có đơn hàng nào.",
-        }}
-      />
+      {isLoading ? (
+        <div className="py-10 flex justify-center">
+          <Spin />
+        </div>
+      ) : (
+        renderCards
+      )}
     </div>
   );
 };

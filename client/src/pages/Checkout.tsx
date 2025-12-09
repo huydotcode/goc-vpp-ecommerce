@@ -1,38 +1,38 @@
+import type { CartItem } from "@/types/cart.types";
+import type { UserAddress } from "@/types/user.types";
+import { EnvironmentOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
   Col,
+  Divider,
   Form,
+  Image,
   Input,
   Radio,
   Row,
   Select,
   Space,
-  Typography,
-  Image,
-  Divider,
   Tag,
+  Typography,
 } from "antd";
-import { EnvironmentOutlined } from "@ant-design/icons";
+import React, { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCart, useCheckout } from "../hooks";
 import { paymentApi } from "../api/payment.api";
+import AddressSelector from "../components/checkout/AddressSelector";
 import { useAuth } from "../contexts/AuthContext";
+import { useCart, useCheckout } from "../hooks";
 import {
   addressService,
-  type Province,
-  type District,
-  type Ward,
   type AddressData,
+  type District,
+  type Province,
+  type Ward,
 } from "../services/address.service";
 import { userAddressService } from "../services/userAddress.service";
-import { formatCurrency } from "../utils/format";
 import { PaymentMethod } from "../types/order.types";
-import type { CartItem } from "@/types/cart.types";
-import type { UserAddress } from "@/types/user.types";
-import AddressSelector from "../components/checkout/AddressSelector";
+import { formatCurrency } from "../utils/format";
 
 const { Title, Text } = Typography;
 
@@ -53,10 +53,15 @@ const buildAddressDisplay = (address: UserAddress): string => {
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cart, isLoading: cartLoading } = useCart();
   const checkoutMutation = useCheckout();
   const { user, isAuthenticated } = useAuth();
   const [form] = Form.useForm();
+
+  const selectedCartItemIds = (
+    location.state as { selectedCartItemIds?: number[] }
+  )?.selectedCartItemIds;
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     PaymentMethod.PAYOS
   );
@@ -75,13 +80,14 @@ const CheckoutPage: React.FC = () => {
   );
   const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
 
+  const isCheckingOutRef = useRef(false);
+
   useEffect(() => {
     loadProvinces();
   }, []);
 
   useEffect(() => {
     if (provinces.length > 0 && districts.length === 0 && wards.length === 0) {
-      // Ưu tiên load địa chỉ mặc định từ UserAddress, nếu không có thì load từ localStorage
       if (isAuthenticated) {
         loadUserInfoAndAddresses();
         loadUserAddresses();
@@ -93,11 +99,15 @@ const CheckoutPage: React.FC = () => {
   }, [provinces.length, isAuthenticated]);
 
   useEffect(() => {
+    if (loading || checkoutMutation.isPending || isCheckingOutRef.current) {
+      return;
+    }
+
     if (!cartLoading && (!cart || cart.items.length === 0)) {
       toast.warning("Giỏ hàng trống");
       navigate("/cart");
     }
-  }, [cart, cartLoading, navigate]);
+  }, [cart, cartLoading, navigate, loading, checkoutMutation.isPending]);
 
   const loadProvinces = async () => {
     setLoadingProvinces(true);
@@ -114,7 +124,6 @@ const CheckoutPage: React.FC = () => {
   const loadUserInfoAndAddresses = async () => {
     if (!user) return;
 
-    // Điền thông tin từ user
     if (user.username) {
       form.setFieldsValue({ fullName: user.username });
     }
@@ -159,13 +168,11 @@ const CheckoutPage: React.FC = () => {
       } else {
         // Không có địa chỉ nào
         setSelectedAddress(null);
-        // Thử load từ localStorage
         loadLastAddress();
       }
     } catch (error) {
       console.error("Error loading addresses:", error);
       setSelectedAddress(null);
-      // Fallback to localStorage
       loadLastAddress();
     }
   };
@@ -216,7 +223,6 @@ const CheckoutPage: React.FC = () => {
   };
 
   const handleAddressSelect = async (address: UserAddress) => {
-    // Đảm bảo fullAddress được build đầy đủ
     if (!address.fullAddress || address.fullAddress.trim() === "") {
       const fullAddress = addressService.buildFullAddress({
         street: address.street || "",
@@ -229,7 +235,6 @@ const CheckoutPage: React.FC = () => {
 
     setSelectedAddress(address);
     await fillFormFromAddress(address);
-    // Reload addresses để cập nhật danh sách
     await loadUserAddresses();
   };
 
@@ -339,6 +344,7 @@ const CheckoutPage: React.FC = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
+      isCheckingOutRef.current = true;
 
       let fullAddress = "";
 
@@ -366,7 +372,14 @@ const CheckoutPage: React.FC = () => {
           addressService.buildFullAddress(addressData) || values.address;
       }
 
-      // Checkout từ cart
+      const itemsToCheckout = selectedCartItemIds
+        ? cart!.items.filter((item) => selectedCartItemIds.includes(item.id))
+        : cart!.items;
+      const totalAmount = itemsToCheckout.reduce(
+        (sum, item) => sum + item.subtotal,
+        0
+      );
+
       const checkoutResponse = await checkoutMutation.mutateAsync({
         paymentMethod: paymentMethod,
         customerName: values.fullName,
@@ -374,12 +387,13 @@ const CheckoutPage: React.FC = () => {
         customerPhone: values.phone,
         address: fullAddress,
         description: values.notes || undefined,
+        cartItemIds: selectedCartItemIds,
       });
 
       if (paymentMethod === PaymentMethod.PAYOS) {
         // Tạo payment link với PayOS
         const res = await paymentApi.createPayOSPayment({
-          amount: Math.round(cart!.totalAmount),
+          amount: Math.round(totalAmount),
           description:
             `Thanh toan don hang ${checkoutResponse.orderCode}`.substring(
               0,
@@ -397,6 +411,7 @@ const CheckoutPage: React.FC = () => {
           window.location.href = checkoutUrl;
         } else {
           toast.error("Không lấy được URL thanh toán");
+          isCheckingOutRef.current = false;
         }
       } else {
         // COD - redirect đến result page
@@ -405,10 +420,10 @@ const CheckoutPage: React.FC = () => {
         );
       }
     } catch (error) {
+      isCheckingOutRef.current = false;
       if ((error as { errorFields?: unknown }).errorFields) {
         return;
       }
-      // Error đã được handle trong hook
     } finally {
       setLoading(false);
     }
@@ -422,6 +437,18 @@ const CheckoutPage: React.FC = () => {
     );
   }
 
+  const itemsToDisplay = selectedCartItemIds
+    ? cart.items.filter((item) => selectedCartItemIds.includes(item.id))
+    : cart.items;
+  const displayTotalAmount = itemsToDisplay.reduce(
+    (sum, item) => sum + item.subtotal,
+    0
+  );
+  const displayTotalItems = itemsToDisplay.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+
   return (
     <div style={{ padding: "24px 16px", maxWidth: 1200, margin: "0 auto" }}>
       <Title level={2} style={{ marginBottom: 24 }}>
@@ -429,11 +456,10 @@ const CheckoutPage: React.FC = () => {
       </Title>
 
       <Row gutter={[24, 24]}>
-        {/* Order Summary */}
         <Col xs={24} lg={10}>
           <Card title="Đơn hàng của bạn">
             <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              {cart.items.map((item: CartItem) => (
+              {itemsToDisplay.map((item: CartItem) => (
                 <div
                   key={item.id}
                   style={{
@@ -492,25 +518,29 @@ const CheckoutPage: React.FC = () => {
               <Divider />
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text>Tạm tính:</Text>
-                <Text strong>{formatCurrency(cart.totalAmount)}</Text>
+                <Text strong>{formatCurrency(displayTotalAmount)}</Text>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text strong style={{ fontSize: 18 }}>
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
-                  {formatCurrency(cart.totalAmount)}
+                  {formatCurrency(displayTotalAmount)}
                 </Text>
               </div>
+              {selectedCartItemIds &&
+                selectedCartItemIds.length < cart.items.length && (
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Đang thanh toán {displayTotalItems} sản phẩm đã chọn
+                  </Text>
+                )}
             </Space>
           </Card>
         </Col>
 
-        {/* Checkout Form */}
         <Col xs={24} lg={14}>
           <Card title="Thông tin giao hàng">
             <Form layout="vertical" form={form}>
-              {/* Chọn địa chỉ giao hàng */}
               <Form.Item label="Địa chỉ giao hàng">
                 {isAuthenticated ? (
                   <Card
@@ -615,7 +645,6 @@ const CheckoutPage: React.FC = () => {
                 <Input placeholder="Nhập số điện thoại" />
               </Form.Item>
 
-              {/* Các field địa chỉ chỉ hiển thị khi chưa đăng nhập hoặc chưa chọn địa chỉ */}
               {(!isAuthenticated || !selectedAddress) && (
                 <>
                   <Form.Item

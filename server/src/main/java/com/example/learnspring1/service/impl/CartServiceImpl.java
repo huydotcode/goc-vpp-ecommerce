@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -145,6 +146,72 @@ public class CartServiceImpl implements CartService {
 
         Cart cart = item.getCart();
         cart = cartRepository.findById(cart.getId())
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+        return mapToDTO(cart);
+    }
+
+    @Override
+    public CartResponseDTO updateItemVariant(User user, Long cartItemId, Long variantId) {
+        CartItem item = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+
+        // Kiểm tra quyền sở hữu
+        if (!item.getCart().getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        Product product = item.getProduct();
+        ProductVariant newVariant = resolveVariantOrDefault(product, variantId);
+
+        // Validate variant belongs to product
+        if (!newVariant.getProduct().getId().equals(product.getId())) {
+            throw new RuntimeException("Variant does not belong to product");
+        }
+
+        // Check stock
+        if (newVariant.getStockQuantity() == null ||
+                newVariant.getStockQuantity() < item.getQuantity()) {
+            throw new RuntimeException("Insufficient stock");
+        }
+
+        // Check if variant is active
+        if (newVariant.getIsActive() == null || !newVariant.getIsActive()) {
+            throw new RuntimeException("Variant is not available");
+        }
+
+        // Check if same variant already exists in cart
+        Optional<CartItem> existing = cartItemRepository.findByCartAndProductAndVariant(
+                item.getCart(), product, newVariant);
+
+        if (existing.isPresent() && !existing.get().getId().equals(cartItemId)) {
+            // Merge with existing item
+            CartItem existingItem = existing.get();
+            int newQuantity = existingItem.getQuantity() + item.getQuantity();
+
+            // Check stock for merged quantity
+            if (newVariant.getStockQuantity() < newQuantity) {
+                throw new RuntimeException("Insufficient stock for merged quantity");
+            }
+
+            existingItem.setQuantity(newQuantity);
+            cartItemRepository.save(existingItem);
+            cartItemRepository.delete(item);
+        } else {
+            // Update variant
+            BigDecimal newPrice = newVariant.getPrice() != null
+                    ? newVariant.getPrice()
+                    : (product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice());
+
+            if (newPrice == null) {
+                throw new RuntimeException("Product price is not set");
+            }
+
+            item.setVariant(newVariant);
+            item.setUnitPrice(newPrice);
+            cartItemRepository.save(item);
+        }
+
+        Cart cart = cartRepository.findByIdWithItems(item.getCart().getId())
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
         return mapToDTO(cart);
     }

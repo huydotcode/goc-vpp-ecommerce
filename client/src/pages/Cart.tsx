@@ -1,22 +1,63 @@
-import { Button, Card, Empty, Image, Space, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Empty,
+  Image,
+  Modal,
+  Radio,
+  Space,
+  Typography,
+} from "antd";
 import {
   DeleteOutlined,
   ShoppingCartOutlined,
   MinusOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../hooks";
 import { formatCurrency } from "../utils/format";
 import { toast } from "sonner";
+import type { CartItem } from "@/types/cart.types";
+import type { ProductVariant } from "@/types/variant.types";
+import { variantApi } from "@/api/variant.api";
+import { cartService } from "@/services/cart.service";
 
 const { Title, Text } = Typography;
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
-  const { cart, isLoading, updateItem, removeItem, updating, removing } =
-    useCart();
+  const {
+    cart,
+    isLoading,
+    updateItem,
+    removeItem,
+    updating,
+    removing,
+    refetch,
+  } = useCart();
+
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [variantModalOpen, setVariantModalOpen] = useState(false);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
+    null
+  );
+  const [updatingVariant, setUpdatingVariant] = useState(false);
+
+  // Tự động chọn tất cả khi cart load
+  useEffect(() => {
+    if (cart && cart.items.length > 0 && selectedItemIds.size === 0) {
+      setSelectedItemIds(new Set(cart.items.map((item) => item.id)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart]);
 
   const handleQuantityChange = async (cartItemId: number, quantity: number) => {
     if (quantity <= 0) {
@@ -33,8 +74,79 @@ const CartPage: React.FC = () => {
     try {
       await removeItem(cartItemId);
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
+      // Xóa khỏi selected nếu đang được chọn
+      setSelectedItemIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(cartItemId);
+        return newSet;
+      });
     } catch {
       // Error đã được handle trong hook
+    }
+  };
+
+  const handleSelectItem = (itemId: number) => {
+    setSelectedItemIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (!cart) return;
+    if (selectedItemIds.size === cart.items.length) {
+      setSelectedItemIds(new Set());
+    } else {
+      setSelectedItemIds(new Set(cart.items.map((item) => item.id)));
+    }
+  };
+
+  const handleChangeVariant = async (item: CartItem) => {
+    setEditingCartItem(item);
+    setSelectedVariantId(item.variantId ?? null);
+    setVariantModalOpen(true);
+    try {
+      setLoadingVariants(true);
+      const productVariants = await variantApi.getVariantsByProductId(
+        item.productId,
+        true
+      );
+      setVariants(productVariants);
+    } catch (error) {
+      toast.error("Không thể tải danh sách phân loại");
+      console.error(error);
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
+  const handleConfirmVariantChange = async () => {
+    if (!editingCartItem) return;
+    if (selectedVariantId === editingCartItem.variantId) {
+      setVariantModalOpen(false);
+      return;
+    }
+    try {
+      setUpdatingVariant(true);
+      await cartService.updateItemVariant({
+        cartItemId: editingCartItem.id,
+        variantId: selectedVariantId,
+      });
+      toast.success("Đã cập nhật phân loại");
+      setVariantModalOpen(false);
+      refetch();
+    } catch (error) {
+      const errorMessage =
+        (error as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error || "Không thể cập nhật phân loại";
+      toast.error(errorMessage);
+    } finally {
+      setUpdatingVariant(false);
     }
   };
 
@@ -43,8 +155,26 @@ const CartPage: React.FC = () => {
       toast.warning("Giỏ hàng trống");
       return;
     }
-    navigate("/checkout");
+    if (selectedItemIds.size === 0) {
+      toast.warning("Vui lòng chọn ít nhất một sản phẩm");
+      return;
+    }
+    navigate("/checkout", {
+      state: { selectedCartItemIds: Array.from(selectedItemIds) },
+    });
   };
+
+  // Tính tổng từ các items đã chọn
+  const selectedItems =
+    cart?.items.filter((item) => selectedItemIds.has(item.id)) ?? [];
+  const selectedTotalAmount = selectedItems.reduce(
+    (sum, item) => sum + item.subtotal,
+    0
+  );
+  const selectedTotalItems = selectedItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
 
   if (isLoading) {
     return (
@@ -93,8 +223,23 @@ const CartPage: React.FC = () => {
         {/* Cart Items */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <Card>
+            <div style={{ marginBottom: 16 }}>
+              <Checkbox
+                checked={
+                  cart.items.length > 0 &&
+                  selectedItemIds.size === cart.items.length
+                }
+                indeterminate={
+                  selectedItemIds.size > 0 &&
+                  selectedItemIds.size < cart.items.length
+                }
+                onChange={handleSelectAll}
+              >
+                <Text strong>Chọn tất cả ({cart.items.length} sản phẩm)</Text>
+              </Checkbox>
+            </div>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
-              {cart.items.map((item: (typeof cart.items)[0]) => (
+              {cart.items.map((item: CartItem) => (
                 <div
                   key={item.id}
                   style={{
@@ -105,6 +250,20 @@ const CartPage: React.FC = () => {
                     borderRadius: 8,
                   }}
                 >
+                  {/* Checkbox */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      paddingTop: 4,
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedItemIds.has(item.id)}
+                      onChange={() => handleSelectItem(item.id)}
+                    />
+                  </div>
+
                   {/* Product Image */}
                   <div
                     style={{
@@ -143,13 +302,27 @@ const CartPage: React.FC = () => {
                       {item.productName}
                     </Title>
                     {item.variantName && (
-                      <Text
-                        type="secondary"
-                        style={{ fontSize: 13, display: "block" }}
-                      >
-                        Phân loại: {item.variantName}{" "}
-                        {item.sku ? `(${item.sku})` : ""}
-                      </Text>
+                      <div style={{ marginBottom: 8 }}>
+                        <Text
+                          type="secondary"
+                          style={{
+                            fontSize: 13,
+                            display: "block",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Phân loại: {item.variantName}{" "}
+                          {item.sku ? `(${item.sku})` : ""}
+                        </Text>
+                        <Button
+                          type="link"
+                          size="small"
+                          style={{ padding: 0, height: "auto" }}
+                          onClick={() => handleChangeVariant(item)}
+                        >
+                          Đổi phân loại
+                        </Button>
+                      </div>
                     )}
                     <Text type="secondary" style={{ fontSize: 14 }}>
                       {formatCurrency(item.unitPrice)} / sản phẩm
@@ -272,11 +445,19 @@ const CartPage: React.FC = () => {
               <Title level={4}>Tóm tắt đơn hàng</Title>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text>Tổng số lượng:</Text>
-                <Text strong>{cart.totalItems} sản phẩm</Text>
+                <Text strong>
+                  {selectedTotalItems} sản phẩm
+                  {selectedItemIds.size < cart.items.length && (
+                    <span style={{ color: "#999", fontSize: 12 }}>
+                      {" "}
+                      (đã chọn)
+                    </span>
+                  )}
+                </Text>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text>Tạm tính:</Text>
-                <Text strong>{formatCurrency(cart.totalAmount)}</Text>
+                <Text strong>{formatCurrency(selectedTotalAmount)}</Text>
               </div>
               <div
                 style={{
@@ -290,7 +471,7 @@ const CartPage: React.FC = () => {
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
-                  {formatCurrency(cart.totalAmount)}
+                  {formatCurrency(selectedTotalAmount)}
                 </Text>
               </div>
               <Button
@@ -298,14 +479,64 @@ const CartPage: React.FC = () => {
                 size="large"
                 block
                 onClick={handleCheckout}
+                disabled={selectedItemIds.size === 0}
                 style={{ marginTop: 16 }}
               >
-                Thanh toán
+                Thanh toán ({selectedItemIds.size})
               </Button>
             </Space>
           </Card>
         </div>
       </div>
+
+      {/* Modal chọn variant */}
+      <Modal
+        title="Chọn phân loại"
+        open={variantModalOpen}
+        onCancel={() => {
+          setVariantModalOpen(false);
+          setEditingCartItem(null);
+          setSelectedVariantId(null);
+        }}
+        onOk={handleConfirmVariantChange}
+        confirmLoading={updatingVariant}
+        okText="Xác nhận"
+        cancelText="Hủy"
+      >
+        {loadingVariants ? (
+          <div style={{ textAlign: "center", padding: 20 }}>Đang tải...</div>
+        ) : variants.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 20 }}>
+            Không có phân loại nào
+          </div>
+        ) : (
+          <Radio.Group
+            value={selectedVariantId ?? undefined}
+            onChange={(e) => setSelectedVariantId(e.target.value)}
+            style={{ width: "100%" }}
+          >
+            <Space direction="vertical" style={{ width: "100%" }}>
+              {variants.map((variant) => (
+                <Radio key={variant.id} value={variant.id}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>
+                      {variant.variantValue === "Default"
+                        ? "Mặc định"
+                        : variant.variantValue}
+                    </div>
+                    {variant.stockQuantity !== null &&
+                      variant.stockQuantity !== undefined && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          Kho: {variant.stockQuantity}
+                        </Text>
+                      )}
+                  </div>
+                </Radio>
+              ))}
+            </Space>
+          </Radio.Group>
+        )}
+      </Modal>
     </div>
   );
 };
