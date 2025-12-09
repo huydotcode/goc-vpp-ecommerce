@@ -5,6 +5,7 @@ import type {
   User,
   UserFilters,
   UpdateProfileRequest,
+  ChangePasswordRequest,
 } from "@/types/user.types";
 import apiClient from "./client";
 import { API_ENDPOINTS } from "./endpoints";
@@ -78,6 +79,13 @@ export const userApi = {
   updateProfile: async (payload: UpdateProfileRequest): Promise<User> => {
     const response = await apiClient.put<User>(API_ENDPOINTS.USERS_ME, payload);
     return response.data;
+  },
+
+  /**
+   * Change current logged-in user's password
+   */
+  changePassword: async (payload: ChangePasswordRequest): Promise<void> => {
+    await apiClient.put(API_ENDPOINTS.USERS_ME_PASSWORD, payload);
   },
 
   /**

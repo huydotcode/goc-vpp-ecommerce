@@ -82,6 +82,11 @@ export interface UpdateProfileRequest {
   dateOfBirth?: string;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface UserAddress {
   id: number;
   userId: number;

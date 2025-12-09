@@ -50,4 +50,7 @@ export const API_ENDPOINTS = {
   // Orders
   ORDERS: "/orders",
   ORDERS_CHECKOUT: "/orders/checkout",
+
+  // User profile
+  USERS_ME_PASSWORD: "/users/me/password",
 } as const;

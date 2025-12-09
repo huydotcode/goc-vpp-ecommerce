@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.learnspring1.domain.User;
 import com.example.learnspring1.domain.dto.UpdateProfileDTO;
+import com.example.learnspring1.domain.dto.ChangePasswordDTO;
 
 public interface UserService {
     User createUser(User user, PasswordEncoder encoder);
@@ -34,6 +35,8 @@ public interface UserService {
     User updateUserProfile(Long id, UpdateProfileDTO dto);
 
     boolean existsByPhone(String phone);
+
+    void changePassword(Long userId, ChangePasswordDTO dto);
 
     void deleteUser(Long id);
 

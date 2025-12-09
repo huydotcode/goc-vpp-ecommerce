@@ -1,6 +1,9 @@
 import AddressSelector from "@/components/checkout/AddressSelector";
 import { useAuth } from "@/contexts/AuthContext";
-import type { UpdateProfileRequest } from "@/services/user.service";
+import type {
+  UpdateProfileRequest,
+  ChangePasswordRequest,
+} from "@/services/user.service";
 import { userService } from "@/services/user.service";
 import { userAddressService } from "@/services/userAddress.service";
 import type { UserAddress } from "@/types/user.types";
@@ -43,7 +46,9 @@ const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [modal, modalContextHolder] = Modal.useModal();
   const [form] = Form.useForm<ProfileFormValues>();
+  const [passwordForm] = Form.useForm<ChangePasswordRequest>();
   const [loading, setLoading] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
@@ -117,6 +122,19 @@ const UserProfilePage: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async (values: ChangePasswordRequest) => {
+    setChangingPassword(true);
+    try {
+      await userService.changePassword(values);
+      passwordForm.resetFields();
+      toast.success("Đổi mật khẩu thành công");
+    } catch (error) {
+      handleApiError(error);
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleDeleteAddress = (address: UserAddress) => {
     modal.confirm({
       title: "Xóa địa chỉ",
@@ -176,7 +194,7 @@ const UserProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col gap-4">
       {modalContextHolder}
       <div>
         <Title level={3} style={{ margin: 0, marginBottom: 8 }}>
@@ -287,9 +305,6 @@ const UserProfilePage: React.FC = () => {
 
       {/* Address Management Section */}
       <Card
-        style={{
-          marginTop: "8px",
-        }}
         title="Địa chỉ của bạn"
         extra={
           <Button
@@ -386,6 +401,63 @@ const UserProfilePage: React.FC = () => {
             ))}
           </div>
         )}
+      </Card>
+
+      {/* Change Password */}
+      <Card title="Đổi mật khẩu">
+        <Form<ChangePasswordRequest>
+          form={passwordForm}
+          layout="vertical"
+          onFinish={handleChangePassword}
+        >
+          <Form.Item
+            label="Mật khẩu hiện tại"
+            name="currentPassword"
+            rules={[
+              { required: true, message: "Vui lòng nhập mật khẩu hiện tại" },
+            ]}
+          >
+            <Input.Password placeholder="Mật khẩu hiện tại" />
+          </Form.Item>
+
+          <Form.Item
+            label="Mật khẩu mới"
+            name="newPassword"
+            rules={[
+              { required: true, message: "Vui lòng nhập mật khẩu mới" },
+              { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự" },
+            ]}
+          >
+            <Input.Password placeholder="Mật khẩu mới" />
+          </Form.Item>
+
+          <Form.Item
+            label="Xác nhận mật khẩu"
+            name="confirmPassword"
+            dependencies={["newPassword"]}
+            rules={[
+              { required: true, message: "Vui lòng xác nhận mật khẩu" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue("newPassword") === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error("Mật khẩu xác nhận không khớp")
+                  );
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="Nhập lại mật khẩu mới" />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={changingPassword}>
+              Đổi mật khẩu
+            </Button>
+          </Form.Item>
+        </Form>
       </Card>
 
       {/* Address Selector Drawer */}

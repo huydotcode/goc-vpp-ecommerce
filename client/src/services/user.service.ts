@@ -8,11 +8,13 @@ import type {
   User,
   UserFilters,
   UpdateProfileRequest,
+  ChangePasswordRequest,
 } from "@/types/user.types";
 
 // Re-export types để backward compatibility
 export type { CreateUserRequest, UpdateUserRequest, User as UserDTO };
 export type { UpdateProfileRequest };
+export type { ChangePasswordRequest };
 
 export const userService = {
   /**
@@ -72,6 +74,13 @@ export const userService = {
    */
   updateProfile: async (payload: UpdateProfileRequest): Promise<User> => {
     return userApi.updateProfile(payload);
+  },
+
+  /**
+   * Change current user password
+   */
+  changePassword: async (payload: ChangePasswordRequest): Promise<void> => {
+    return userApi.changePassword(payload);
   },
 
   /**

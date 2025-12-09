@@ -15,6 +15,7 @@ import com.example.learnspring1.domain.Role;
 import com.example.learnspring1.repository.UserRepository;
 import com.example.learnspring1.service.UserService;
 import com.example.learnspring1.domain.dto.UpdateProfileDTO;
+import com.example.learnspring1.domain.dto.ChangePasswordDTO;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -208,6 +209,18 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByPhone(String phone) {
         return userRepository.existsByPhone(phone);
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("User not found with id " + userId));
+
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không đúng");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        userRepository.save(user);
     }
 
 }
