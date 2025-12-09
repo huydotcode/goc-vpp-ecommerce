@@ -91,7 +91,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               : "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Số lượng">
-            {dataDetailModal.stockQuantity ?? "N/A"}
+            {dataDetailModal.totalStockQuantity ?? "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Màu sắc">
             {dataDetailModal.color || "N/A"}

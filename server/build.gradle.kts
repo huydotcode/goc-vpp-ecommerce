@@ -24,6 +24,7 @@ dependencies {
 	// Swagger OpenAPI UI - phiên bản 2.7.0 hỗ trợ Spring Boot 3.5.x
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 	implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa") 
 	implementation("org.mariadb.jdbc:mariadb-java-client:3.4.0")
