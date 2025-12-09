@@ -9,17 +9,18 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.learnspring1.domain.User;
+import com.example.learnspring1.domain.dto.UpdateProfileDTO;
 
 public interface UserService {
     User createUser(User user, PasswordEncoder encoder);
 
-
     Page<User> getUsersPage(Pageable pageable, Specification<User> spec);
-    
+
     Page<User> getUsersPage(Pageable pageable);
-    
-    Page<User> getUsersPageWithFilters(Pageable pageable, Long id, String role, String username, String email, Boolean isActive, String search);
-    
+
+    Page<User> getUsersPageWithFilters(Pageable pageable, Long id, String role, String username, String email,
+            Boolean isActive, String search);
+
     List<User> getUsersWithFilters(String role, String username, String email, Boolean isActive);
 
     Optional<User> getUserById(Long id);
@@ -28,9 +29,12 @@ public interface UserService {
 
     Optional<User> getUserByUsername(String username);
 
-
     User updateUser(Long id, User user);
 
+    User updateUserProfile(Long id, UpdateProfileDTO dto);
+
+    boolean existsByPhone(String phone);
+
     void deleteUser(Long id);
-    
+
 }

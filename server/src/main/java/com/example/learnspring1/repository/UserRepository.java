@@ -29,6 +29,8 @@ public interface UserRepository extends JpaRepository<User, Long> , JpaSpecifica
 
     boolean existsByUsername(String username);
 
+    boolean existsByPhone(String phone);
+
     // Filter by isActive
     List<User> findByIsActiveTrue();
     
