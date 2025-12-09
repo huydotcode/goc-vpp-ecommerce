@@ -104,10 +104,9 @@ const OrdersPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <Typography.Title level={4}>Đơn hàng của tôi</Typography.Title>
-        <Typography.Paragraph type="secondary">
-          Xem lại lịch sử các đơn hàng bạn đã đặt.
-        </Typography.Paragraph>
+        <Typography.Title level={3} style={{ margin: 0, marginBottom: 8 }}>
+          Đơn hàng của tôi
+        </Typography.Title>
       </div>
 
       <Table<OrderItem>
