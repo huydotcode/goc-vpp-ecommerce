@@ -10,7 +10,8 @@ import UserAccountLayout from "./components/layout/user/UserAccountLayout";
 import UserLayout from "./components/layout/user/UserLayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import Admin from "./pages/Admin";
-
+import AdminOrderDetailPage from "./pages/AdminOrderDetailPage";
+import AdminOrdersPage from "./pages/AdminOrdersPage";
 import AdminPermissionsPage from "./pages/AdminPermissions";
 import AdminProfilePage from "./pages/AdminProfile";
 import CartPage from "./pages/Cart";
@@ -62,8 +63,8 @@ function AppRoutes(): JSX.Element {
         <Route path="categories" element={<CategoryAdminMain />} />
         <Route path="products" element={<ProductAdminMain />} />
         <Route path="promotions" element={<PromotionAdminMain />} />
-        <Route path="orders" element={<OrdersPage isAdmin={true} />} />
-        <Route path="orders/:id" element={<OrderDetailPage isAdmin={true} />} />
+        <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="orders/:id" element={<AdminOrderDetailPage />} />
         <Route path="permissions" element={<AdminPermissionsPage />} />
         <Route path="profile" element={<AdminProfilePage />} />
       </Route>
