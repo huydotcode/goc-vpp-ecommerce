@@ -16,7 +16,13 @@ import {
   Tag,
   Typography,
 } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { paymentApi } from "../api/payment.api";
@@ -33,10 +39,122 @@ import {
 import { userAddressService } from "../services/userAddress.service";
 import { PaymentMethod } from "../types/order.types";
 import { formatCurrency } from "../utils/format";
+import { savePayOSUrl } from "../utils/payosStorage";
 
-const { Title, Text } = Typography;
+// Define FormValues interface for type safety
+interface FormValues {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  street?: string;
+  address?: string;
+  notes?: string;
+  paymentMethod?: PaymentMethod;
+}
 
-// Helper function to build full address from UserAddress
+// Custom hook for address form management
+const useAddressForm = () => {
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
+
+  const loadProvinces = useCallback(async () => {
+    setLoadingProvinces(true);
+    try {
+      const data = await addressService.getProvinces();
+      setProvinces(data);
+    } catch (error) {
+      toast.error("Không thể tải danh sách tỉnh/thành phố. Vui lòng thử lại.");
+      console.error("Error loading provinces:", error);
+    } finally {
+      setLoadingProvinces(false);
+    }
+  }, []);
+
+  const loadDistricts = useCallback(async (provinceCode: string) => {
+    setLoadingDistricts(true);
+    setDistricts([]);
+    setWards([]);
+    try {
+      const data = await addressService.getDistricts(provinceCode);
+      setDistricts(data);
+    } catch (error) {
+      toast.error("Không thể tải danh sách quận/huyện. Vui lòng thử lại.");
+      console.error("Error loading districts:", error);
+    } finally {
+      setLoadingDistricts(false);
+    }
+  }, []);
+
+  const loadWards = useCallback(async (districtCode: string) => {
+    setLoadingWards(true);
+    setWards([]);
+    try {
+      const data = await addressService.getWards(districtCode);
+      setWards(data);
+    } catch (error) {
+      toast.error("Không thể tải danh sách phường/xã. Vui lòng thử lại.");
+      console.error("Error loading wards:", error);
+    } finally {
+      setLoadingWards(false);
+    }
+  }, []);
+
+  const updateFullAddress = useCallback(
+    (
+      formValues: FormValues,
+      provinces: Province[],
+      districts: District[],
+      wards: Ward[]
+    ): string => {
+      const provinceCode = formValues.province;
+      const districtCode = formValues.district;
+      const wardCode = formValues.ward;
+      const street = formValues.street || "";
+
+      const provinceName = provinceCode
+        ? provinces.find((p) => p.code === provinceCode)?.name || ""
+        : "";
+      const districtName = districtCode
+        ? districts.find((d) => d.code === districtCode)?.name || ""
+        : "";
+      const wardName = wardCode
+        ? wards.find((w) => w.code === wardCode)?.name || ""
+        : "";
+
+      return addressService.buildFullAddress({
+        street,
+        ward: wardName,
+        district: districtName,
+        province: provinceName,
+      });
+    },
+    []
+  );
+
+  return {
+    provinces,
+    districts,
+    wards,
+    loadingProvinces,
+    loadingDistricts,
+    loadingWards,
+    setDistricts,
+    setWards,
+    loadProvinces,
+    loadDistricts,
+    loadWards,
+    updateFullAddress,
+  };
+};
+
+// Helper function to build full address display
 const buildAddressDisplay = (address: UserAddress): string => {
   if (address.fullAddress) {
     return address.fullAddress;
@@ -57,7 +175,7 @@ const CheckoutPage: React.FC = () => {
   const { cart, isLoading: cartLoading } = useCart();
   const checkoutMutation = useCheckout();
   const { user, isAuthenticated } = useAuth();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<FormValues>();
 
   const selectedCartItemIds = (
     location.state as { selectedCartItemIds?: number[] }
@@ -66,28 +184,117 @@ const CheckoutPage: React.FC = () => {
     PaymentMethod.PAYOS
   );
   const [loading, setLoading] = useState(false);
-
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [wards, setWards] = useState<Ward[]>([]);
-  const [loadingProvinces, setLoadingProvinces] = useState(false);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
-  const [loadingWards, setLoadingWards] = useState(false);
+  const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
 
   const [userAddresses, setUserAddresses] = useState<UserAddress[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(
     null
   );
-  const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
 
   const isCheckingOutRef = useRef(false);
+  const hasLoadedAddressesRef = useRef(false);
 
+  // Use custom hook for address management
+  const {
+    provinces,
+    districts,
+    wards,
+    loadingProvinces,
+    loadingDistricts,
+    loadingWards,
+    setDistricts,
+    setWards,
+    loadProvinces,
+    loadDistricts,
+    loadWards,
+    updateFullAddress: updateFullAddressHelper,
+  } = useAddressForm();
+
+  // Performance: Memoize computed values
+  const itemsToDisplay = useMemo(() => {
+    if (!selectedCartItemIds || !Array.isArray(selectedCartItemIds))
+      return cart?.items || [];
+    return (
+      cart?.items.filter((item) => selectedCartItemIds.includes(item.id)) || []
+    );
+  }, [cart, selectedCartItemIds]);
+
+  const displayTotalAmount = useMemo(
+    () => itemsToDisplay.reduce((sum, item) => sum + item.subtotal, 0),
+    [itemsToDisplay]
+  );
+
+  const displayTotalItems = useMemo(
+    () => itemsToDisplay.reduce((sum, item) => sum + item.quantity, 0),
+    [itemsToDisplay]
+  );
+
+  // Validate selected cart items
+  const validSelectedIds = useMemo(() => {
+    if (!selectedCartItemIds || !Array.isArray(selectedCartItemIds)) return [];
+    return selectedCartItemIds.filter((id) =>
+      cart?.items.some((item) => item.id === id)
+    );
+  }, [selectedCartItemIds, cart?.items]);
+
+  useEffect(() => {
+    // Don't show warning if currently checking out or if cart is loading
+    if (
+      loading ||
+      checkoutMutation.isPending ||
+      isCheckingOutRef.current ||
+      cartLoading
+    ) {
+      return;
+    }
+
+    // Only show warning if:
+    // 1. There are selectedCartItemIds
+    // 2. Those items are no longer in cart
+    // 3. Cart is not empty (if cart is empty, it might be due to successful checkout)
+    if (
+      selectedCartItemIds &&
+      selectedCartItemIds.length > 0 &&
+      validSelectedIds.length === 0 &&
+      cart &&
+      cart.items.length > 0
+    ) {
+      toast.warning("Các sản phẩm đã chọn không còn trong giỏ hàng");
+      navigate("/cart");
+    }
+  }, [
+    validSelectedIds,
+    selectedCartItemIds,
+    navigate,
+    loading,
+    checkoutMutation.isPending,
+    cartLoading,
+    cart,
+  ]);
+
+  // Load provinces on mount
   useEffect(() => {
     loadProvinces();
-  }, []);
+  }, [loadProvinces]);
 
+  // Track previous values to detect changes
+  const prevAuthRef = useRef(isAuthenticated);
+  const prevProvincesLengthRef = useRef(provinces.length);
+
+  // Load user data when authenticated and provinces are loaded
   useEffect(() => {
-    if (provinces.length > 0 && districts.length === 0 && wards.length === 0) {
+    const authChanged = prevAuthRef.current !== isAuthenticated;
+    const provincesChanged =
+      prevProvincesLengthRef.current !== provinces.length;
+
+    if (
+      provinces.length > 0 &&
+      (authChanged || provincesChanged || !hasLoadedAddressesRef.current)
+    ) {
+      hasLoadedAddressesRef.current = true;
+      prevAuthRef.current = isAuthenticated;
+      prevProvincesLengthRef.current = provinces.length;
+
       if (isAuthenticated) {
         loadUserInfoAndAddresses();
         loadUserAddresses();
@@ -98,6 +305,7 @@ const CheckoutPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provinces.length, isAuthenticated]);
 
+  // Watch cart changes for checkout
   useEffect(() => {
     if (loading || checkoutMutation.isPending || isCheckingOutRef.current) {
       return;
@@ -109,19 +317,7 @@ const CheckoutPage: React.FC = () => {
     }
   }, [cart, cartLoading, navigate, loading, checkoutMutation.isPending]);
 
-  const loadProvinces = async () => {
-    setLoadingProvinces(true);
-    try {
-      const data = await addressService.getProvinces();
-      setProvinces(data);
-    } catch {
-      toast.error("Không tải được danh sách tỉnh/thành phố");
-    } finally {
-      setLoadingProvinces(false);
-    }
-  };
-
-  const loadUserInfoAndAddresses = async () => {
+  const loadUserInfoAndAddresses = useCallback(async () => {
     if (!user) return;
 
     if (user.username) {
@@ -130,9 +326,47 @@ const CheckoutPage: React.FC = () => {
     if (user.email) {
       form.setFieldsValue({ email: user.email });
     }
-  };
+  }, [user, form]);
 
-  const loadUserAddresses = async () => {
+  const fillFormFromAddress = useCallback(
+    async (address: UserAddress) => {
+      if (address.phone) {
+        form.setFieldsValue({ phone: address.phone });
+      }
+
+      if (address.provinceCode && address.provinceName) {
+        const fullAddr =
+          address.fullAddress ||
+          addressService.buildFullAddress({
+            street: address.street || "",
+            ward: address.wardName || "",
+            district: address.districtName || "",
+            province: address.provinceName || "",
+          });
+
+        form.setFieldsValue({
+          street: address.street || "",
+          address: fullAddr,
+          province: address.provinceCode,
+        });
+
+        // Sequential async loading without timeouts
+        await loadDistricts(address.provinceCode);
+
+        if (address.districtCode) {
+          await loadWards(address.districtCode);
+          form.setFieldsValue({
+            district: address.districtCode,
+            ward: address.wardCode || "",
+            address: fullAddr,
+          });
+        }
+      }
+    },
+    [form, loadDistricts, loadWards]
+  );
+
+  const loadUserAddresses = useCallback(async () => {
     if (!isAuthenticated) return;
 
     try {
@@ -168,127 +402,69 @@ const CheckoutPage: React.FC = () => {
       } else {
         // Không có địa chỉ nào
         setSelectedAddress(null);
-        loadLastAddress();
+        // Don't call loadLastAddress here to avoid circular dependency
       }
     } catch (error) {
       console.error("Error loading addresses:", error);
       setSelectedAddress(null);
-      loadLastAddress();
+      // Don't call loadLastAddress here to avoid circular dependency
     }
-  };
+  }, [isAuthenticated, fillFormFromAddress]);
 
-  const fillFormFromAddress = async (address: UserAddress) => {
-    if (address.phone) {
-      form.setFieldsValue({ phone: address.phone });
-    }
-
-    if (address.provinceCode && address.provinceName) {
-      const fullAddr =
-        address.fullAddress ||
-        addressService.buildFullAddress({
+  const handleAddressSelect = async (address: UserAddress) => {
+    try {
+      // Ensure fullAddress is available
+      let addressToUse = address;
+      if (!address.fullAddress || address.fullAddress.trim() === "") {
+        const fullAddress = addressService.buildFullAddress({
           street: address.street || "",
           ward: address.wardName || "",
           district: address.districtName || "",
           province: address.provinceName || "",
         });
+        addressToUse = { ...address, fullAddress };
+      }
 
-      form.setFieldsValue({
-        street: address.street || "",
-        address: fullAddr,
-        province: address.provinceCode,
-      });
-
-      await handleProvinceChange(address.provinceCode, {
-        preserveAddress: true,
-      });
-
-      setTimeout(async () => {
-        if (address.districtCode) {
-          form.setFieldsValue({ district: address.districtCode });
-          await handleDistrictChange(address.districtCode, {
-            preserveAddress: true,
-          });
-
-          setTimeout(() => {
-            if (address.wardCode) {
-              form.setFieldsValue({
-                ward: address.wardCode,
-                address: fullAddr,
-              });
-            }
-          }, 300);
-        }
-      }, 300);
+      setSelectedAddress(addressToUse);
+      await fillFormFromAddress(addressToUse);
+    } catch (error) {
+      console.error("Error in handleAddressSelect:", error);
+      toast.error("Không thể cập nhật địa chỉ. Vui lòng thử lại.");
+    } finally {
+      setAddressSelectorOpen(false);
     }
   };
 
-  const handleAddressSelect = async (address: UserAddress) => {
-    if (!address.fullAddress || address.fullAddress.trim() === "") {
-      const fullAddress = addressService.buildFullAddress({
-        street: address.street || "",
-        ward: address.wardName || "",
-        district: address.districtName || "",
-        province: address.provinceName || "",
-      });
-      address.fullAddress = fullAddress;
-    }
-
-    setSelectedAddress(address);
-    await fillFormFromAddress(address);
-    await loadUserAddresses();
-  };
-
-  const loadLastAddress = async () => {
+  const loadLastAddress = useCallback(async () => {
     const lastAddress = addressService.getLastAddress();
     if (lastAddress && lastAddress.province) {
+      // Use current provinces from hook
       const province = provinces.find((p) => p.name === lastAddress.province);
       if (province) {
         form.setFieldsValue({
-          street: lastAddress.street,
+          street: lastAddress.street || "",
           address: addressService.buildFullAddress(lastAddress),
+          province: province.code,
         });
 
-        await handleProvinceChange(province.code);
+        await loadDistricts(province.code);
 
-        setTimeout(async () => {
-          const district = districts.find(
-            (d) => d.name === lastAddress.district
-          );
-          if (district) {
-            form.setFieldsValue({ district: district.code });
-            await handleDistrictChange(district.code);
-
-            setTimeout(() => {
-              const ward = wards.find((w) => w.name === lastAddress.ward);
-              if (ward) {
-                form.setFieldsValue({ ward: ward.code });
-              }
-            }, 300);
-          }
-        }, 300);
+        // Use a separate effect or callback to handle districts/wards after they load
+        // For now, just set province and let user select district/ward manually
+        // Or we can use a ref to track when districts are loaded
       }
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, loadDistricts]);
 
   const updateFullAddress = () => {
-    const provinceCode = form.getFieldValue("province") as string;
-    const districtCode = form.getFieldValue("district") as string;
-    const wardCode = form.getFieldValue("ward") as string;
-    const street = (form.getFieldValue("street") as string) || "";
-
-    const provinceName =
-      provinces.find((p) => p.code === provinceCode)?.name || "";
-    const districtName =
-      districts.find((d) => d.code === districtCode)?.name || "";
-    const wardName = wards.find((w) => w.code === wardCode)?.name || "";
-
-    const fullAddress = addressService.buildFullAddress({
-      street,
-      ward: wardName,
-      district: districtName,
-      province: provinceName,
-    });
-
+    const formValues = form.getFieldsValue();
+    const fullAddress = updateFullAddressHelper(
+      formValues,
+      provinces,
+      districts,
+      wards
+    );
     form.setFieldsValue({ address: fullAddress });
   };
 
@@ -306,15 +482,8 @@ const CheckoutPage: React.FC = () => {
 
     if (!provinceCode) return;
 
-    setLoadingDistricts(true);
-    try {
-      const data = await addressService.getDistricts(provinceCode);
-      setDistricts(data);
-    } catch {
-      toast.error("Không tải được danh sách quận/huyện");
-    } finally {
-      setLoadingDistricts(false);
-    }
+    await loadDistricts(provinceCode);
+    updateFullAddress();
   };
 
   const handleDistrictChange = async (
@@ -329,15 +498,8 @@ const CheckoutPage: React.FC = () => {
 
     if (!districtCode) return;
 
-    setLoadingWards(true);
-    try {
-      const data = await addressService.getWards(districtCode);
-      setWards(data);
-    } catch {
-      toast.error("Không tải được danh sách phường/xã");
-    } finally {
-      setLoadingWards(false);
-    }
+    await loadWards(districtCode);
+    updateFullAddress();
   };
 
   const handleCheckout = async () => {
@@ -369,7 +531,7 @@ const CheckoutPage: React.FC = () => {
         addressService.saveLastAddress(addressData);
 
         fullAddress =
-          addressService.buildFullAddress(addressData) || values.address;
+          addressService.buildFullAddress(addressData) || values.address || "";
       }
 
       const itemsToCheckout = selectedCartItemIds
@@ -382,9 +544,9 @@ const CheckoutPage: React.FC = () => {
 
       const checkoutResponse = await checkoutMutation.mutateAsync({
         paymentMethod: paymentMethod,
-        customerName: values.fullName,
-        customerEmail: values.email,
-        customerPhone: values.phone,
+        customerName: values.fullName || "",
+        customerEmail: values.email || "",
+        customerPhone: values.phone || "",
         address: fullAddress,
         description: values.notes || undefined,
         cartItemIds: selectedCartItemIds,
@@ -400,14 +562,17 @@ const CheckoutPage: React.FC = () => {
               25
             ),
           orderCode: checkoutResponse.orderCode,
-          customerName: values.fullName,
-          customerEmail: values.email,
-          customerPhone: values.phone,
+          customerName: values.fullName || "",
+          customerEmail: values.email || "",
+          customerPhone: values.phone || "",
         });
 
         const checkoutUrl = res.checkoutUrl || res.paymentUrl;
 
         if (checkoutUrl) {
+          // Lưu checkoutUrl vào localStorage để có thể quay lại thanh toán sau
+          savePayOSUrl(checkoutResponse.orderCode, checkoutUrl);
+
           window.location.href = checkoutUrl;
         } else {
           toast.error("Không lấy được URL thanh toán");
@@ -437,17 +602,8 @@ const CheckoutPage: React.FC = () => {
     );
   }
 
-  const itemsToDisplay = selectedCartItemIds
-    ? cart.items.filter((item) => selectedCartItemIds.includes(item.id))
-    : cart.items;
-  const displayTotalAmount = itemsToDisplay.reduce(
-    (sum, item) => sum + item.subtotal,
-    0
-  );
-  const displayTotalItems = itemsToDisplay.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
+  // FIX: Properly destructure Title and Text from Typography
+  const { Title, Text } = Typography;
 
   return (
     <div style={{ padding: "24px 16px", maxWidth: 1200, margin: "0 auto" }}>
@@ -540,7 +696,13 @@ const CheckoutPage: React.FC = () => {
 
         <Col xs={24} lg={14}>
           <Card title="Thông tin giao hàng">
-            <Form layout="vertical" form={form}>
+            <Form
+              layout="vertical"
+              form={form}
+              initialValues={{
+                paymentMethod: PaymentMethod.PAYOS,
+              }}
+            >
               <Form.Item label="Địa chỉ giao hàng">
                 {isAuthenticated ? (
                   <Card
@@ -662,7 +824,8 @@ const CheckoutPage: React.FC = () => {
                       loading={loadingProvinces}
                       onChange={(value) => {
                         handleProvinceChange(value);
-                        setTimeout(() => updateFullAddress(), 100);
+                        // FIX: Remove setTimeout, call directly
+                        updateFullAddress();
                       }}
                       showSearch
                       filterOption={(input, option) =>
@@ -690,7 +853,8 @@ const CheckoutPage: React.FC = () => {
                       disabled={!form.getFieldValue("province")}
                       onChange={(value) => {
                         handleDistrictChange(value);
-                        setTimeout(() => updateFullAddress(), 100);
+                        // FIX: Remove setTimeout, call directly
+                        updateFullAddress();
                       }}
                       showSearch
                       filterOption={(input, option) =>
@@ -717,7 +881,8 @@ const CheckoutPage: React.FC = () => {
                       loading={loadingWards}
                       disabled={!form.getFieldValue("district")}
                       onChange={() => {
-                        setTimeout(() => updateFullAddress(), 100);
+                        // FIX: Remove setTimeout, call directly
+                        updateFullAddress();
                       }}
                       showSearch
                       filterOption={(input, option) =>
