@@ -1,8 +1,8 @@
-import React, { useMemo } from "react";
-import { Card, Tag, Typography, Tabs, Empty, Spin, Image } from "antd";
-import { useQuery } from "@tanstack/react-query";
-import { handleApiError } from "@/utils/error";
 import { orderService } from "@/services/order.service";
+import { handleApiError } from "@/utils/error";
+import { useQuery } from "@tanstack/react-query";
+import { Card, Empty, Image, Spin, Tabs, Tag, Typography } from "antd";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import type { Order, OrderItem } from "@/types/order.types";
@@ -13,6 +13,9 @@ const statusColorMap: Record<string, string> = {
   PROCESSING: "blue",
   SHIPPING: "blue",
   CONFIRMED: "blue",
+  DELIVERED: "purple",
+  PAID: "green",
+  REFUNDED: "volcano",
   CANCELLED: "red",
   FAILED: "volcano",
 };
@@ -29,6 +32,12 @@ const statusLabel = (status: string) => {
       return "Đã xác nhận";
     case "SHIPPING":
       return "Đang giao";
+    case "DELIVERED":
+      return "Đã giao";
+    case "PAID":
+      return "Đã thanh toán";
+    case "REFUNDED":
+      return "Đã hoàn tiền";
     case "CANCELLED":
       return "Đã hủy";
     case "FAILED":
@@ -165,6 +174,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                 <Tag color={statusColorMap[order.status] || "default"}>
                   {statusLabel(order.status)}
                 </Tag>
+
                 {order.paymentMethod && (
                   <Typography.Text type="secondary" className="text-xs">
                     {order.paymentMethod === "COD"

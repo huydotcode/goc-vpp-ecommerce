@@ -52,12 +52,13 @@ export const API_ENDPOINTS = {
   ORDERS_CHECKOUT: "/orders/checkout",
   ORDERS_STATISTICS: "/orders/statistics",
   ORDERS_STATISTICS_RANGE: "/orders/statistics/range",
+  ORDERS_CANCEL: "/orders",
 
   // Reviews
   REVIEWS: "/reviews",
   REVIEWS_STATS: "/reviews/stats",
   REVIEWS_PRODUCT: "/reviews/product",
-  
+
   // User profile
   USERS_ME_PASSWORD: "/users/me/password",
 } as const;

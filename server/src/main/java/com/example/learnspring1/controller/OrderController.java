@@ -78,28 +78,29 @@ public class OrderController {
         // Date ranges
         Instant todayStart = now.toLocalDate().atStartOfDay(zoneId).toInstant();
         Instant todayEnd = todayStart.plus(Duration.ofDays(1));
-        
-        Instant weekStart = now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay(zoneId).toInstant();
+
+        Instant weekStart = now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay(zoneId)
+                .toInstant();
         Instant weekEnd = todayEnd;
-        
+
         Instant monthStart = now.toLocalDate().withDayOfMonth(1).atStartOfDay(zoneId).toInstant();
         Instant monthEnd = todayEnd;
 
         // Statistics
         Map<String, Object> stats = new HashMap<>();
-        
+
         // Today
         stats.put("todayRevenue", orderRepository.sumRevenueByDateRange(todayStart, todayEnd));
         stats.put("todayOrders", orderRepository.countOrdersByDateRange(todayStart, todayEnd));
-        
+
         // Week
         stats.put("weekRevenue", orderRepository.sumRevenueByDateRange(weekStart, weekEnd));
         stats.put("weekOrders", orderRepository.countOrdersByDateRange(weekStart, weekEnd));
-        
+
         // Month
         stats.put("monthRevenue", orderRepository.sumRevenueByDateRange(monthStart, monthEnd));
         stats.put("monthOrders", orderRepository.countOrdersByDateRange(monthStart, monthEnd));
-        
+
         // Total
         stats.put("totalRevenue", orderRepository.sumTotalRevenue());
         stats.put("totalOrders", orderRepository.countTotalOrders());
@@ -111,14 +112,14 @@ public class OrderController {
             LocalDate date = now.toLocalDate().minusDays(i);
             Instant dayStart = date.atStartOfDay(zoneId).toInstant();
             Instant dayEnd = dayStart.plus(Duration.ofDays(1));
-            
+
             Map<String, Object> dayStat = new HashMap<>();
             dayStat.put("date", date.format(formatter));
             dayStat.put("orders", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
             dayStat.put("revenue", orderRepository.sumRevenueByDateRange(dayStart, dayEnd));
             // Count unique customers for this day - using order count as approximation
             dayStat.put("customers", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
-            
+
             dailySales.add(dayStat);
         }
         stats.put("dailySales", dailySales);
@@ -133,23 +134,23 @@ public class OrderController {
             @RequestParam String endDate) {
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        
+
         // Parse dates
         LocalDate start = LocalDate.parse(startDate, formatter);
         LocalDate end = LocalDate.parse(endDate, formatter);
-        
+
         // Ensure end date is inclusive (end of day)
         Instant rangeStart = start.atStartOfDay(zoneId).toInstant();
         Instant rangeEnd = end.plusDays(1).atStartOfDay(zoneId).toInstant();
-        
+
         DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         // Statistics for the date range
         Map<String, Object> stats = new HashMap<>();
-        
+
         BigDecimal rangeRevenue = orderRepository.sumRevenueByDateRange(rangeStart, rangeEnd);
         Long rangeOrders = orderRepository.countOrdersByDateRange(rangeStart, rangeEnd);
-        
+
         stats.put("rangeRevenue", rangeRevenue != null ? rangeRevenue.longValue() : 0L);
         stats.put("rangeOrders", rangeOrders != null ? rangeOrders : 0L);
         stats.put("startDate", start.format(displayFormatter));
@@ -158,19 +159,19 @@ public class OrderController {
         // Daily sales for the selected date range
         List<Map<String, Object>> dailySales = new ArrayList<>();
         LocalDate currentDate = start;
-        
+
         while (!currentDate.isAfter(end)) {
             Instant dayStart = currentDate.atStartOfDay(zoneId).toInstant();
             Instant dayEnd = dayStart.plus(Duration.ofDays(1));
-            
+
             Map<String, Object> dayStat = new HashMap<>();
             dayStat.put("date", currentDate.format(displayFormatter));
             dayStat.put("orders", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
-            
+
             BigDecimal dayRevenue = orderRepository.sumRevenueByDateRange(dayStart, dayEnd);
             dayStat.put("revenue", dayRevenue != null ? dayRevenue.longValue() : 0L);
             dayStat.put("customers", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
-            
+
             dailySales.add(dayStat);
             currentDate = currentDate.plusDays(1);
         }
@@ -333,6 +334,37 @@ public class OrderController {
                 .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
                 .map(this::toSummaryDTO)
                 .toList());
+    }
+
+    @Operation(summary = "Hủy đơn hàng", description = "Cho phép user hủy đơn hàng của mình (chỉ khi status là PENDING, PAID, hoặc CONFIRMED)")
+    @PostMapping("/{orderCode}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelOrder(
+            @PathVariable String orderCode,
+            @RequestBody(required = false) Map<String, String> request) {
+        try {
+            User currentUser = getCurrentUser();
+            String reason = request != null ? request.get("reason") : null;
+
+            Order order = orderService.cancelOrder(orderCode, currentUser.getId(), reason);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("orderCode", order.getOrderCode());
+            response.put("status", order.getStatus().name());
+            response.put("message", "Đơn hàng đã được hủy thành công");
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (RuntimeException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to cancel order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 
     private OrderSummaryDTO toSummaryDTO(Order order) {

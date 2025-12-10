@@ -145,4 +145,23 @@ export const orderApi = {
 
     throw new Error("Không đọc được order từ response");
   },
+
+  cancelOrder: async (orderCode: string, reason?: string): Promise<Order> => {
+    const res = (await apiClient.post(
+      `${API_ENDPOINTS.ORDERS}/${orderCode}/cancel`,
+      reason ? { reason } : {}
+    )) as Order | ApiResponseWrapper<Order>;
+
+    if (res && typeof res === "object") {
+      if ("orderCode" in res) {
+        return res as Order;
+      }
+
+      if ("data" in res && res.data) {
+        return (res as ApiResponseWrapper<Order>).data;
+      }
+    }
+
+    throw new Error("Không thể hủy đơn hàng");
+  },
 };
