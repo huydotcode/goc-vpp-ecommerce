@@ -9,12 +9,16 @@ import {
   Space,
   Typography,
   Grid,
+  Tag,
+  Avatar,
+  List
 } from "antd";
 import {
   DeleteOutlined,
   ShoppingCartOutlined,
   MinusOutlined,
   PlusOutlined,
+  GiftOutlined
 } from "@ant-design/icons";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +29,8 @@ import type { CartItem } from "@/types/cart.types";
 import type { ProductVariant } from "@/types/variant.types";
 import { variantApi } from "@/api/variant.api";
 import { cartService } from "@/services/cart.service";
+import { promotionService } from "@/services/promotion.service";
+import type { PromotionResponse } from "@/types/promotion.types";
 
 const { Title, Text } = Typography;
 
@@ -56,6 +62,20 @@ const CartPage: React.FC = () => {
     null
   );
   const [updatingVariant, setUpdatingVariant] = useState(false);
+  const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>([]);
+
+  // Fetch Promotions
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      try {
+        const data = await promotionService.getActivePromotions();
+        setActivePromotions(data);
+      } catch (error) {
+        console.error("Error fetching promotions:", error);
+      }
+    };
+    fetchPromotions();
+  }, []);
 
   // Tự động chọn tất cả khi cart load
   useEffect(() => {
@@ -286,7 +306,9 @@ const CartPage: React.FC = () => {
                       alignItems: "center",
                       justifyContent: "center",
                       alignSelf: isMobile ? "flex-start" : "center",
+                      cursor: "pointer",
                     }}
+                    onClick={() => navigate(`/products/${item.productId}`)}
                   >
                     {item.productImageUrl ? (
                       <Image
@@ -313,9 +335,25 @@ const CartPage: React.FC = () => {
                       minWidth: 0,
                     }}
                   >
-                    <Title level={5} style={{ margin: 0, marginBottom: 4 }}>
+                    <Title
+                      level={5}
+                      style={{
+                        margin: 0,
+                        marginBottom: 4,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => navigate(`/products/${item.productId}`)}
+                    >
                       {item.productName}
                     </Title>
+                    {/* --- Promotions Display --- */}
+                    <div style={{ marginBottom: 8 }}>
+                      {activePromotions.filter(p => !p.conditions || p.conditions.length === 0 || p.conditions.some(c => c.details.some(d => d.productId === item.productId))).map(promo => (
+                        <Tag key={promo.id} color={promo.discountType === "GIFT" ? "purple" : "volcano"} style={{ marginRight: 4, marginBottom: 4 }}>
+                          {promo.discountType === "GIFT" ? <><GiftOutlined /> Tặng quà</> : "Giảm giá"}
+                        </Tag>
+                      ))}
+                    </div>
                     {item.variantName && (
                       <div style={{ marginBottom: 8 }}>
                         <Text

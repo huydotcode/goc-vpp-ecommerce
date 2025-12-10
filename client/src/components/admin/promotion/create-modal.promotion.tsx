@@ -338,8 +338,8 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
         giftItems:
           values.discountType === "GIFT"
             ? giftItems.filter(
-                (item) => item.productId > 0 && item.quantity > 0
-              )
+              (item) => item.productId > 0 && item.quantity > 0
+            )
             : [],
       };
 
@@ -525,6 +525,12 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
                             }
                             placeholder="Chọn sản phẩm"
                             loading={loadingProducts}
+                            showSearch
+                            filterOption={(input, option) => {
+                              const children = option?.children;
+                              const text = Array.isArray(children) ? children.join(' ') : String(children || '');
+                              return text.toLowerCase().includes(input.toLowerCase());
+                            }}
                           >
                             {products.map((product) => (
                               <Select.Option
@@ -633,6 +639,12 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
                               }
                               placeholder="Chọn sản phẩm"
                               loading={loadingProducts}
+                              showSearch
+                              filterOption={(input, option) => {
+                                const children = option?.children;
+                                const text = Array.isArray(children) ? children.join(' ') : String(children || '');
+                                return text.toLowerCase().includes(input.toLowerCase());
+                              }}
                             >
                               {products.map((product) => (
                                 <Select.Option

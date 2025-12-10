@@ -15,6 +15,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -243,7 +244,13 @@ public class OrderService {
         try {
             if (!promoResult.getAppliedPromotions().isEmpty()) {
                 appliedPromotionsJson = objectMapper.writeValueAsString(promoResult.getAppliedPromotions().stream()
-                    .map(p -> Map.of("id", p.getId(), "name", p.getName(), "value", p.getDiscountAmount()))
+                    .map(p -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("id", p.getId());
+                        map.put("name", p.getName());
+                        map.put("value", p.getDiscountAmount() != null ? p.getDiscountAmount() : BigDecimal.ZERO);
+                        return map;
+                    })
                     .collect(Collectors.toList()));
             }
         } catch (JsonProcessingException e) {
@@ -307,8 +314,11 @@ public class OrderService {
 
         // Xóa các items đã checkout khỏi cart (không xóa toàn bộ cart)
         // Sử dụng orphanRemoval bằng cách xóa khỏi collection để JPA tự động xóa
-        cart.getItems().removeAll(itemsToCheckout);
-        cartRepository.saveAndFlush(cart);
+        // Theo yêu cầu: KHÔNG xóa giỏ hàng nếu là PayOS để user có thể retry nếu hủy
+        if (request.getPaymentMethod() != Order.PaymentMethod.PAYOS) {
+            cart.getItems().removeAll(itemsToCheckout);
+            cartRepository.saveAndFlush(cart);
+        }
 
         return order;
     }

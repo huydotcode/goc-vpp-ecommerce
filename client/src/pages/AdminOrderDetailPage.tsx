@@ -14,13 +14,16 @@ import {
   message,
   Modal,
   Select,
+  Space,
   Spin,
   Steps,
   Tag,
   Typography,
 } from "antd";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
+const { Text } = Typography;
 
 type OrderItemSummary = {
   productName?: string;
@@ -35,6 +38,8 @@ type OrderDetail = {
   orderCode?: string;
   createdAt: string;
   totalAmount: number;
+  discountAmount?: number;
+  finalAmount?: number;
   status: string;
   paymentMethod?: string;
   customerName?: string;
@@ -80,20 +85,6 @@ const statusLabel = (status: string) => {
     default:
       return status;
   }
-};
-
-const statusStepsOrder = [
-  "PENDING",
-  "CONFIRMED",
-  "SHIPPING",
-  "DELIVERED",
-  "COMPLETED",
-];
-
-const statusToCurrentStep = (status: string) => {
-  const idx = statusStepsOrder.indexOf(status);
-  if (idx === -1) return 0;
-  return Math.min(idx, statusStepsOrder.length - 1);
 };
 
 const formatCurrency = (value: number | string | undefined) =>
@@ -170,6 +161,23 @@ const AdminOrderDetailPage: React.FC = () => {
     });
   };
 
+  const statusSteps = useMemo(() => {
+    const steps = ["PENDING"];
+    // Include PAID step for non-COD orders or if explicitly PAID
+    if (data?.paymentMethod !== "COD" || data?.status === "PAID") {
+      steps.push("PAID");
+    }
+    steps.push("CONFIRMED", "SHIPPING", "DELIVERED", "COMPLETED");
+    return steps;
+  }, [data]);
+
+  const currentStep = useMemo(() => {
+    if (!data) return 0;
+    const idx = statusSteps.indexOf(data.status);
+    if (idx === -1) return 0;
+    return Math.min(idx, statusSteps.length - 1);
+  }, [data, statusSteps]);
+
   if (isLoading) {
     return (
       <div className="py-10 flex justify-center">
@@ -185,6 +193,8 @@ const AdminOrderDetailPage: React.FC = () => {
       </div>
     );
   }
+
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-4 flex flex-col gap-4">
@@ -217,13 +227,13 @@ const AdminOrderDetailPage: React.FC = () => {
       <Card className="shadow-sm">
         <Steps
           size="small"
-          current={statusToCurrentStep(data.status)}
-          items={statusStepsOrder.map((s) => ({
+          current={currentStep}
+          items={statusSteps.map((s) => ({
             title: statusLabel(s),
             status:
               s === data.status
                 ? "process"
-                : statusStepsOrder.indexOf(s) < statusToCurrentStep(data.status)
+                : statusSteps.indexOf(s) < currentStep
                   ? "finish"
                   : "wait",
           }))}
@@ -361,10 +371,16 @@ const AdminOrderDetailPage: React.FC = () => {
               ))}
             </div>
             <Divider />
+            {data.discountAmount && data.discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-green-600 mb-2">
+                <span>Giảm giá:</span>
+                <span>-{formatCurrency(data.discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-base font-semibold">
               <span>Tổng tiền</span>
               <span className="text-red-600">
-                {formatCurrency(data.totalAmount)}
+                {formatCurrency(data.finalAmount || data.totalAmount)}
               </span>
             </div>
           </>

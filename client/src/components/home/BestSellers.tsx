@@ -9,7 +9,13 @@ import ProductCard from "../ProductCard";
 
 const { Title } = Typography;
 
-const BestSellers: React.FC = () => {
+import type { PromotionResponse } from "@/types/promotion.types";
+
+interface BestSellersProps {
+  activePromotions?: PromotionResponse[];
+}
+
+const BestSellers: React.FC<BestSellersProps> = ({ activePromotions }) => {
   const navigate = useNavigate();
 
   const { ref, inView } = useInView({
@@ -74,9 +80,9 @@ const BestSellers: React.FC = () => {
         <>
           <div className="mt-3">
             <Row gutter={[16, 16]}>
-              {products.slice(0, 6).map((product) => (
+              {products.filter(p => !p.isGift).slice(0, 6).map((product) => (
                 <Col xs={24} sm={12} md={6} lg={4} key={product.id}>
-                  <ProductCard product={product} />
+                  <ProductCard product={product} activePromotions={activePromotions} />
                 </Col>
               ))}
             </Row>

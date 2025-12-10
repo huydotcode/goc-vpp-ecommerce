@@ -317,13 +317,7 @@ public class OrderController {
         return ResponseEntity.ok(toDetailDTO(order));
     }
 
-    @GetMapping("/admin/{orderCode}")
-    public ResponseEntity<?> getAdminOrderByCode(@PathVariable String orderCode) {
-        // In a real app, verify ADMIN role here
-        Order order = orderService.getOrderWithItemsByCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        return ResponseEntity.ok(toDetailDTO(order));
-    }
+
 
     @GetMapping
     public ResponseEntity<?> getMyOrders() {

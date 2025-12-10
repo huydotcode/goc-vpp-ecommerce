@@ -82,6 +82,7 @@ public class PromotionServiceImpl implements PromotionService {
         existing.setDescription(safeRequest.getDescription());
         existing.setDiscountType(safeRequest.getDiscountType());
         existing.setDiscountAmount(resolveDiscountAmount(safeRequest));
+        existing.setIsActive(safeRequest.getIsActive());
         
         existing.getConditions().clear();
         existing.getGiftItems().clear();

@@ -28,6 +28,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
+import { promotionService } from "@/services/promotion.service";
+import type { PromotionResponse } from "@/types/promotion.types";
 
 const { Title, Text } = Typography;
 
@@ -55,6 +57,11 @@ const Products: React.FC = () => {
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const [customMinPrice, setCustomMinPrice] = useState<number | null>(null);
     const [customMaxPrice, setCustomMaxPrice] = useState<number | null>(null);
+    const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>([]);
+
+    useEffect(() => {
+        promotionService.getActivePromotions().then(setActivePromotions).catch(console.error);
+    }, []);
 
     // Parse URL params
     const page = parseInt(searchParams.get("page") || "1");
@@ -384,9 +391,6 @@ const Products: React.FC = () => {
     return (
         <div
             className="min-h-screen px-4 py-8"
-            style={{
-                background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)"
-            }}
         >
             <div className="mx-auto max-w-7xl">
                 {/* Page Title */}
@@ -545,27 +549,29 @@ const Products: React.FC = () => {
                                 exit={{ opacity: 0 }}
                             >
                                 <Row gutter={[16, 16]}>
-                                    {products.map((product, index) => (
-                                        <Col
-                                            key={product.id}
-                                            xs={12}
-                                            sm={12}
-                                            md={8}
-                                            lg={6}
-                                            xl={6}
-                                        >
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{
-                                                    delay: index * 0.05,
-                                                    duration: 0.3,
-                                                }}
+                                    {products
+                                        .filter(product => !product.isGift) // Hide gift products from main listing
+                                        .map((product, index) => (
+                                            <Col
+                                                key={product.id}
+                                                xs={12}
+                                                sm={12}
+                                                md={8}
+                                                lg={6}
+                                                xl={6}
                                             >
-                                                <ProductCard product={product} />
-                                            </motion.div>
-                                        </Col>
-                                    ))}
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{
+                                                        delay: index * 0.05,
+                                                        duration: 0.3,
+                                                    }}
+                                                >
+                                                    <ProductCard product={product} activePromotions={activePromotions} />
+                                                </motion.div>
+                                            </Col>
+                                        ))}
                                 </Row>
                             </motion.div>
                         )}

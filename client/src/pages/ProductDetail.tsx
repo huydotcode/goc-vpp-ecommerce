@@ -40,6 +40,12 @@ import { cartService } from "@/services/cart.service";
 import { reviewService } from "@/services/review.service"; // Import service review
 import type { Product } from "@/types/product.types";
 import type { Review, ReviewStats } from "@/types/review.types"; // Import types review
+import type { PromotionResponse } from "@/types/promotion.types";
+import { promotionService } from "@/services/promotion.service";
+import FeaturedProducts from "@/components/home/FeaturedProducts";
+import BestSellers from "@/components/home/BestSellers";
+import PromotionsSection from "@/components/home/PromotionsSection";
+
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -82,6 +88,7 @@ const ProductDetailPage: React.FC = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [totalReviews, setTotalReviews] = useState(0);
   const [reviewPage, setReviewPage] = useState(1);
+  const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>([]);
 
   // --- Review Modal States ---
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -146,7 +153,13 @@ const ProductDetailPage: React.FC = () => {
         // 2. Fetch Review Stats & List (Parallel)
         fetchReviewsAndStats(Number(id));
 
-        // 3. Fetch Similar Products
+        // 3. Fetch Active Promotions
+        const promos = await promotionService.getActivePromotions();
+        console.log("ProductDetail: Fetched promotions:", promos);
+        console.log("ProductDetail: Current Product ID:", id);
+        setActivePromotions(promos);
+
+        // 4. Fetch Similar Products
         if (data.categories && data.categories.length > 0) {
           const mainCategoryId = data.categories[0].id;
           const suggestions = await productService.getSuggestions({
@@ -180,62 +193,62 @@ const ProductDetailPage: React.FC = () => {
   // --- Helper: Fetch Review Data ---
   const fetchReviewsAndStats = async (productId: number) => {
     try {
-        setReviewLoading(true);
-        const [stats, reviewData] = await Promise.all([
-            reviewService.getStats(productId),
-            reviewService.getReviewsByProduct(productId, 1, 5)
-        ]);
+      setReviewLoading(true);
+      const [stats, reviewData] = await Promise.all([
+        reviewService.getStats(productId),
+        reviewService.getReviewsByProduct(productId, 1, 5)
+      ]);
 
-        if (stats) setReviewStats(stats);
-        if (reviewData) {
-            setReviews(reviewData.result);
-            setTotalReviews(reviewData.metadata?.totalElements || 0);
-        }
+      if (stats) setReviewStats(stats);
+      if (reviewData) {
+        setReviews(reviewData.result);
+        setTotalReviews(reviewData.metadata?.totalElements || 0);
+      }
     } catch (error) {
-        console.error("Lỗi tải review:", error);
+      console.error("Lỗi tải review:", error);
     } finally {
-        setReviewLoading(false);
+      setReviewLoading(false);
     }
   };
 
   const handlePageChange = async (page: number) => {
-      setReviewPage(page);
-      setReviewLoading(true);
-      const data = await reviewService.getReviewsByProduct(Number(id), page, 5);
-      if (data) {
-          setReviews(data.result);
-      }
-      setReviewLoading(false);
+    setReviewPage(page);
+    setReviewLoading(true);
+    const data = await reviewService.getReviewsByProduct(Number(id), page, 5);
+    if (data) {
+      setReviews(data.result);
+    }
+    setReviewLoading(false);
   };
 
   const handleSubmitReview = async (values: any) => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-          message.warning("Vui lòng đăng nhập để đánh giá!");
-          return;
-      }
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      message.warning("Vui lòng đăng nhập để đánh giá!");
+      return;
+    }
 
-      try {
-          setSubmitLoading(true);
-          await reviewService.createReview({
-              productId: Number(id),
-              rating: values.rating,
-              content: values.content,
-              userFullName: values.userFullName || "Khách hàng"
-          });
+    try {
+      setSubmitLoading(true);
+      await reviewService.createReview({
+        productId: Number(id),
+        rating: values.rating,
+        content: values.content,
+        userFullName: values.userFullName || "Khách hàng"
+      });
 
-          message.success("Cảm ơn bạn đã đánh giá!");
-          setIsReviewModalOpen(false);
-          form.resetFields();
+      message.success("Cảm ơn bạn đã đánh giá!");
+      setIsReviewModalOpen(false);
+      form.resetFields();
 
-          fetchReviewsAndStats(Number(id));
+      fetchReviewsAndStats(Number(id));
 
-      } catch (error) {
-          console.error(error);
-          message.error("Gửi đánh giá thất bại. Vui lòng thử lại!");
-      } finally {
-          setSubmitLoading(false);
-      }
+    } catch (error) {
+      console.error(error);
+      message.error("Gửi đánh giá thất bại. Vui lòng thử lại!");
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   // --- Helper: Get Images ---
@@ -256,16 +269,16 @@ const ProductDetailPage: React.FC = () => {
 
   const handleAddToCart = async () => {
     // message.info("Tính năng đang tạm khóa bảo trì.");
-     // Code cũ của bạn
-     const token = localStorage.getItem("accessToken");
-     if (!token) {
-       message.warning("Vui lòng đăng nhập để mua hàng!");
-       navigate("/login");
-       return;
-     }
-     if (!product) return;
-     // ... logic cart service ...
-     message.success("Đã thêm vào giỏ hàng (Demo)");
+    // Code cũ của bạn
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      message.warning("Vui lòng đăng nhập để mua hàng!");
+      navigate("/login");
+      return;
+    }
+    if (!product) return;
+    // ... logic cart service ...
+    message.success("Đã thêm vào giỏ hàng (Demo)");
   };
 
   const handleBuyNow = async () => {
@@ -342,8 +355,8 @@ const ProductDetailPage: React.FC = () => {
   const discountPercent =
     product.price && product.discountPrice
       ? Math.round(
-          ((product.price - product.discountPrice) / product.price) * 100
-        )
+        ((product.price - product.discountPrice) / product.price) * 100
+      )
       : 0;
 
   return (
@@ -459,6 +472,77 @@ const ProductDetailPage: React.FC = () => {
                 <Text>Đổi trả trong 30 ngày nếu lỗi nhà sản xuất</Text>
               </div>
             </div>
+
+            {/* --- Promotion Section --- */}
+            {activePromotions.filter(p => {
+              // Check if any condition includes this product
+              if (!p.conditions || p.conditions.length === 0) return true;
+
+              return p.conditions.some(c =>
+                c.details.some(d => d.productId === product.id)
+              );
+            }).length > 0 && (
+                <div style={{ marginBottom: 24, padding: "12px 16px", background: "#fff0f6", border: "1px dashed #ffadd2", borderRadius: 4 }}>
+                  <Title level={5} style={{ color: "#c41d7f", marginTop: 0, fontSize: 16 }}>
+                    🎁 Khuyến mãi hấp dẫn
+                  </Title>
+                  <List
+                    dataSource={activePromotions.filter(p =>
+                      !p.conditions || p.conditions.length === 0 ||
+                      p.conditions.some(c => c.details.some(d => d.productId === product.id))
+                    )}
+                    renderItem={promo => (
+                      <List.Item style={{ padding: "8px 0", borderBottom: "1px dashed #ffadd266" }}>
+                        <div>
+                          <Tag color="magenta" style={{ fontWeight: 600 }}>
+                            {promo.discountType === "DISCOUNT_AMOUNT" ? "GIẢM GIÁ" : "QUÀ TẶNG"}
+                          </Tag>
+                          <Text strong style={{ color: "#c41d7f" }}>{promo.name}</Text>
+                          <div style={{ marginTop: 4, marginLeft: 4, fontSize: 13, color: "#666" }}>
+                            {promo.description}
+                          </div>
+                          {promo.conditions && promo.conditions.length > 0 && (
+                            <div style={{ marginTop: 8, padding: "8px", background: "#fafafa", borderRadius: 4, border: "1px dashed #d9d9d9" }}>
+                              <Text strong style={{ fontSize: 12 }}>Điều kiện áp dụng:</Text>
+                              {promo.conditions.map((cond, index) => (
+                                <div key={cond.id || index} style={{ marginTop: 4, fontSize: 12 }}>
+                                  <Text type="secondary" italic>
+                                    {cond.operator === "ALL" ? `• Mua tất cả các sản phẩm sau:` : `• Mua một trong các sản phẩm sau:`}
+                                  </Text>
+                                  <ul style={{ paddingLeft: 20, margin: "4px 0 0 0" }}>
+                                    {cond.details.map(d => (
+                                      <li key={d.id}>
+                                        {d.productName || `Sản phẩm #${d.productId}`} <Text type="secondary">(x{d.requiredQuantity})</Text>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {promo.discountType === "DISCOUNT_AMOUNT" && promo.discountAmount && (
+                            <div style={{ marginTop: 4, marginLeft: 4 }}>
+                              Giảm trực tiếp: <Text type="danger">{formatCurrency(promo.discountAmount)}</Text>
+                            </div>
+                          )}
+                          {promo.discountType === "GIFT" && promo.giftItems && promo.giftItems.length > 0 && (
+                            <div style={{ marginTop: 4 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500 }}>Tặng kèm:</div>
+                              {promo.giftItems.map(gift => (
+                                <div key={gift.id} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, background: "#fff", padding: 4, borderRadius: 4 }}>
+                                  {gift.productThumbnailUrl && <Avatar src={gift.productThumbnailUrl} shape="square" size="small" />}
+                                  <Text>{gift.productName} (x{gift.quantity})</Text>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </List.Item>
+                    )}
+                    split={false}
+                  />
+                </div>
+              )}
 
             <Divider dashed />
 
@@ -589,18 +673,18 @@ const ProductDetailPage: React.FC = () => {
                     }}
                   >
                     <Col>
-                       <div style={{display: 'flex', alignItems: 'center', gap: 15}}>
-                           <div style={{textAlign: 'center'}}>
-                               <div style={{ fontSize: 32, fontWeight: "bold", color: "#faad14", lineHeight: 1 }}>
-                                    {reviewStats?.averageRating || 0}/5
-                               </div>
-                               <Rate disabled allowHalf value={reviewStats?.averageRating || 0} />
-                           </div>
-                           <Divider type="vertical" style={{height: 40}} />
-                           <div style={{color: '#666'}}>
-                               <div>{reviewStats?.totalReviews || 0} nhận xét</div>
-                           </div>
-                       </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 32, fontWeight: "bold", color: "#faad14", lineHeight: 1 }}>
+                            {reviewStats?.averageRating || 0}/5
+                          </div>
+                          <Rate disabled allowHalf value={reviewStats?.averageRating || 0} />
+                        </div>
+                        <Divider type="vertical" style={{ height: 40 }} />
+                        <div style={{ color: '#666' }}>
+                          <div>{reviewStats?.totalReviews || 0} nhận xét</div>
+                        </div>
+                      </div>
                     </Col>
                     <Col>
                       <Button
@@ -630,7 +714,7 @@ const ProductDetailPage: React.FC = () => {
                     renderItem={(item) => (
                       <List.Item
                         key={item.id}
-                        style={{borderBottom: '1px solid #f0f0f0', padding: '16px 0'}}
+                        style={{ borderBottom: '1px solid #f0f0f0', padding: '16px 0' }}
                       >
                         <List.Item.Meta
                           avatar={
@@ -644,23 +728,23 @@ const ProductDetailPage: React.FC = () => {
                           title={
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
                               <div>
-                                <Text strong style={{marginRight: 10}}>
+                                <Text strong style={{ marginRight: 10 }}>
                                   {item.userFullName || "Khách hàng ẩn danh"}
                                 </Text>
-                                <span style={{fontSize: 12, color: '#999'}}>
-                                    {new Date(item.createdAt).toLocaleDateString("vi-VN", {
-                                        year: 'numeric', month: 'long', day: 'numeric'
-                                    })}
+                                <span style={{ fontSize: 12, color: '#999' }}>
+                                  {new Date(item.createdAt).toLocaleDateString("vi-VN", {
+                                    year: 'numeric', month: 'long', day: 'numeric'
+                                  })}
                                 </span>
                               </div>
                             </div>
                           }
                           description={
-                            <div style={{marginTop: 5}}>
-                                <Rate disabled value={item.rating} style={{ fontSize: 12, marginRight: 10 }} />
-                                <Paragraph style={{marginTop: 8, fontSize: 15, color: '#333'}}>
-                                    {item.content}
-                                </Paragraph>
+                            <div style={{ marginTop: 5 }}>
+                              <Rate disabled value={item.rating} style={{ fontSize: 12, marginRight: 10 }} />
+                              <Paragraph style={{ marginTop: 8, fontSize: 15, color: '#333' }}>
+                                {item.content}
+                              </Paragraph>
                             </div>
                           }
                         />
@@ -689,7 +773,7 @@ const ProductDetailPage: React.FC = () => {
                         ]}
                         initialValue={5}
                       >
-                        <Rate style={{fontSize: 24}} />
+                        <Rate style={{ fontSize: 24 }} />
                       </Form.Item>
 
                       <Form.Item
@@ -708,19 +792,19 @@ const ProductDetailPage: React.FC = () => {
 
                       {/* Optional: Input Name */}
                       <Form.Item name="userFullName" label="Tên hiển thị (Tùy chọn)">
-                          <Input placeholder="Bạn muốn hiển thị tên gì?" />
+                        <Input placeholder="Bạn muốn hiển thị tên gì?" />
                       </Form.Item>
 
                       <Form.Item>
-                        <div style={{display: 'flex', justifyContent: 'flex-end', gap: 10}}>
-                            <Button onClick={() => setIsReviewModalOpen(false)}>Hủy</Button>
-                            <Button
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                          <Button onClick={() => setIsReviewModalOpen(false)}>Hủy</Button>
+                          <Button
                             type="primary"
                             htmlType="submit"
                             loading={submitLoading}
-                            >
+                          >
                             Gửi đánh giá
-                            </Button>
+                          </Button>
                         </div>
                       </Form.Item>
                     </Form>
@@ -732,147 +816,144 @@ const ProductDetailPage: React.FC = () => {
         />
       </div>
 
-      {similarProducts.length > 0 && (
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: "20px auto",
-            background: "#fff",
-            padding: "20px 30px",
-            borderRadius: 8,
-          }}
-        >
-          <Title
-            level={4}
-            style={{ marginBottom: 20, textTransform: "uppercase" }}
+      {
+        similarProducts.length > 0 && (
+          <div
+            style={{
+              maxWidth: 1200,
+              margin: "20px auto",
+              background: "#fff",
+              padding: "20px 30px",
+              borderRadius: 8,
+            }}
           >
-            Sản phẩm gợi ý
-          </Title>
+            <Title
+              level={4}
+              style={{ marginBottom: 20, textTransform: "uppercase" }}
+            >
+              Sản phẩm gợi ý
+            </Title>
 
-          <Slider {...relatedSliderSettings}>
-            {similarProducts.map((p) => {
-              const pDiscount =
-                p.price && p.discountPrice
-                  ? Math.round(
+            <Slider {...relatedSliderSettings}>
+              {similarProducts.map((p) => {
+                const pDiscount =
+                  p.price && p.discountPrice
+                    ? Math.round(
                       ((p.price - p.discountPrice) / p.price) * 100
                     )
-                  : 0;
+                    : 0;
 
-              return (
-                <div key={p.id} style={{ padding: "0 10px" }}>
-                  <Card
-                    hoverable
-                    bordered={false}
-                    style={{ height: "100%", boxShadow: "none" }}
-                    bodyStyle={{ padding: "10px 0" }}
-                    cover={
-                      <div style={{ position: "relative", padding: 10 }}>
-                        {pDiscount > 0 && (
-                          <div
+                return (
+                  <div key={p.id} style={{ padding: "0 10px" }}>
+                    <Card
+                      hoverable
+                      bordered={false}
+                      style={{ height: "100%", boxShadow: "none" }}
+                      bodyStyle={{ padding: "10px 0" }}
+                      cover={
+                        <div style={{ position: "relative", padding: 10 }}>
+                          {pDiscount > 0 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 10,
+                                right: 10,
+                                background: "#C92127",
+                                color: "#fff",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                fontSize: 12,
+                                fontWeight: "bold",
+                                zIndex: 2,
+                              }}
+                            >
+                              -{pDiscount}%
+                            </div>
+                          )}
+                          <img
+                            alt={p.name}
+                            src={
+                              p.thumbnailUrl ||
+                              "https://via.placeholder.com/200x280"
+                            }
                             style={{
-                              position: "absolute",
-                              top: 10,
-                              right: 10,
-                              background: "#C92127",
-                              color: "#fff",
-                              padding: "2px 6px",
-                              borderRadius: 4,
-                              fontSize: 12,
-                              fontWeight: "bold",
-                              zIndex: 2,
+                              height: 220,
+                              width: "100%",
+                              objectFit: "contain",
+                              margin: "0 auto",
                             }}
-                          >
-                            -{pDiscount}%
-                          </div>
-                        )}
-                        <img
-                          alt={p.name}
-                          src={
-                            p.thumbnailUrl ||
-                            "https://via.placeholder.com/200x280"
-                          }
+                          />
+                        </div>
+                      }
+                      onClick={() => {
+                        navigate(`/products/${p.id}`);
+                      }}
+                    >
+                      <div style={{ padding: "0 8px" }}>
+                        <div
                           style={{
-                            height: 220,
-                            width: "100%",
-                            objectFit: "contain",
-                            margin: "0 auto",
+                            height: 44,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            marginBottom: 8,
+                            fontSize: 14,
                           }}
-                        />
-                      </div>
-                    }
-                    onClick={() => {
-                      navigate(`/product/${p.id}`);
-                    }}
-                  >
-                    <div style={{ padding: "0 8px" }}>
-                      <div
-                        style={{
-                          height: 44,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          marginBottom: 8,
-                          fontSize: 14,
-                        }}
-                      >
-                        {p.name}
-                      </div>
+                        >
+                          {p.name}
+                        </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <Text strong style={{ color: "#C92127", fontSize: 16 }}>
-                          {formatCurrency(p.discountPrice || p.price)}
-                        </Text>
-                        {p.discountPrice && (
-                          <div
-                            style={{
-                              background: "#C92127",
-                              color: "#fff",
-                              padding: "0 4px",
-                              borderRadius: 2,
-                              fontSize: 11,
-                            }}
-                          >
-                            -{pDiscount}%
-                          </div>
-                        )}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <Text strong style={{ color: "#C92127", fontSize: 16 }}>
+                            {formatCurrency(p.price)}
+                          </Text>
+                        </div>
                       </div>
-                      {p.discountPrice && (
-                        <Text delete type="secondary" style={{ fontSize: 12 }}>
-                          {formatCurrency(p.price)}
-                        </Text>
-                      )}
-                    </div>
-                  </Card>
-                </div>
-              );
-            })}
-          </Slider>
+                    </Card>
+                  </div>
+                );
+              })}
+            </Slider>
 
-          <div style={{ textAlign: "center", marginTop: 30 }}>
-            <Button
-              size="large"
-              style={{
-                width: 200,
-                color: "#C92127",
-                borderColor: "#C92127",
-                fontWeight: 600,
-              }}
-              onClick={() => navigate("/")}
-            >
-              Xem thêm
-            </Button>
+            <div style={{ textAlign: "center", marginTop: 30 }}>
+              <Button
+                size="large"
+                style={{
+                  width: 200,
+                  color: "#C92127",
+                  borderColor: "#C92127",
+                  fontWeight: 600,
+                }}
+                onClick={() => navigate("/")}
+              >
+                Xem thêm
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+
+      {/* Additional Recommendation Sections from Home */}
+      <div style={{ marginTop: 60 }}>
+        <PromotionsSection />
+      </div>
+
+      <div style={{ marginTop: 60 }}>
+        <FeaturedProducts activePromotions={activePromotions} />
+      </div>
+
+      <div style={{ marginTop: 60 }}>
+        <BestSellers activePromotions={activePromotions} />
+      </div>
+    </div >
   );
 };
 

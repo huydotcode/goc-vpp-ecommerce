@@ -156,12 +156,12 @@ const PromotionsSection: React.FC = () => {
               {/* Danh sách sản phẩm trong chương trình */}
               {products.length > 0 ? (
                 <Row gutter={[16, 16]} className="mt-2">
-                  {products.slice(0, 8).map((product) => {
+                  {products.filter(p => !p.isGift).slice(0, 8).map((product) => {
                     const originalPrice = product.price ?? null;
                     const discountAmount =
                       !product.isGift &&
-                      promo.discountType === "DISCOUNT_AMOUNT" &&
-                      promo.discountAmount
+                        promo.discountType === "DISCOUNT_AMOUNT" &&
+                        promo.discountAmount
                         ? promo.discountAmount
                         : 0;
 
@@ -198,6 +198,7 @@ const PromotionsSection: React.FC = () => {
                             finalPrice,
                             discountPercent,
                             isGift: product.isGift,
+                            promotionType: promo.discountType, // Pass promotion type for badge
                           }}
                         />
                       </Col>

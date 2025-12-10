@@ -47,24 +47,26 @@ public class PromotionController {
 
     @Operation(summary = "Create a promotion program")
     @ApiResponse(responseCode = "200", description = "Promotion created successfully",
-            content = @Content(schema = @Schema(implementation = Promotion.class)))
+            content = @Content(schema = @Schema(implementation = PromotionResponseDTO.class)))
     @ApiResponse(responseCode = "403", description = "Không có quyền",
             content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Promotion createPromotion(@Valid @RequestBody PromotionRequestDTO request) {
-        return promotionService.createPromotion(request);
+    public PromotionResponseDTO createPromotion(@Valid @RequestBody PromotionRequestDTO request) {
+        Promotion promotion = promotionService.createPromotion(request);
+        return PromotionResponseDTO.fromEntity(promotion);
     }
 
     @Operation(summary = "Update a promotion program")
     @ApiResponse(responseCode = "200", description = "Promotion updated successfully",
-            content = @Content(schema = @Schema(implementation = Promotion.class)))
+            content = @Content(schema = @Schema(implementation = PromotionResponseDTO.class)))
     @ApiResponse(responseCode = "403", description = "Không có quyền",
             content = @Content(schema = @Schema(implementation = com.example.learnspring1.domain.APIResponse.class)))
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Promotion updatePromotion(@PathVariable("id") Long id, @Valid @RequestBody PromotionRequestDTO request) {
-        return promotionService.updatePromotion(id, request);
+    public PromotionResponseDTO updatePromotion(@PathVariable("id") Long id, @Valid @RequestBody PromotionRequestDTO request) {
+        Promotion promotion = promotionService.updatePromotion(id, request);
+        return PromotionResponseDTO.fromEntity(promotion);
     }
 
     @Operation(summary = "Phân trang + lọc nâng cao")

@@ -36,6 +36,8 @@ public class PromotionRequestDTO {
     @DecimalMin(value = "0.0", inclusive = false, message = "discountAmount must be greater than zero")
     private BigDecimal discountAmount;
 
+    private Boolean isActive;
+
     @Builder.Default
     @Valid
     private List<ConditionGroupDTO> conditions = new ArrayList<>();

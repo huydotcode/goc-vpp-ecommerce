@@ -28,15 +28,19 @@ interface BaseCardProduct {
   stockQuantity?: number; // THÊM: Cho promotion mode
 }
 
+import type { PromotionResponse } from "@/types/promotion.types";
+
 interface DefaultProductCardProps {
   mode?: "default";
   product: ProductDTO;
   showNewTag?: boolean;
+  activePromotions?: PromotionResponse[];
 }
 
 interface PromotionProductCardProps {
   mode: "promotion";
   product: BaseCardProduct;
+  activePromotions?: never; // Not used in this mode usually, or could be
 }
 
 type ProductCardProps = DefaultProductCardProps | PromotionProductCardProps;
@@ -113,8 +117,8 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       inputDiscountPercent ??
       (hasDiscount
         ? Math.round(
-            ((computedBasePrice - computedFinalPrice) / computedBasePrice) * 100
-          )
+          ((computedBasePrice - computedFinalPrice) / computedBasePrice) * 100
+        )
         : null);
     return { hasDiscount, discountPercent };
   }, [isGift, computedBasePrice, computedFinalPrice, inputDiscountPercent]);
@@ -273,7 +277,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           trackProductView.mutate(id, {
-            onError: () => {},
+            onError: () => { },
           });
           navigate(`/products/${id}`);
         }
@@ -353,14 +357,42 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
           >
             {name}
           </Text>
-          {isGift && (
-            <Tag
-              color="red"
-              className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[9px]"
-            >
-              <GiftOutlined /> Quà tặng
-            </Tag>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {isGift && (
+              <Tag
+                color="red"
+                className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[10px]"
+              >
+                <GiftOutlined /> Quà tặng
+              </Tag>
+            )}
+
+            {!isPromotion && (props as DefaultProductCardProps).activePromotions?.map(promo => {
+              const isApplicable = !promo.conditions || promo.conditions.length === 0 ||
+                promo.conditions.some(c => c.details.some(d => d.productId === id));
+              if (!isApplicable) return null;
+
+              return (
+                <Tag
+                  key={promo.id}
+                  color={promo.discountType === "GIFT" ? "purple" : "volcano"}
+                  className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[10px]"
+                >
+                  {promo.discountType === "GIFT" ? <><GiftOutlined /> +Quà</> : "Giảm giá"}
+                </Tag>
+              );
+            })}
+
+            {/* Show badge in promotion mode */}
+            {isPromotion && baseProduct.promotionType && (
+              <Tag
+                color={baseProduct.promotionType === "GIFT" ? "purple" : "volcano"}
+                className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[10px]"
+              >
+                {baseProduct.promotionType === "GIFT" ? <><GiftOutlined /> +Quà</> : "Giảm giá"}
+              </Tag>
+            )}
+          </div>
         </div>
 
         {!isGift && originalPrice !== null && originalPrice !== undefined && (
@@ -368,24 +400,13 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
             {/* Giá + % giảm */}
             <div className="mt-1 flex items-end justify-between gap-2 text-[12px] md:text-[13px]">
               <div className="flex flex-col">
-                {hasDiscount && (
-                  <span className="text-[11px] text-gray-400 line-through">
-                    {formatPrice(originalPrice)}
-                  </span>
-                )}
+                {/* Removed strikethrough original price */}
                 <span className="text-[15px] font-semibold text-red-600 md:text-[16px]">
-                  {formatPrice(finalPrice ?? originalPrice)}
+                  {formatPrice(originalPrice)}
                 </span>
               </div>
 
-              {hasDiscount && discountPercent !== null && (
-                <Tag
-                  color="red"
-                  className="m-0 px-2 py-0 text-[10px] font-semibold"
-                >
-                  -{discountPercent}%
-                </Tag>
-              )}
+              {/* Removed discount percentage badge */}
             </div>
 
             {/* Nút luôn hiện trên mobile, ẩn trên desktop */}
@@ -479,11 +500,11 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       {/* Overlay out of stock */}
       {!isGift && isOutOfStock && (
         <div
-          className="absolute inset-0 hidden items-center justify-center bg-gray-100 opacity-100 md:flex"
+          className="absolute inset-0 flex items-center justify-center bg-white/50"
           aria-live="polite"
           aria-label="Sản phẩm tạm thời hết hàng"
         >
-          <Tag color="default" className="text-lg font-semibold">
+          <Tag color="default" className="text-sm font-semibold shadow-sm">
             Tạm thời hết hàng
           </Tag>
         </div>
