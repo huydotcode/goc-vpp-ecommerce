@@ -27,13 +27,13 @@ public class SecurityUtil {
 
     @Value("${spring.jwt.base64-secret}")
     private String base64Secret;
-    
+
     @Value("${spring.jwt.token-validity-in-seconds}")
     private long jwtExpiration;
 
     @Value("${spring.jwt.refresh-token-base64-secret}")
     private String refreshTokenBase64Secret;
-    
+
     @Value("${spring.jwt.refresh-token-validity-in-days}")
     private long refreshTokenExpirationDays;
 
@@ -49,7 +49,7 @@ public class SecurityUtil {
 
         // Build full authentication object with authorities (để đồng bộ với token cũ)
         java.util.Map<String, Object> authMap = new java.util.HashMap<>();
-        
+
         // Get UserDetails if available
         Object principal = authentication.getPrincipal();
         if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
@@ -61,7 +61,7 @@ public class SecurityUtil {
             principalMap.put("accountNonExpired", true);
             principalMap.put("accountNonLocked", true);
             principalMap.put("credentialsNonExpired", true);
-            
+
             // Extract authorities
             java.util.List<java.util.Map<String, String>> authorityList = new java.util.ArrayList<>();
             for (org.springframework.security.core.GrantedAuthority authority : userDetails.getAuthorities()) {
@@ -69,7 +69,7 @@ public class SecurityUtil {
                 authMap2.put("role", authority.getAuthority());
                 authorityList.add(authMap2);
             }
-            
+
             principalMap.put("authorities", authorityList);
             authMap.put("principal", principalMap);
             authMap.put("authorities", authorityList);
@@ -78,7 +78,7 @@ public class SecurityUtil {
             authMap.put("principal", principal);
             authMap.put("authorities", authentication.getAuthorities());
         }
-        
+
         authMap.put("credentials", null);
         authMap.put("details", authentication.getDetails());
         authMap.put("authenticated", true);
@@ -104,10 +104,9 @@ public class SecurityUtil {
 
         // Use different secret for refresh token
         SecretKey refreshKey = new SecretKeySpec(
-            Base64.from(refreshTokenBase64Secret).decode(), 
-            MacAlgorithm.HS256.getName()
-        );
-        
+                Base64.from(refreshTokenBase64Secret).decode(),
+                MacAlgorithm.HS256.getName());
+
         JwtEncoder refreshEncoder = new NimbusJwtEncoder(new ImmutableSecret<>(refreshKey));
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -128,22 +127,21 @@ public class SecurityUtil {
     public String getUsernameFromRefreshToken(String token) {
         try {
             SecretKey refreshKey = new SecretKeySpec(
-                Base64.from(refreshTokenBase64Secret).decode(),
-                MacAlgorithm.HS256.getName()
-            );
-            
+                    Base64.from(refreshTokenBase64Secret).decode(),
+                    MacAlgorithm.HS256.getName());
+
             NimbusJwtDecoder refreshDecoder = NimbusJwtDecoder
-                .withSecretKey(refreshKey)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-            
+                    .withSecretKey(refreshKey)
+                    .macAlgorithm(MacAlgorithm.HS256)
+                    .build();
+
             org.springframework.security.oauth2.jwt.Jwt jwt = refreshDecoder.decode(token);
-            
+
             // Verify it's a refresh token
             if (!"refresh".equals(jwt.getClaim("type"))) {
                 throw new RuntimeException("Invalid token type");
             }
-            
+
             return jwt.getSubject();
         } catch (Exception e) {
             System.out.println("[SecurityUtil] Invalid refresh token: " + e.getMessage());
@@ -157,15 +155,14 @@ public class SecurityUtil {
     public String getUsernameFromToken(String token) {
         try {
             SecretKey key = new SecretKeySpec(
-                Base64.from(base64Secret).decode(),
-                MacAlgorithm.HS256.getName()
-            );
-            
+                    Base64.from(base64Secret).decode(),
+                    MacAlgorithm.HS256.getName());
+
             NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-            
+                    .withSecretKey(key)
+                    .macAlgorithm(MacAlgorithm.HS256)
+                    .build();
+
             org.springframework.security.oauth2.jwt.Jwt jwt = decoder.decode(token);
             return jwt.getSubject();
         } catch (Exception e) {
@@ -179,23 +176,22 @@ public class SecurityUtil {
     public long getExpiresInFromToken(String token) {
         try {
             SecretKey key = new SecretKeySpec(
-                Base64.from(base64Secret).decode(),
-                MacAlgorithm.HS256.getName()
-            );
-            
+                    Base64.from(base64Secret).decode(),
+                    MacAlgorithm.HS256.getName());
+
             NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-            
+                    .withSecretKey(key)
+                    .macAlgorithm(MacAlgorithm.HS256)
+                    .build();
+
             org.springframework.security.oauth2.jwt.Jwt jwt = decoder.decode(token);
             Instant expiresAt = jwt.getExpiresAt();
             Instant now = Instant.now();
-            
+
             if (expiresAt == null) {
                 return -1L;
             }
-            
+
             return Math.max(0, expiresAt.getEpochSecond() - now.getEpochSecond());
         } catch (Exception e) {
             throw new RuntimeException("Invalid access token", e);
@@ -208,23 +204,22 @@ public class SecurityUtil {
     public long getExpiresInFromRefreshToken(String token) {
         try {
             SecretKey refreshKey = new SecretKeySpec(
-                Base64.from(refreshTokenBase64Secret).decode(),
-                MacAlgorithm.HS256.getName()
-            );
-            
+                    Base64.from(refreshTokenBase64Secret).decode(),
+                    MacAlgorithm.HS256.getName());
+
             NimbusJwtDecoder refreshDecoder = NimbusJwtDecoder
-                .withSecretKey(refreshKey)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-            
+                    .withSecretKey(refreshKey)
+                    .macAlgorithm(MacAlgorithm.HS256)
+                    .build();
+
             org.springframework.security.oauth2.jwt.Jwt jwt = refreshDecoder.decode(token);
             Instant expiresAt = jwt.getExpiresAt();
             Instant now = Instant.now();
-            
+
             if (expiresAt == null) {
                 return -1L;
             }
-            
+
             return Math.max(0, expiresAt.getEpochSecond() - now.getEpochSecond());
         } catch (Exception e) {
             throw new RuntimeException("Invalid refresh token", e);
@@ -232,7 +227,8 @@ public class SecurityUtil {
     }
 
     public static java.util.Optional<String> getCurrentUserLogin() {
-        org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder
+                .getContext();
         return java.util.Optional.ofNullable(extractPrincipal(securityContext.getAuthentication()));
     }
 
@@ -240,35 +236,38 @@ public class SecurityUtil {
      * Get current user role from SecurityContext
      */
     public static java.util.Optional<String> getCurrentUserRole() {
-        org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder
+                .getContext();
         org.springframework.security.core.Authentication authentication = securityContext.getAuthentication();
-        
+
         if (authentication == null) {
             return java.util.Optional.empty();
         }
-        
+
         // Get authorities from authentication
-        java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities = authentication.getAuthorities();
+        java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities = authentication
+                .getAuthorities();
         if (authorities != null && !authorities.isEmpty()) {
             // Get first authority (role)
             org.springframework.security.core.GrantedAuthority firstAuthority = authorities.iterator().next();
             String authority = firstAuthority.getAuthority();
-            
+
             // Remove ROLE_ prefix if present
             if (authority.startsWith("ROLE_")) {
                 authority = authority.substring(5);
             }
-            
+
             return java.util.Optional.of(authority);
         }
-        
+
         return java.util.Optional.empty();
     }
 
     private static String extractPrincipal(org.springframework.security.core.Authentication authentication) {
         if (authentication == null) {
             return null;
-        } else if (authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails springSecurityUser) {
+        } else if (authentication
+                .getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails springSecurityUser) {
             return springSecurityUser.getUsername();
         } else if (authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
             // Lấy sub hoặc email từ claim, tuỳ cấu hình token

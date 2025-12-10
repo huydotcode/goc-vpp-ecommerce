@@ -1,12 +1,20 @@
 package com.example.learnspring1.service;
 
 import com.example.learnspring1.domain.*;
+import com.example.learnspring1.domain.dto.BulkOrderRequest;
+import com.example.learnspring1.domain.dto.BulkOrderResponse;
 import com.example.learnspring1.domain.dto.CheckoutRequestDTO;
 import com.example.learnspring1.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,6 +29,7 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CartService cartService;
+    private final OrderAuditLogService orderAuditLogService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -29,7 +38,8 @@ public class OrderService {
             CartRepository cartRepository,
             CartItemRepository cartItemRepository,
             ProductVariantRepository productVariantRepository,
-            CartService cartService) {
+            CartService cartService,
+            OrderAuditLogService orderAuditLogService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository = userRepository;
@@ -37,6 +47,7 @@ public class OrderService {
         this.cartItemRepository = cartItemRepository;
         this.productVariantRepository = productVariantRepository;
         this.cartService = cartService;
+        this.orderAuditLogService = orderAuditLogService;
     }
 
     @Transactional
@@ -76,16 +87,31 @@ public class OrderService {
                 .customerPhone(customerPhone)
                 .build();
 
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        // Log order creation to history
+        orderAuditLogService.logOrderCreated(savedOrder, null);
+
+        return savedOrder;
     }
 
     @Transactional
     public Order updateOrderStatus(String orderCode, Order.OrderStatus status) {
+        return updateOrderStatus(orderCode, status, null, null);
+    }
+
+    @Transactional
+    public Order updateOrderStatus(String orderCode, Order.OrderStatus newStatus, String note, String ipAddress) {
         Optional<Order> orderOpt = orderRepository.findByOrderCode(orderCode);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
-            order.setStatus(status);
+            Order.OrderStatus oldStatus = order.getStatus();
+            order.setStatus(newStatus);
             Order savedOrder = orderRepository.save(order);
+
+            // Log to history
+            orderAuditLogService.logStatusChange(order, oldStatus, newStatus, note, ipAddress);
+
             return savedOrder;
         }
         throw new RuntimeException("Order not found with code: " + orderCode);
@@ -230,5 +256,370 @@ public class OrderService {
         cartRepository.saveAndFlush(cart);
 
         return order;
+    }
+
+    // ========== ADMIN METHODS ==========
+
+    /**
+     * Admin: Get all orders with pagination and filters
+     */
+    public Page<Order> getAllOrdersAdmin(
+            String orderCode,
+            String status,
+            String customerName,
+            String customerEmail,
+            String customerPhone,
+            Instant startDate,
+            Instant endDate,
+            Pageable pageable) {
+
+        Specification<Order> spec = (root, query, criteriaBuilder) -> {
+            // Eager load relationships
+            if (query != null) {
+                root.fetch("user", jakarta.persistence.criteria.JoinType.LEFT);
+                root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
+                        .fetch("product", jakarta.persistence.criteria.JoinType.LEFT);
+                root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
+                        .fetch("variant", jakarta.persistence.criteria.JoinType.LEFT);
+                query.distinct(true);
+            }
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (orderCode != null && !orderCode.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("orderCode")),
+                        "%" + orderCode.toLowerCase() + "%"));
+            }
+
+            if (status != null && !status.trim().isEmpty()) {
+                try {
+                    Order.OrderStatus orderStatus = Order.OrderStatus.valueOf(status.toUpperCase());
+                    predicates.add(criteriaBuilder.equal(root.get("status"), orderStatus));
+                } catch (IllegalArgumentException e) {
+                    // Invalid status, ignore filter
+                }
+            }
+
+            if (customerName != null && !customerName.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("customerName")),
+                        "%" + customerName.toLowerCase() + "%"));
+            }
+
+            if (customerEmail != null && !customerEmail.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("customerEmail")),
+                        "%" + customerEmail.toLowerCase() + "%"));
+            }
+
+            if (customerPhone != null && !customerPhone.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("customerPhone")),
+                        "%" + customerPhone.toLowerCase() + "%"));
+            }
+
+            // Date range filters
+            if (startDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), startDate));
+            }
+
+            if (endDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), endDate));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return orderRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * Admin: Update customer shipping info
+     */
+    @Transactional
+    public Order updateShippingInfo(String orderCode, String customerAddress, String customerPhone) {
+        return updateShippingInfo(orderCode, customerAddress, customerPhone, null);
+    }
+
+    @Transactional
+    public Order updateShippingInfo(String orderCode, String customerAddress, String customerPhone, String ipAddress) {
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Order not found with code: " + orderCode));
+
+        String oldAddress = order.getCustomerAddress();
+        String oldPhone = order.getCustomerPhone();
+
+        if (customerAddress != null) {
+            order.setCustomerAddress(customerAddress);
+        }
+        if (customerPhone != null) {
+            order.setCustomerPhone(customerPhone);
+        }
+
+        Order savedOrder = orderRepository.save(order);
+
+        // Log to history
+        orderAuditLogService.logShippingUpdate(order, oldAddress, customerAddress, oldPhone, customerPhone, ipAddress);
+
+        return savedOrder;
+    }
+
+    /**
+     * Admin: Get order statistics
+     */
+    public OrderStatistics getOrderStatistics(Instant startDate, Instant endDate) {
+        List<Order> orders;
+
+        if (startDate != null && endDate != null) {
+            orders = orderRepository.findOrdersByDateRange(startDate, endDate);
+        } else {
+            orders = orderRepository.findAll();
+        }
+
+        long totalOrders = orders.size();
+        BigDecimal totalRevenue = orders.stream()
+                .filter(o -> o.getStatus() == Order.OrderStatus.COMPLETED ||
+                        o.getStatus() == Order.OrderStatus.SHIPPING ||
+                        o.getStatus() == Order.OrderStatus.CONFIRMED)
+                .map(Order::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long pendingCount = orderRepository.countByStatus(Order.OrderStatus.PENDING);
+        long confirmedCount = orderRepository.countByStatus(Order.OrderStatus.CONFIRMED);
+        long shippingCount = orderRepository.countByStatus(Order.OrderStatus.SHIPPING);
+        long completedCount = orderRepository.countByStatus(Order.OrderStatus.COMPLETED);
+        long cancelledCount = orderRepository.countByStatus(Order.OrderStatus.CANCELLED);
+        long paidCount = orderRepository.countByStatus(Order.OrderStatus.PAID);
+        long deliveredCount = orderRepository.countByStatus(Order.OrderStatus.DELIVERED);
+        long refundedCount = orderRepository.countByStatus(Order.OrderStatus.REFUNDED);
+
+        return OrderStatistics.builder()
+                .totalOrders(totalOrders)
+                .totalRevenue(totalRevenue)
+                .pendingCount(pendingCount)
+                .confirmedCount(confirmedCount)
+                .shippingCount(shippingCount)
+                .completedCount(completedCount)
+                .cancelledCount(cancelledCount)
+                .paidCount(paidCount)
+                .deliveredCount(deliveredCount)
+                .refundedCount(refundedCount)
+                .build();
+    }
+
+    // Inner class for statistics
+    public static class OrderStatistics {
+        private long totalOrders;
+        private BigDecimal totalRevenue;
+        private long pendingCount;
+        private long confirmedCount;
+        private long shippingCount;
+        private long completedCount;
+        private long cancelledCount;
+        private long paidCount;
+        private long deliveredCount;
+        private long refundedCount;
+
+        public static OrderStatisticsBuilder builder() {
+            return new OrderStatisticsBuilder();
+        }
+
+        public static class OrderStatisticsBuilder {
+            private long totalOrders;
+            private BigDecimal totalRevenue;
+            private long pendingCount;
+            private long confirmedCount;
+            private long shippingCount;
+            private long completedCount;
+            private long cancelledCount;
+            private long paidCount;
+            private long deliveredCount;
+            private long refundedCount;
+
+            public OrderStatisticsBuilder totalOrders(long totalOrders) {
+                this.totalOrders = totalOrders;
+                return this;
+            }
+
+            public OrderStatisticsBuilder totalRevenue(BigDecimal totalRevenue) {
+                this.totalRevenue = totalRevenue;
+                return this;
+            }
+
+            public OrderStatisticsBuilder pendingCount(long pendingCount) {
+                this.pendingCount = pendingCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder confirmedCount(long confirmedCount) {
+                this.confirmedCount = confirmedCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder shippingCount(long shippingCount) {
+                this.shippingCount = shippingCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder completedCount(long completedCount) {
+                this.completedCount = completedCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder cancelledCount(long cancelledCount) {
+                this.cancelledCount = cancelledCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder paidCount(long paidCount) {
+                this.paidCount = paidCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder deliveredCount(long deliveredCount) {
+                this.deliveredCount = deliveredCount;
+                return this;
+            }
+
+            public OrderStatisticsBuilder refundedCount(long refundedCount) {
+                this.refundedCount = refundedCount;
+                return this;
+            }
+
+            public OrderStatistics build() {
+                OrderStatistics stats = new OrderStatistics();
+                stats.totalOrders = this.totalOrders;
+                stats.totalRevenue = this.totalRevenue;
+                stats.pendingCount = this.pendingCount;
+                stats.confirmedCount = this.confirmedCount;
+                stats.shippingCount = this.shippingCount;
+                stats.completedCount = this.completedCount;
+                stats.cancelledCount = this.cancelledCount;
+                stats.paidCount = this.paidCount;
+                stats.deliveredCount = this.deliveredCount;
+                stats.refundedCount = this.refundedCount;
+                return stats;
+            }
+        }
+
+        // Getters
+        public long getTotalOrders() {
+            return totalOrders;
+        }
+
+        public BigDecimal getTotalRevenue() {
+            return totalRevenue;
+        }
+
+        public long getPendingCount() {
+            return pendingCount;
+        }
+
+        public long getConfirmedCount() {
+            return confirmedCount;
+        }
+
+        public long getShippingCount() {
+            return shippingCount;
+        }
+
+        public long getCompletedCount() {
+            return completedCount;
+        }
+
+        public long getCancelledCount() {
+            return cancelledCount;
+        }
+
+        public long getPaidCount() {
+            return paidCount;
+        }
+
+        public long getDeliveredCount() {
+            return deliveredCount;
+        }
+
+        public long getRefundedCount() {
+            return refundedCount;
+        }
+    }
+
+    /**
+     * Bulk update orders
+     */
+    @Transactional
+    public BulkOrderResponse bulkUpdateOrders(BulkOrderRequest request) {
+        List<BulkOrderResponse.BulkOrderResult> results = new ArrayList<>();
+        int successCount = 0;
+        int failedCount = 0;
+
+        for (Long orderId : request.getOrderIds()) {
+            try {
+                Optional<Order> orderOpt = orderRepository.findById(orderId);
+                if (orderOpt.isEmpty()) {
+                    results.add(new BulkOrderResponse.BulkOrderResult(
+                            orderId, null, false, "Order not found"));
+                    failedCount++;
+                    continue;
+                }
+
+                Order order = orderOpt.get();
+                String orderCode = order.getOrderCode();
+
+                // Handle different actions
+                if ("UPDATE_STATUS".equals(request.getAction())) {
+                    String statusStr = request.getParams().getStatus();
+                    if (statusStr == null || statusStr.isEmpty()) {
+                        results.add(new BulkOrderResponse.BulkOrderResult(
+                                orderId, orderCode, false, "Status is required"));
+                        failedCount++;
+                        continue;
+                    }
+
+                    try {
+                        Order.OrderStatus newStatus = Order.OrderStatus.valueOf(statusStr.toUpperCase());
+                        Order.OrderStatus oldStatus = order.getStatus();
+
+                        order.setStatus(newStatus);
+                        orderRepository.save(order);
+
+                        // Log audit
+                        orderAuditLogService.logStatusChange(
+                                order,
+                                oldStatus,
+                                newStatus,
+                                null,
+                                null);
+
+                        results.add(new BulkOrderResponse.BulkOrderResult(
+                                orderId, orderCode, true, "Status updated to " + newStatus));
+                        successCount++;
+                    } catch (IllegalArgumentException e) {
+                        results.add(new BulkOrderResponse.BulkOrderResult(
+                                orderId, orderCode, false, "Invalid status: " + statusStr));
+                        failedCount++;
+                    }
+                } else {
+                    results.add(new BulkOrderResponse.BulkOrderResult(
+                            orderId, orderCode, false, "Unknown action: " + request.getAction()));
+                    failedCount++;
+                }
+            } catch (Exception e) {
+                results.add(new BulkOrderResponse.BulkOrderResult(
+                        orderId, null, false, "Error: " + e.getMessage()));
+                failedCount++;
+            }
+        }
+
+        String message = String.format("Bulk update completed: %d succeeded, %d failed out of %d total",
+                successCount, failedCount, request.getOrderIds().size());
+
+        return new BulkOrderResponse(
+                request.getOrderIds().size(),
+                successCount,
+                failedCount,
+                results,
+                message);
     }
 }

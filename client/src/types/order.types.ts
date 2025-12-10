@@ -61,4 +61,25 @@ export interface Order {
   items: OrderItem[];
   createdAt: string;
   updatedAt?: string | null;
+  // User account info (if order is linked to a user account)
+  userFirstName?: string;
+  userLastName?: string;
+}
+
+export interface OrderDetail {
+  id: number;
+  orderCode: string;
+  createdAt: string;
+  totalAmount: number;
+  status: string;
+  paymentMethod: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string | null;
+  items: OrderItem[];
+  // User account info (if order is linked to a user account)
+  userId?: number;
+  userFirstName?: string;
+  userLastName?: string;
 }

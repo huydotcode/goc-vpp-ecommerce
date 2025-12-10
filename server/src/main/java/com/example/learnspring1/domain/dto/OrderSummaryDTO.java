@@ -18,5 +18,13 @@ public class OrderSummaryDTO {
     private Order.OrderStatus status;
     private Order.PaymentMethod paymentMethod;
     private Instant createdAt;
+    private String customerName;
+    private String customerEmail;
+    private String customerPhone;
     private List<OrderItemSummaryDTO> items;
+
+    // User info (if order is linked to a user account)
+    private Long userId;
+    private String userFirstName;
+    private String userLastName;
 }
