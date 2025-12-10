@@ -30,7 +30,7 @@ const Home: React.FC = () => {
       <CategoryGrid />
 
       {/* History-based Suggestions */}
-      <HistoryBasedSuggestions limit={8} />
+      <HistoryBasedSuggestions limit={12} />
 
       {/* Promotions Section */}
       <PromotionsSection />
