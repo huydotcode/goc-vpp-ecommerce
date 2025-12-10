@@ -24,6 +24,7 @@ import OrderResult from "./pages/OrderResult";
 import OrdersPage from "./pages/Orders";
 import OrderDetailPage from "./pages/OrderDetail";
 import ProductDetailPage from "./pages/ProductDetail";
+import ProductsPage from "./pages/Products";
 import RegisterPage from "./pages/Register";
 import UserProfilePage from "./pages/UserProfile";
 import VnPayResult from "./pages/VnPayResult";
@@ -80,6 +81,7 @@ function AppRoutes(): JSX.Element {
         <Route index element={<Home />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="login" element={<Login />} />
+        <Route path="products" element={<ProductsPage />} />
         <Route path="products/:id" element={<ProductDetailPage />} />
         <Route path="blogs" element={<BlogListPage />} />
         <Route path="blogs/:slug" element={<BlogDetailPage />} />

@@ -1,143 +1,367 @@
-import React from "react";
-import { Button, Card, Space, Divider } from "antd";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { authService } from "../services/auth.service";
-import apiClient from "../api/client";
-import { getErrorMessage } from "../utils/error";
+import React, { useState } from "react";
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Button,
+  DatePicker,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  Divider,
+} from "antd";
+import {
+  DollarOutlined,
+  ShoppingCartOutlined,
+  UserOutlined,
+  RiseOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
+} from "@ant-design/icons";
+import { motion } from "framer-motion";
+import dayjs, { Dayjs } from "dayjs";
+import * as XLSX from "xlsx";
 
-const Admin: React.FC = () => {
-  const { logout, refreshToken } = useAuth();
-  const navigate = useNavigate();
+const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
-  const handleTestRefresh = async () => {
-    try {
-      const response = await authService.testRefresh();
-      toast.success("Test refresh thành công!");
-      console.log("Token info:", response);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error) || "Test refresh thất bại");
-    }
+interface DailySales {
+  date: string;
+  orders: number;
+  revenue: number;
+  customers: number;
+}
+
+const AdminDashboard: React.FC = () => {
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
+    dayjs().startOf("month"),
+    dayjs(),
+  ]);
+
+  // Mock data - Replace with API calls
+  const stats = {
+    todayRevenue: 15420000,
+    todayOrders: 28,
+    weekRevenue: 89350000,
+    weekOrders: 167,
+    monthRevenue: 342680000,
+    monthOrders: 633,
+    totalRevenue: 1250000000,
+    totalOrders: 2847,
+    totalCustomers: 1240,
   };
 
-  const handleManualRefresh = async () => {
-    try {
-      await refreshToken();
-      toast.success("Refresh token thành công!");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error) || "Refresh token thất bại");
-    }
-  };
+  // Mock daily sales data
+  const dailySales: DailySales[] = Array.from({ length: 7 }, (_, i) => ({
+    date: dayjs().subtract(6 - i, "day").format("DD/MM/YYYY"),
+    orders: Math.floor(Math.random() * 40) + 10,
+    revenue: Math.floor(Math.random() * 20000000) + 5000000,
+    customers: Math.floor(Math.random() * 30) + 5,
+  }));
 
-  const handleTestProtectedAPI = async () => {
-    try {
-      const response = await apiClient.get("/test-refresh");
-      toast.success("API call thành công!");
-      console.log("Response:", response);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error) || "API call thất bại");
-    }
-  };
+  const columns = [
+    {
+      title: "Ngày",
+      dataIndex: "date",
+      key: "date",
+    },
+    {
+      title: "Đơn hàng",
+      dataIndex: "orders",
+      key: "orders",
+      render: (value: number) => <Tag color="blue">{value}</Tag>,
+    },
+    {
+      title: "Doanh thu",
+      dataIndex: "revenue",
+      key: "revenue",
+      render: (value: number) => (
+        <Text strong>{value.toLocaleString("vi-VN")}đ</Text>
+      ),
+    },
+    {
+      title: "Khách hàng",
+      dataIndex: "customers",
+      key: "customers",
+    },
+  ];
 
-  const handleTestInvalidToken = async () => {
-    localStorage.setItem("accessToken", "invalid_token");
-    try {
-      await apiClient.get("/test-refresh");
-    } catch (error: unknown) {
-      toast.error(
-        "Expected error: " + (getErrorMessage(error) || "Invalid token")
-      );
-    }
-  };
-
-  const handleTestExpiredToken = async () => {
-    localStorage.setItem(
-      "accessToken",
-      "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MDAwMDAwMDB9.expired"
+  // Export to Excel
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      dailySales.map((item) => ({
+        "Ngày": item.date,
+        "Số đơn hàng": item.orders,
+        "Doanh thu (VNĐ)": item.revenue,
+        "Số khách hàng": item.customers,
+      }))
     );
-    try {
-      await apiClient.get("/test-refresh");
-    } catch (error: unknown) {
-      toast.error(
-        "Expected error: " + (getErrorMessage(error) || "Expired token")
-      );
-    }
+
+    // Add summary row
+    const totalRevenue = dailySales.reduce((sum, item) => sum + item.revenue, 0);
+    const totalOrders = dailySales.reduce((sum, item) => sum + item.orders, 0);
+    const totalCustomers = dailySales.reduce((sum, item) => sum + item.customers, 0);
+
+    XLSX.utils.sheet_add_json(
+      worksheet,
+      [
+        {
+          "Ngày": "TỔNG CỘNG",
+          "Số đơn hàng": totalOrders,
+          "Doanh thu (VNĐ)": totalRevenue,
+          "Số khách hàng": totalCustomers,
+        },
+      ],
+      { skipHeader: true, origin: -1 }
+    );
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Báo cáo doanh thu");
+
+    const fileName = `BaoCaoDoanhThu_${dayjs().format("DDMMYYYY")}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
+  // Export to PDF (simplified text format)
+  const exportToPDF = () => {
+    const totalRevenue = dailySales.reduce((sum, item) => sum + item.revenue, 0);
+    const totalOrders = dailySales.reduce((sum, item) => sum + item.orders, 0);
+
+    let content = `PHIẾU TỔNG KẾT DOANH THU\n`;
+    content += `Ngày xuất: ${dayjs().format("DD/MM/YYYY HH:mm")}\n`;
+    content += `Kỳ báo cáo: ${dateRange[0].format("DD/MM/YYYY")} - ${dateRange[1].format("DD/MM/YYYY")}\n\n`;
+    content += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    content += `TỔNG QUAN\n`;
+    content += `- Tổng doanh thu: ${totalRevenue.toLocaleString("vi-VN")}đ\n`;
+    content += `- Tổng đơn hàng: ${totalOrders}\n`;
+    content += `- Doanh thu trung bình/đơn: ${Math.floor(totalRevenue / totalOrders).toLocaleString("vi-VN")}đ\n\n`;
+
+    content += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    content += `CHI TIẾT THEO NGÀY\n\n`;
+
+    dailySales.forEach((item) => {
+      content += `${item.date}:\n`;
+      content += `  • Đơn hàng: ${item.orders}\n`;
+      content += `  • Doanh thu: ${item.revenue.toLocaleString("vi-VN")}đ\n`;
+      content += `  • Khách hàng: ${item.customers}\n\n`;
+    });
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `BaoCaoDoanhThu_${dayjs().format("DDMMYYYY")}.txt`;
+    link.click();
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card>
-        <h1>Trang Admin</h1>
-        <p>Chào mừng đến trang quản trị!</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="container mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <Title level={2}>Tổng quan & Thống kê</Title>
+          <Text type="secondary">
+            Theo dõi doanh thu và đơn hàng của cửa hàng
+          </Text>
+        </motion.div>
 
-        <Space direction="vertical" style={{ width: "100%", marginTop: 24 }}>
-          <h3>Test Authentication</h3>
+        {/* Date Range Filter */}
+        <Card className="mb-6">
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Text strong>Chọn khoảng thời gian:</Text>
+            <Space wrap>
+              <RangePicker
+                value={dateRange}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setDateRange([dates[0], dates[1]]);
+                  }
+                }}
+                format="DD/MM/YYYY"
+              />
+              <Button
+                type="primary"
+                icon={<FileExcelOutlined />}
+                onClick={exportToExcel}
+              >
+                Xuất Excel
+              </Button>
+              <Button
+                icon={<FilePdfOutlined />}
+                onClick={exportToPDF}
+              >
+                Xuất Phiếu Tổng Kết
+              </Button>
+            </Space>
+          </Space>
+        </Card>
 
-          <Button type="primary" onClick={handleTestRefresh} block>
-            Test Refresh Token Info
-          </Button>
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} className="mb-6">
+          {/* Today Stats */}
+          <Col xs={24} sm={12} lg={6}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card hoverable>
+                <Statistic
+                  title={<Text strong>Doanh thu hôm nay</Text>}
+                  value={stats.todayRevenue}
+                  precision={0}
+                  valueStyle={{ color: "#3f8600" }}
+                  prefix={<DollarOutlined />}
+                  suffix="đ"
+                />
+                <Divider style={{ margin: "12px 0" }} />
+                <Text type="secondary">{stats.todayOrders} đơn hàng</Text>
+              </Card>
+            </motion.div>
+          </Col>
 
-          <Button onClick={handleManualRefresh} block>
-            Manual Refresh Token
-          </Button>
+          {/* Week Stats */}
+          <Col xs={24} sm={12} lg={6}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card hoverable>
+                <Statistic
+                  title={<Text strong>Doanh thu tuần này</Text>}
+                  value={stats.weekRevenue}
+                  precision={0}
+                  valueStyle={{ color: "#1890ff" }}
+                  prefix={<RiseOutlined />}
+                  suffix="đ"
+                />
+                <Divider style={{ margin: "12px 0" }} />
+                <Text type="secondary">{stats.weekOrders} đơn hàng</Text>
+              </Card>
+            </motion.div>
+          </Col>
 
-          <Button onClick={handleTestProtectedAPI} block>
-            Test Protected API Call
-          </Button>
+          {/* Month Stats */}
+          <Col xs={24} sm={12} lg={6}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card hoverable>
+                <Statistic
+                  title={<Text strong>Doanh thu tháng này</Text>}
+                  value={stats.monthRevenue}
+                  precision={0}
+                  valueStyle={{ color: "#722ed1" }}
+                  prefix={<ShoppingCartOutlined />}
+                  suffix="đ"
+                />
+                <Divider style={{ margin: "12px 0" }} />
+                <Text type="secondary">{stats.monthOrders} đơn hàng</Text>
+              </Card>
+            </motion.div>
+          </Col>
 
-          <Divider />
+          {/* Total Stats */}
+          <Col xs={24} sm={12} lg={6}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card hoverable>
+                <Statistic
+                  title={<Text strong>Tổng doanh thu</Text>}
+                  value={stats.totalRevenue}
+                  precision={0}
+                  valueStyle={{ color: "#cf1322" }}
+                  prefix={<DollarOutlined />}
+                  suffix="đ"
+                />
+                <Divider style={{ margin: "12px 0" }} />
+                <Text type="secondary">
+                  {stats.totalOrders} đơn | {stats.totalCustomers} khách
+                </Text>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
 
-          <h3>Test Error Cases</h3>
-
-          <Button danger onClick={handleTestInvalidToken} block>
-            Test Invalid Token
-          </Button>
-
-          <Button danger onClick={handleTestExpiredToken} block>
-            Test Expired Token
-          </Button>
-
-          <Divider />
-
-          <h3>Test Error Pages</h3>
-
-          <Button
-            type="default"
-            onClick={() => navigate("/404")}
-            block
-            style={{ marginBottom: 8 }}
+        {/* Daily Sales Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card
+            title={<Text strong>Doanh thu 7 ngày gần nhất</Text>}
+            extra={
+              <Button
+                type="link"
+                icon={<DownloadOutlined />}
+                onClick={exportToExcel}
+              >
+                Tải xuống
+              </Button>
+            }
           >
-            Test 404 Page
-          </Button>
+            <Table
+              dataSource={dailySales}
+              columns={columns}
+              pagination={false}
+              rowKey="date"
+              summary={() => {
+                const totalRevenue = dailySales.reduce(
+                  (sum, item) => sum + item.revenue,
+                  0
+                );
+                const totalOrders = dailySales.reduce(
+                  (sum, item) => sum + item.orders,
+                  0
+                );
+                const totalCustomers = dailySales.reduce(
+                  (sum, item) => sum + item.customers,
+                  0
+                );
 
-          <Button
-            type="default"
-            onClick={() => navigate("/403")}
-            block
-            style={{ marginBottom: 8 }}
-          >
-            Test 403 Page
-          </Button>
-
-          <Button
-            type="default"
-            onClick={() => navigate("/401")}
-            block
-            style={{ marginBottom: 8 }}
-          >
-            Test 401 Page
-          </Button>
-
-          <Divider />
-
-          <Button type="primary" danger onClick={logout} block>
-            Đăng xuất
-          </Button>
-        </Space>
-      </Card>
+                return (
+                  <Table.Summary fixed>
+                    <Table.Summary.Row>
+                      <Table.Summary.Cell index={0}>
+                        <Text strong>TỔNG CỘNG</Text>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={1}>
+                        <Tag color="blue">
+                          <strong>{totalOrders}</strong>
+                        </Tag>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={2}>
+                        <Text strong className="text-green-600">
+                          {totalRevenue.toLocaleString("vi-VN")}đ
+                        </Text>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={3}>
+                        <Text strong>{totalCustomers}</Text>
+                      </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                );
+              }}
+            />
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };
 
-export default Admin;
+export default AdminDashboard;
