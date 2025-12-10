@@ -50,6 +50,8 @@ export const API_ENDPOINTS = {
   // Orders
   ORDERS: "/orders",
   ORDERS_CHECKOUT: "/orders/checkout",
+  ORDERS_STATISTICS: "/orders/statistics",
+  ORDERS_STATISTICS_RANGE: "/orders/statistics/range",
 
   // Reviews
   REVIEWS: "/reviews",

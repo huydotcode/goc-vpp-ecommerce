@@ -38,9 +38,91 @@ public class AiVectorService {
     @Value("${ai.chroma.collection:products}")
     private String chromaCollectionName;
 
+    @Value("${ai.chroma.distance-threshold:0.7}")
+    private double distanceThreshold;
+
+    @Value("${ai.chroma.distance-metric:cosine}")
+    private String distanceMetric;
+
     private String getEnv(String key, String defaultValue) {
         String v = System.getenv(key);
         return v != null ? v : defaultValue;
+    }
+
+    public double getDistanceThreshold() {
+        return distanceThreshold;
+    }
+
+    /**
+     * Expands Vietnamese search queries with related terms for better semantic matching
+     * @param query Original search query
+     * @return Expanded query with synonyms and related terms
+     */
+    private String expandQuery(String query) {
+        if (query == null || query.isBlank()) {
+            return query;
+        }
+
+        String lowerQuery = query.toLowerCase().trim();
+        
+        // Vietnamese stationery term expansions
+        Map<String, String> expansions = Map.ofEntries(
+            // Books & Notebooks
+            Map.entry("sách", "sách vở tập truyện giáo khoa sách giáo khoa sách tham khảo"),
+            Map.entry("vở", "vở tập vở viết vở học sinh vở sinh viên"),
+            Map.entry("tập", "tập vở tập viết tập học"),
+            Map.entry("truyện", "truyện sách truyện tranh truyện thiếu nhi"),
+            
+            // Pens & Writing Tools
+            Map.entry("bút", "bút viết bút bi bút chì bút lông bút mực bút gel"),
+            Map.entry("viết", "bút viết dụng cụ viết"),
+            Map.entry("chì", "bút chì bút chì kim bút chì màu"),
+            Map.entry("bi", "bút bi bút bi nước bút bi gel"),
+            Map.entry("mực", "bút mực mực viết bút lông mực"),
+            Map.entry("gel", "bút gel bút bi gel"),
+            
+            // Bags & Cases
+            Map.entry("bóp", "bóp viết bóp bút hộp bút túi đựng bút"),
+            Map.entry("cặp", "cặp sách ba lô túi đựng sách"),
+            Map.entry("balo", "ba lô cặp sách túi đựng"),
+            Map.entry("túi", "túi đựng bao bì hộp"),
+            
+            // School Supplies
+            Map.entry("thước", "thước kẻ thước đo"),
+            Map.entry("tẩy", "tẩy xóa gôm tẩy"),
+            Map.entry("kéo", "kéo cắt dụng cụ cắt"),
+            Map.entry("hồ", "hồ dán keo dán"),
+            Map.entry("giấy", "giấy note giấy viết giấy in"),
+            
+            // Art Supplies  
+            Map.entry("vẽ", "vẽ tranh màu vẽ bút vẽ"),
+            Map.entry("màu", "bút màu sáp màu màu vẽ bút chì màu"),
+            Map.entry("sáp", "sáp màu bút sáp")
+        );
+        
+
+        StringBuilder expandedQuery = new StringBuilder(lowerQuery);
+        
+        // Check for matching keywords and expand
+        for (Map.Entry<String, String> entry : expansions.entrySet()) {
+            String keyword = entry.getKey();
+            String expansion = entry.getValue();
+            
+            // Use contains instead of regex for better Vietnamese support
+            // Check if keyword exists as a standalone word
+            if (lowerQuery.equals(keyword) || 
+                lowerQuery.contains(" " + keyword + " ") ||
+                lowerQuery.startsWith(keyword + " ") ||
+                lowerQuery.endsWith(" " + keyword)) {
+                
+                // Don't add duplicates
+                if (!expandedQuery.toString().contains(expansion)) {
+                    expandedQuery.append(" ").append(expansion);
+                }
+            }
+        }
+
+        return expandedQuery.toString().trim();
     }
 
     public List<Double> embedWithGemini(String text) {
@@ -53,6 +135,9 @@ public class AiVectorService {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("Text cannot be empty");
         }
+
+        // Use original text directly (no query expansion)
+        // String expandedText = expandQuery(text);
 
         String url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=" + apiKey;
 
@@ -242,6 +327,41 @@ public class AiVectorService {
         public List<List<String>> ids;
         @JsonProperty("distances")
         public List<List<Double>> distances;
+
+        /**
+         * Filter and rerank results by distance threshold
+         * @param threshold Maximum distance to include (lower = more similar)
+         * @return Filtered list of product IDs sorted by relevance
+         */
+        public List<String> getFilteredAndRankedIds(double threshold) {
+            if (ids == null || ids.isEmpty() || distances == null || distances.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<String> firstIdList = ids.get(0);
+            List<Double> firstDistanceList = distances.get(0);
+
+            if (firstIdList == null || firstDistanceList == null || firstIdList.size() != firstDistanceList.size()) {
+                return firstIdList != null ? firstIdList : Collections.emptyList();
+            }
+
+            // Create pairs of (id, distance) and filter by threshold
+            List<Map.Entry<String, Double>> pairedResults = new java.util.ArrayList<>();
+            for (int i = 0; i < firstIdList.size(); i++) {
+                double distance = firstDistanceList.get(i);
+                if (distance <= threshold) {
+                    pairedResults.add(Map.entry(firstIdList.get(i), distance));
+                }
+            }
+
+            // Sort by distance (ascending = most similar first)
+            pairedResults.sort(Map.Entry.comparingByValue());
+
+            // Extract IDs
+            return pairedResults.stream()
+                    .map(Map.Entry::getKey)
+                    .collect(java.util.stream.Collectors.toList());
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

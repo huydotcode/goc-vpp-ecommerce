@@ -11,6 +11,11 @@ public class CartResponseDTO {
     private BigDecimal totalAmount;
     private Integer totalItems;
 
+    private BigDecimal discountAmount;
+    private BigDecimal finalAmount;
+    private List<PromotionSummaryDTO> appliedPromotions;
+    private List<GiftItemDTO> giftItems;
+
     @Data
     public static class CartItemDTO {
         private Long id;
@@ -23,5 +28,22 @@ public class CartResponseDTO {
         private BigDecimal unitPrice;
         private Integer quantity;
         private BigDecimal subtotal;
+    }
+
+    @Data
+    public static class PromotionSummaryDTO {
+        private Long id;
+        private String name;
+        private String description;
+        private String discountType;
+        private BigDecimal value;
+    }
+
+    @Data
+    public static class GiftItemDTO {
+        private Long productId;
+        private String productName;
+        private String productImageUrl;
+        private Integer quantity;
     }
 }

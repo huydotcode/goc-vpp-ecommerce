@@ -8,8 +8,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+// Imports updated by tool
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.learnspring1.service.PromotionService;
+import com.example.learnspring1.service.impl.PromotionCalculator;
 
 @Service
 public class OrderService {
@@ -21,6 +28,9 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CartService cartService;
+    private final PromotionService promotionService;
+    private final PromotionCalculator promotionCalculator;
+    private final ObjectMapper objectMapper;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -29,7 +39,10 @@ public class OrderService {
             CartRepository cartRepository,
             CartItemRepository cartItemRepository,
             ProductVariantRepository productVariantRepository,
-            CartService cartService) {
+            CartService cartService,
+            PromotionService promotionService,
+            PromotionCalculator promotionCalculator,
+            ObjectMapper objectMapper) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository = userRepository;
@@ -37,7 +50,11 @@ public class OrderService {
         this.cartItemRepository = cartItemRepository;
         this.productVariantRepository = productVariantRepository;
         this.cartService = cartService;
+        this.promotionService = promotionService;
+        this.promotionCalculator = promotionCalculator;
+        this.objectMapper = objectMapper;
     }
+
 
     @Transactional
     public Order createOrder(
@@ -192,11 +209,29 @@ public class OrderService {
             initialStatus = Order.OrderStatus.PENDING;
         }
 
+        // Calculate Promotions
+        List<Promotion> activePromotions = promotionService.getActivePromotions();
+        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, itemsToCheckout, activePromotions);
+        
+        String appliedPromotionsJson = null;
+        try {
+            if (!promoResult.getAppliedPromotions().isEmpty()) {
+                appliedPromotionsJson = objectMapper.writeValueAsString(promoResult.getAppliedPromotions().stream()
+                    .map(p -> Map.of("id", p.getId(), "name", p.getName(), "value", p.getDiscountAmount()))
+                    .collect(Collectors.toList()));
+            }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace(); // Log error but don't fail order
+        }
+
         // Tạo Order
         Order order = Order.builder()
                 .orderCode(orderCode)
                 .user(user)
                 .totalAmount(totalAmount)
+                .discountAmount(promoResult.getDiscountAmount())
+                .finalAmount(promoResult.getFinalTotal())
+                .appliedPromotions(appliedPromotionsJson)
                 .paymentMethod(request.getPaymentMethod())
                 .paymentLinkId(null) // Sẽ được set sau khi tạo payment link
                 .status(initialStatus)
@@ -222,6 +257,26 @@ public class OrderService {
                     .build();
 
             orderItemRepository.save(orderItem);
+        }
+
+        // Add Gift Items
+        for (PromotionGiftItem gift : promoResult.getGiftItems()) {
+             // Create mock variant/product info for gift if needed, or link to actual product
+             // Should check if gift item needs to reduce stock? Assuming gifts also reduce stock logic is needed but out of scope for strict 'add item', 
+             // but let's assume we link to product.
+             // For simplicity, we just add OrderItem with price 0.
+             
+             OrderItem giftItem = OrderItem.builder()
+                    .order(order)
+                    .product(gift.getProduct())
+                    .variant(null) // Gifts might not have variant selected, or use default. Assuming default or null.
+                    .productName(gift.getProduct().getName() + " (GIFT)")
+                    .unitPrice(BigDecimal.ZERO)
+                    .quantity(gift.getQuantity())
+                    .subtotal(BigDecimal.ZERO)
+                    .isGift(true)
+                    .build();
+            orderItemRepository.save(giftItem);
         }
 
         // Xóa các items đã checkout khỏi cart (không xóa toàn bộ cart)

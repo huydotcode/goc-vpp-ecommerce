@@ -14,4 +14,12 @@ export const orderService = {
     }
     return orders;
   },
+
+  getAllOrders: async (): Promise<Order[]> => {
+    return await orderApi.getAllOrders();
+  },
+
+  getAdminOrderByCode: async (orderCode: string): Promise<Order> => {
+    return await orderApi.getAdminOrderByCode(orderCode);
+  },
 };

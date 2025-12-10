@@ -104,8 +104,6 @@ const CategoryMenu: React.FC = () => {
               <AppstoreOutlined
                 style={{
                   fontSize: "18px",
-                  display: "flex",
-                  alignItems: "center",
                 }}
               />
             }
@@ -114,22 +112,14 @@ const CategoryMenu: React.FC = () => {
               alignItems: "center",
               justifyContent: "center",
               gap: "6px",
-              height: "64px",
+              height: "40px",
               padding: "0 12px",
+              borderRadius: "8px",
               fontWeight: 500,
-              lineHeight: "1.5",
             }}
-            className="hover:bg-gray-50 [&_.anticon]:flex [&_.anticon]:items-center"
+            className="hover:bg-gray-100"
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                lineHeight: "1.5",
-              }}
-            >
-              Danh mục
-            </span>
+            Danh mục
           </Button>
         </Dropdown>
       </div>
@@ -142,9 +132,6 @@ const CategoryMenu: React.FC = () => {
             <AppstoreOutlined
               style={{
                 fontSize: "18px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
               }}
             />
           }
@@ -153,11 +140,12 @@ const CategoryMenu: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            height: "100%",
+            height: "40px",
             width: "40px",
             padding: 0,
+            borderRadius: "8px",
           }}
-          className="hover:bg-gray-50 [&_.anticon]:flex [&_.anticon]:items-center [&_.anticon]:justify-center"
+          className="hover:bg-gray-100"
         />
 
         <Drawer

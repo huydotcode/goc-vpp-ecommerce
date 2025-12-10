@@ -16,11 +16,25 @@ export interface CartResponse {
   items: CartItem[];
   totalAmount: number;
   totalItems: number;
-  subtotal?: number;
-  discount?: number;
-  shippingFee?: number;
-  grandTotal?: number;
-  appliedPromotion?: string | null;
+  discountAmount?: number;
+  finalAmount?: number;
+  appliedPromotions?: PromotionSummary[];
+  giftItems?: GiftItem[];
+}
+
+export interface PromotionSummary {
+  id: number;
+  name: string;
+  description: string;
+  discountType: string;
+  value: number;
+}
+
+export interface GiftItem {
+  productId: number;
+  productName: string;
+  productImageUrl: string;
+  quantity: number;
 }
 
 export interface AddCartItemRequest {

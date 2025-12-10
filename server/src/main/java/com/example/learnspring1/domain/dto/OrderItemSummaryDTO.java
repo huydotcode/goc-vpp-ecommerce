@@ -13,4 +13,5 @@ public class OrderItemSummaryDTO {
     private BigDecimal unitPrice;
     private BigDecimal subtotal;
     private String imageUrl;
+    private Boolean isGift;
 }

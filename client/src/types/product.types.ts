@@ -48,16 +48,17 @@ export interface Product {
 export interface ProductFilters {
   id?: number;
   name?: string;
-  sku?: string;
+  search?: string; // Fuzzy search
+  categoryId?: number; // Filter by category
   brand?: string;
-  categoryId?: number;
+  minPrice?: number; // Min price filter
+  maxPrice?: number; // Max price filter
+  isActive?: boolean; // Default: true
   isFeatured?: boolean;
-  isActive?: boolean;
-  search?: string;
-  page?: number;
-  size?: number;
-  sort?: string;
-  direction?: "asc" | "desc";
+  page?: number; // 1-indexed
+  size?: number; // Default: 10
+  sort?: string; // Field to sort by (e.g., "name", "price", "createdAt")
+  direction?: "asc" | "desc"; // Sort direction
 }
 
 export interface ProductSuggestionParams {

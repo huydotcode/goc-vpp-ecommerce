@@ -173,6 +173,8 @@ public class ProductServiceImpl implements ProductService {
             Long categoryId,
             Boolean isFeatured,
             Boolean isActive,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
             String search) {
         if (id != null) {
             return productRepository.findProductsByIdOnly(String.valueOf(id), pageable);
@@ -185,7 +187,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return productRepository.findProductsWithFiltersPaged(
-                name, sku, brand, categoryId, categoryIds, isFeatured, isActive, search, pageable);
+                name, sku, brand, categoryId, categoryIds, isFeatured, isActive, minPrice, maxPrice, search, pageable);
     }
 
     @Override
@@ -322,6 +324,8 @@ public class ProductServiceImpl implements ProductService {
                 categoryIds,
                 true, // isFeatured ưu tiên
                 true, // isActive
+                null, // minPrice
+                null, // maxPrice
                 query,
                 primaryPageable);
 
@@ -406,7 +410,11 @@ public class ProductServiceImpl implements ProductService {
             return suggestProducts(query, categoryId, size);
         }
 
-        List<String> idStrings = chromaResp.ids.get(0);
+        // Filter and rerank by distance threshold (auto-filters low quality matches)
+        List<String> idStrings = chromaResp.getFilteredAndRankedIds(
+            aiVectorService.getDistanceThreshold()
+        );
+        
         List<Long> ids = idStrings.stream()
                 .map(id -> {
                     try {

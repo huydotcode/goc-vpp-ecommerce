@@ -18,5 +18,8 @@ public class OrderSummaryDTO {
     private Order.OrderStatus status;
     private Order.PaymentMethod paymentMethod;
     private Instant createdAt;
+    private BigDecimal discountAmount;
+    private BigDecimal finalAmount;
+    private String appliedPromotions;
     private List<OrderItemSummaryDTO> items;
 }

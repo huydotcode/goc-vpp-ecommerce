@@ -520,18 +520,50 @@ const CheckoutPage: React.FC = () => {
                 <Text>Tạm tính:</Text>
                 <Text strong>{formatCurrency(displayTotalAmount)}</Text>
               </div>
+
+              {/* Display Promotions/Gifts only if full cart or if we assume promos apply */
+                /* Since we don't have a calculate-preview API, we only show cart promos if checking out all items */
+                (!selectedCartItemIds || (cart && selectedCartItemIds.length === cart.items.length)) && (
+                  <>
+                    {cart && cart.discountAmount && cart.discountAmount > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#52c41a" }}>
+                        <Text type="success">Giảm giá:</Text>
+                        <Text strong type="success">-{formatCurrency(cart.discountAmount)}</Text>
+                      </div>
+                    )}
+                    {cart && cart.giftItems && cart.giftItems.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <Text strong style={{ color: "#faad14" }}>Quà tặng kèm:</Text>
+                        {cart.giftItems.map((gift, index) => (
+                          <div key={index} style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+                            {gift.productImageUrl && (
+                              <Image src={gift.productImageUrl} width={30} height={30} style={{ borderRadius: 4 }} preview={false} />
+                            )}
+                            <Text style={{ fontSize: 13 }}>{gift.productName} (x{gift.quantity})</Text>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )
+              }
+
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text strong style={{ fontSize: 18 }}>
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
-                  {formatCurrency(displayTotalAmount)}
+                  {
+                    (!selectedCartItemIds || (cart && selectedCartItemIds.length === cart.items.length)) && cart && cart.finalAmount
+                      ? formatCurrency(cart.finalAmount)
+                      : formatCurrency(displayTotalAmount)
+                  }
                 </Text>
               </div>
               {selectedCartItemIds &&
-                selectedCartItemIds.length < cart.items.length && (
+                cart && selectedCartItemIds.length < cart.items.length && (
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Đang thanh toán {displayTotalItems} sản phẩm đã chọn
+                    * Ưu đãi (nếu có) sẽ được tính lại dựa trên sản phẩm đã chọn khi tạo đơn hàng.
                   </Text>
                 )}
             </Space>

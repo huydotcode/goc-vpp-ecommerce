@@ -23,5 +23,8 @@ public class OrderDetailDTO {
     private String customerPhone;
     private String customerAddress;
     private String description;
+    private BigDecimal discountAmount;
+    private BigDecimal finalAmount;
+    private String appliedPromotions;
     private List<OrderItemSummaryDTO> items;
 }

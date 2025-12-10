@@ -10,7 +10,7 @@
 
 const { ChromaClient } = require("chromadb");
 
-const API_BASE = process.env.API_BASE_URL || "http://localhost:8080";
+const API_BASE = process.env.API_BASE_URL || "http://localhost:8080/api/v1";
 const CHROMA_URL = process.env.CHROMA_URL || "http://localhost:8000";
 const COLLECTION = process.env.CHROMA_COLLECTION || "products";
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "";

@@ -371,18 +371,18 @@ const UserCart: React.FC = () => {
             >
               <Button
                 type="text"
-                icon={<ShoppingCartOutlined style={{ fontSize: "22px" }} />}
+                icon={<ShoppingCartOutlined style={{ fontSize: "18px" }} />}
                 onClick={() => navigate("/cart")}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  height: "100%",
+                  height: "40px",
                   width: "40px",
-                  padding: "8px",
+                  padding: 0,
                   borderRadius: "8px",
                 }}
-                className="hover:bg-gray-50"
+                className="hover:bg-gray-100"
               />
             </motion.div>
           </Badge>

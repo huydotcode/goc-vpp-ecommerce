@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Row,
@@ -11,11 +11,12 @@ import {
   Tag,
   Typography,
   Divider,
+  Spin,
+  message,
 } from "antd";
 import {
   DollarOutlined,
   ShoppingCartOutlined,
-  UserOutlined,
   RiseOutlined,
   DownloadOutlined,
   FileExcelOutlined,
@@ -24,43 +25,90 @@ import {
 import { motion } from "framer-motion";
 import dayjs, { Dayjs } from "dayjs";
 import * as XLSX from "xlsx";
+import { orderApi } from "../api/order.api";
+import type {
+  OrderStatistics,
+  OrderStatisticsByRange,
+  DailySale,
+} from "../types/order.types";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
-
-interface DailySales {
-  date: string;
-  orders: number;
-  revenue: number;
-  customers: number;
-}
 
 const AdminDashboard: React.FC = () => {
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
     dayjs().startOf("month"),
     dayjs(),
   ]);
+  const [loading, setLoading] = useState(true);
+  const [useDateRange, setUseDateRange] = useState(false);
+  const [stats, setStats] = useState<OrderStatistics>({
+    todayRevenue: 0,
+    todayOrders: 0,
+    weekRevenue: 0,
+    weekOrders: 0,
+    monthRevenue: 0,
+    monthOrders: 0,
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    dailySales: [],
+  });
+  const [rangeStats, setRangeStats] = useState<OrderStatisticsByRange | null>(
+    null
+  );
 
-  // Mock data - Replace with API calls
-  const stats = {
-    todayRevenue: 15420000,
-    todayOrders: 28,
-    weekRevenue: 89350000,
-    weekOrders: 167,
-    monthRevenue: 342680000,
-    monthOrders: 633,
-    totalRevenue: 1250000000,
-    totalOrders: 2847,
-    totalCustomers: 1240,
+  // Fetch default statistics on mount
+  useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setLoading(true);
+        const data = await orderApi.getStatistics();
+        setStats(data);
+      } catch (error) {
+        console.error("Lỗi khi lấy thống kê:", error);
+        message.error("Không thể tải dữ liệu thống kê. Vui lòng thử lại sau.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!useDateRange) {
+      fetchStatistics();
+    }
+  }, [useDateRange]);
+
+  const handleApplyDateRange = async () => {
+    if (!dateRange[0] || !dateRange[1]) {
+      message.warning("Vui lòng chọn khoảng thời gian");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setUseDateRange(true);
+      const startDate = dateRange[0].format("YYYY-MM-DD");
+      const endDate = dateRange[1].format("YYYY-MM-DD");
+      const data = await orderApi.getStatisticsByRange(startDate, endDate);
+      setRangeStats(data);
+    } catch (error) {
+      console.error("Lỗi khi lấy thống kê:", error);
+      message.error("Không thể tải dữ liệu thống kê. Vui lòng thử lại sau.");
+      setUseDateRange(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Mock daily sales data
-  const dailySales: DailySales[] = Array.from({ length: 7 }, (_, i) => ({
-    date: dayjs().subtract(6 - i, "day").format("DD/MM/YYYY"),
-    orders: Math.floor(Math.random() * 40) + 10,
-    revenue: Math.floor(Math.random() * 20000000) + 5000000,
-    customers: Math.floor(Math.random() * 30) + 5,
-  }));
+  const handleResetDateRange = () => {
+    setUseDateRange(false);
+    setRangeStats(null);
+    setDateRange([dayjs().startOf("month"), dayjs()]);
+  };
+
+  const dailySales: DailySale[] = useDateRange
+    ? rangeStats?.dailySales || []
+    : stats.dailySales || [];
 
   const columns = [
     {
@@ -157,6 +205,14 @@ const AdminDashboard: React.FC = () => {
     link.click();
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Spin size="large" tip="Đang tải dữ liệu thống kê..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="container mx-auto">
@@ -185,115 +241,201 @@ const AdminDashboard: React.FC = () => {
                   }
                 }}
                 format="DD/MM/YYYY"
+                disabled={loading}
               />
               <Button
                 type="primary"
+                onClick={handleApplyDateRange}
+                disabled={loading}
+              >
+                Áp dụng
+              </Button>
+              {useDateRange && (
+                <Button onClick={handleResetDateRange} disabled={loading}>
+                  Đặt lại
+                </Button>
+              )}
+              <Divider type="vertical" />
+              <Button
+                type="default"
                 icon={<FileExcelOutlined />}
                 onClick={exportToExcel}
+                disabled={loading}
               >
                 Xuất Excel
               </Button>
               <Button
                 icon={<FilePdfOutlined />}
                 onClick={exportToPDF}
+                disabled={loading}
               >
                 Xuất Phiếu Tổng Kết
               </Button>
             </Space>
+            {useDateRange && rangeStats && (
+              <Text type="secondary" style={{ marginTop: 8, display: "block" }}>
+                Đang hiển thị thống kê từ {rangeStats.startDate} đến{" "}
+                {rangeStats.endDate}
+              </Text>
+            )}
           </Space>
         </Card>
 
         {/* Statistics Cards */}
         <Row gutter={[16, 16]} className="mb-6">
-          {/* Today Stats */}
-          <Col xs={24} sm={12} lg={6}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card hoverable>
-                <Statistic
-                  title={<Text strong>Doanh thu hôm nay</Text>}
-                  value={stats.todayRevenue}
-                  precision={0}
-                  valueStyle={{ color: "#3f8600" }}
-                  prefix={<DollarOutlined />}
-                  suffix="đ"
-                />
-                <Divider style={{ margin: "12px 0" }} />
-                <Text type="secondary">{stats.todayOrders} đơn hàng</Text>
-              </Card>
-            </motion.div>
-          </Col>
+          {useDateRange && rangeStats ? (
+            /* Date Range Stats */
+            <>
+              <Col xs={24} sm={12} lg={12}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card hoverable>
+                    <Statistic
+                      title={
+                        <Text strong>
+                          Doanh thu từ {rangeStats.startDate} đến{" "}
+                          {rangeStats.endDate}
+                        </Text>
+                      }
+                      value={rangeStats.rangeRevenue}
+                      precision={0}
+                      valueStyle={{ color: "#3f8600" }}
+                      prefix={<DollarOutlined />}
+                      suffix="đ"
+                    />
+                    <Divider style={{ margin: "12px 0" }} />
+                    <Text type="secondary">
+                      {rangeStats.rangeOrders} đơn hàng
+                    </Text>
+                  </Card>
+                </motion.div>
+              </Col>
+              <Col xs={24} sm={12} lg={12}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card hoverable>
+                    <Statistic
+                      title={<Text strong>Tổng số ngày</Text>}
+                      value={dailySales.length}
+                      precision={0}
+                      valueStyle={{ color: "#1890ff" }}
+                      prefix={<RiseOutlined />}
+                      suffix="ngày"
+                    />
+                    <Divider style={{ margin: "12px 0" }} />
+                    <Text type="secondary">
+                      Trung bình:{" "}
+                      {dailySales.length > 0
+                        ? Math.round(
+                            rangeStats.rangeRevenue / dailySales.length
+                          ).toLocaleString("vi-VN")
+                        : 0}
+                      đ/ngày
+                    </Text>
+                  </Card>
+                </motion.div>
+              </Col>
+            </>
+          ) : (
+            /* Default Stats */
+            <>
+              {/* Today Stats */}
+              <Col xs={24} sm={12} lg={6}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card hoverable>
+                    <Statistic
+                      title={<Text strong>Doanh thu hôm nay</Text>}
+                      value={stats.todayRevenue}
+                      precision={0}
+                      valueStyle={{ color: "#3f8600" }}
+                      prefix={<DollarOutlined />}
+                      suffix="đ"
+                    />
+                    <Divider style={{ margin: "12px 0" }} />
+                    <Text type="secondary">{stats.todayOrders} đơn hàng</Text>
+                  </Card>
+                </motion.div>
+              </Col>
 
-          {/* Week Stats */}
-          <Col xs={24} sm={12} lg={6}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card hoverable>
-                <Statistic
-                  title={<Text strong>Doanh thu tuần này</Text>}
-                  value={stats.weekRevenue}
-                  precision={0}
-                  valueStyle={{ color: "#1890ff" }}
-                  prefix={<RiseOutlined />}
-                  suffix="đ"
-                />
-                <Divider style={{ margin: "12px 0" }} />
-                <Text type="secondary">{stats.weekOrders} đơn hàng</Text>
-              </Card>
-            </motion.div>
-          </Col>
+              {/* Week Stats */}
+              <Col xs={24} sm={12} lg={6}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card hoverable>
+                    <Statistic
+                      title={<Text strong>Doanh thu tuần này</Text>}
+                      value={stats.weekRevenue}
+                      precision={0}
+                      valueStyle={{ color: "#1890ff" }}
+                      prefix={<RiseOutlined />}
+                      suffix="đ"
+                    />
+                    <Divider style={{ margin: "12px 0" }} />
+                    <Text type="secondary">{stats.weekOrders} đơn hàng</Text>
+                  </Card>
+                </motion.div>
+              </Col>
 
-          {/* Month Stats */}
-          <Col xs={24} sm={12} lg={6}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card hoverable>
-                <Statistic
-                  title={<Text strong>Doanh thu tháng này</Text>}
-                  value={stats.monthRevenue}
-                  precision={0}
-                  valueStyle={{ color: "#722ed1" }}
-                  prefix={<ShoppingCartOutlined />}
-                  suffix="đ"
-                />
-                <Divider style={{ margin: "12px 0" }} />
-                <Text type="secondary">{stats.monthOrders} đơn hàng</Text>
-              </Card>
-            </motion.div>
-          </Col>
+              {/* Month Stats */}
+              <Col xs={24} sm={12} lg={6}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card hoverable>
+                    <Statistic
+                      title={<Text strong>Doanh thu tháng này</Text>}
+                      value={stats.monthRevenue}
+                      precision={0}
+                      valueStyle={{ color: "#722ed1" }}
+                      prefix={<ShoppingCartOutlined />}
+                      suffix="đ"
+                    />
+                    <Divider style={{ margin: "12px 0" }} />
+                    <Text type="secondary">{stats.monthOrders} đơn hàng</Text>
+                  </Card>
+                </motion.div>
+              </Col>
 
-          {/* Total Stats */}
-          <Col xs={24} sm={12} lg={6}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card hoverable>
-                <Statistic
-                  title={<Text strong>Tổng doanh thu</Text>}
-                  value={stats.totalRevenue}
-                  precision={0}
-                  valueStyle={{ color: "#cf1322" }}
-                  prefix={<DollarOutlined />}
-                  suffix="đ"
-                />
-                <Divider style={{ margin: "12px 0" }} />
-                <Text type="secondary">
-                  {stats.totalOrders} đơn | {stats.totalCustomers} khách
-                </Text>
-              </Card>
-            </motion.div>
-          </Col>
+              {/* Total Stats */}
+              <Col xs={24} sm={12} lg={6}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <Card hoverable>
+                    <Statistic
+                      title={<Text strong>Tổng doanh thu</Text>}
+                      value={stats.totalRevenue}
+                      precision={0}
+                      valueStyle={{ color: "#cf1322" }}
+                      prefix={<DollarOutlined />}
+                      suffix="đ"
+                    />
+                    <Divider style={{ margin: "12px 0" }} />
+                    <Text type="secondary">
+                      {stats.totalOrders} đơn | {stats.totalCustomers} khách
+                    </Text>
+                  </Card>
+                </motion.div>
+              </Col>
+            </>
+          )}
         </Row>
 
         {/* Daily Sales Table */}
@@ -303,7 +445,13 @@ const AdminDashboard: React.FC = () => {
           transition={{ delay: 0.5 }}
         >
           <Card
-            title={<Text strong>Doanh thu 7 ngày gần nhất</Text>}
+            title={
+              <Text strong>
+                {useDateRange && rangeStats
+                  ? `Doanh thu từ ${rangeStats.startDate} đến ${rangeStats.endDate}`
+                  : "Doanh thu 7 ngày gần nhất"}
+              </Text>
+            }
             extra={
               <Button
                 type="link"

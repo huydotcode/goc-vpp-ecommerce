@@ -8,11 +8,13 @@ import com.example.learnspring1.repository.CartRepository;
 import com.example.learnspring1.repository.ProductRepository;
 import com.example.learnspring1.repository.ProductVariantRepository;
 import com.example.learnspring1.service.CartService;
+import com.example.learnspring1.service.PromotionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -26,6 +28,8 @@ public class CartServiceImpl implements CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final PromotionService promotionService;
+    private final PromotionCalculator promotionCalculator;
 
     private ProductVariant resolveVariantOrDefault(Product product, Long variantId) {
         // Nếu product có variantId -> lấy đúng variant
@@ -304,6 +308,38 @@ public class CartServiceImpl implements CartService {
         dto.setItems(itemDTOs);
         dto.setTotalAmount(totalAmount);
         dto.setTotalItems(totalItems);
+
+        // --- Calculate Promotions ---
+        List<Promotion> activePromotions = promotionService.getActivePromotions();
+        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, cart.getItems(), activePromotions);
+
+        // Map promotions to DTO
+        List<CartResponseDTO.PromotionSummaryDTO> appliedPromoDTOs = promoResult.getAppliedPromotions().stream()
+                .map(p -> {
+                    CartResponseDTO.PromotionSummaryDTO pDto = new CartResponseDTO.PromotionSummaryDTO();
+                    pDto.setId(p.getId());
+                    pDto.setName(p.getName());
+                    pDto.setDescription(p.getDescription());
+                    pDto.setDiscountType(p.getDiscountType().name());
+                    pDto.setValue(p.getDiscountAmount());
+                    return pDto;
+                }).collect(Collectors.toList());
+
+        // Map gift items to DTO
+        List<CartResponseDTO.GiftItemDTO> giftItemDTOs = promoResult.getGiftItems().stream()
+                .map(g -> {
+                    CartResponseDTO.GiftItemDTO gDto = new CartResponseDTO.GiftItemDTO();
+                    gDto.setProductId(g.getProduct().getId());
+                    gDto.setProductName(g.getProduct().getName());
+                    gDto.setProductImageUrl(g.getProduct().getThumbnailUrl());
+                    gDto.setQuantity(g.getQuantity());
+                    return gDto;
+                }).collect(Collectors.toList());
+
+        dto.setDiscountAmount(promoResult.getDiscountAmount());
+        dto.setFinalAmount(promoResult.getFinalTotal());
+        dto.setAppliedPromotions(appliedPromoDTOs);
+        dto.setGiftItems(giftItemDTOs);
 
         return dto;
     }
