@@ -8,6 +8,7 @@ import {
   Radio,
   Space,
   Typography,
+  Grid,
 } from "antd";
 import {
   DeleteOutlined,
@@ -28,6 +29,11 @@ import { cartService } from "@/services/cart.service";
 const { Title, Text } = Typography;
 
 const CartPage: React.FC = () => {
+  const { useBreakpoint } = Grid;
+  const screens = useBreakpoint();
+  const isMobile = !screens.xl;
+  const imageSize = isMobile ? 80 : 100;
+
   const navigate = useNavigate();
   const {
     cart,
@@ -214,11 +220,10 @@ const CartPage: React.FC = () => {
       <div
         style={{
           display: "flex",
-          flexDirection: "row",
+          flexDirection: isMobile ? "column" : "row",
           gap: 16,
-          alignItems: "flex-start",
+          alignItems: isMobile ? "stretch" : "flex-start",
         }}
-        className="flex-col md:flex-row"
       >
         {/* Cart Items */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -244,10 +249,13 @@ const CartPage: React.FC = () => {
                   key={item.id}
                   style={{
                     display: "flex",
-                    gap: 16,
-                    padding: 16,
+                    flexDirection: "row",
+                    flexWrap: isMobile ? "wrap" : "nowrap",
+                    gap: isMobile ? 12 : 16,
+                    padding: isMobile ? 12 : 16,
                     border: "1px solid #f0f0f0",
                     borderRadius: 8,
+                    alignItems: isMobile ? "flex-start" : "center",
                   }}
                 >
                   {/* Checkbox */}
@@ -256,6 +264,7 @@ const CartPage: React.FC = () => {
                       display: "flex",
                       alignItems: "center",
                       paddingTop: 4,
+                      width: isMobile ? 28 : "auto",
                     }}
                   >
                     <Checkbox
@@ -267,8 +276,8 @@ const CartPage: React.FC = () => {
                   {/* Product Image */}
                   <div
                     style={{
-                      width: 100,
-                      height: 100,
+                      width: imageSize,
+                      height: imageSize,
                       flexShrink: 0,
                       borderRadius: 8,
                       overflow: "hidden",
@@ -276,6 +285,7 @@ const CartPage: React.FC = () => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      alignSelf: isMobile ? "flex-start" : "center",
                     }}
                   >
                     {item.productImageUrl ? (
@@ -297,7 +307,12 @@ const CartPage: React.FC = () => {
                   </div>
 
                   {/* Product Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      flex: "1 1 220px",
+                      minWidth: 0,
+                    }}
+                  >
                     <Title level={5} style={{ margin: 0, marginBottom: 4 }}>
                       {item.productName}
                     </Title>
@@ -333,26 +348,28 @@ const CartPage: React.FC = () => {
                   <div
                     style={{
                       display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 8,
-                      minWidth: 120,
+                      flexDirection: isMobile ? "row" : "column",
+                      alignItems: isMobile ? "center" : "center",
+                      gap: isMobile ? 8 : 4,
+                      minWidth: isMobile ? "100%" : 100,
+                      justifyContent: isMobile ? "space-between" : "flex-start",
                     }}
                   >
-                    <Text strong>Số lượng</Text>
+                    <Text strong style={{ fontSize: isMobile ? 12 : 14 }}>
+                      Số lượng
+                    </Text>
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 8,
                         border: "1px solid #d9d9d9",
-                        borderRadius: "var(--radius-md)",
+                        borderRadius: "var(--radius-sm)",
                         overflow: "hidden",
                       }}
                     >
                       <Button
                         type="text"
-                        icon={<MinusOutlined />}
+                        icon={<MinusOutlined style={{ fontSize: 12 }} />}
                         onClick={() => {
                           if (item.quantity > 1) {
                             handleQuantityChange(item.id, item.quantity - 1);
@@ -362,8 +379,8 @@ const CartPage: React.FC = () => {
                         style={{
                           border: "none",
                           borderRadius: 0,
-                          width: 36,
-                          height: 36,
+                          width: 28,
+                          height: 28,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -371,21 +388,21 @@ const CartPage: React.FC = () => {
                       />
                       <div
                         style={{
-                          minWidth: 48,
+                          minWidth: 36,
                           textAlign: "center",
-                          padding: "0 8px",
-                          fontSize: "var(--font-size-base)",
+                          padding: "0 4px",
+                          fontSize: "var(--font-size-sm)",
                           fontWeight: "var(--font-weight-medium)",
                           borderLeft: "1px solid #d9d9d9",
                           borderRight: "1px solid #d9d9d9",
-                          lineHeight: "36px",
+                          lineHeight: "28px",
                         }}
                       >
                         {item.quantity}
                       </div>
                       <Button
                         type="text"
-                        icon={<PlusOutlined />}
+                        icon={<PlusOutlined style={{ fontSize: 12 }} />}
                         onClick={() => {
                           if (item.quantity < 999) {
                             handleQuantityChange(item.id, item.quantity + 1);
@@ -395,8 +412,8 @@ const CartPage: React.FC = () => {
                         style={{
                           border: "none",
                           borderRadius: 0,
-                          width: 36,
-                          height: 36,
+                          width: 28,
+                          height: 28,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -410,9 +427,10 @@ const CartPage: React.FC = () => {
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      alignItems: "flex-end",
+                      alignItems: isMobile ? "flex-start" : "flex-end",
                       gap: 8,
-                      minWidth: 150,
+                      flex: isMobile ? "1 1 180px" : "0 0 150px",
+                      minWidth: isMobile ? 160 : 150,
                     }}
                   >
                     <Text strong style={{ fontSize: 16 }}>
@@ -437,8 +455,11 @@ const CartPage: React.FC = () => {
 
         {/* Order Summary */}
         <div
-          style={{ width: "100%", maxWidth: 350 }}
-          className="md:max-w-[350px]"
+          style={{
+            width: "100%",
+            maxWidth: isMobile ? "100%" : 350,
+            marginTop: isMobile ? 16 : 0,
+          }}
         >
           <Card style={{ position: "sticky", top: 16 }}>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>

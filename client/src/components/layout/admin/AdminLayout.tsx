@@ -6,6 +6,7 @@ import {
   AppstoreOutlined,
   ShoppingOutlined,
   GiftOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { ConfigProvider, Layout, Menu, theme } from "antd";
@@ -57,7 +58,7 @@ const AdminLayout: React.FC = () => {
     getItem("Sản phẩm", "4", <ShoppingOutlined />, () => {
       navigate("/admin/products");
     }),
-    getItem("Đơn hàng", "5", <PieChartOutlined />, () => {
+    getItem("Đơn hàng", "5", <ShoppingCartOutlined />, () => {
       navigate("/admin/orders");
     }),
     getItem("Khuyến mãi", "6", <GiftOutlined />, () => {
@@ -77,7 +78,17 @@ const AdminLayout: React.FC = () => {
     "/admin/promotions": "6",
   };
 
-  const selectedKey = menuKeyMap[location.pathname] || "1";
+  // Xác định selected key, ưu tiên theo pathname chính xác, sau đó theo prefix
+  let selectedKey = menuKeyMap[location.pathname];
+
+  // Nếu không tìm thấy exact match, kiểm tra theo prefix (cho các trang detail)
+  if (!selectedKey) {
+    if (location.pathname.startsWith("/admin/orders")) {
+      selectedKey = "5";
+    } else {
+      selectedKey = "1";
+    }
+  }
 
   return (
     <ConfigProvider

@@ -4,9 +4,13 @@ import { useTrackProductView } from "@/hooks/useProducts";
 import type { ProductDTO } from "@/services/product.service";
 import type { ProductVariant } from "@/types/variant.types";
 import { formatPrice } from "@/utils/format";
-import { GiftOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import {
+  ExclamationCircleOutlined,
+  GiftOutlined,
+  ShoppingCartOutlined,
+} from "@ant-design/icons";
 import { Button, Tag, Typography } from "antd";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import VariantSelectorModal from "./VariantSelectorModal";
@@ -21,6 +25,7 @@ interface BaseCardProduct {
   finalPrice?: number | null;
   discountPercent?: number | null;
   isGift?: boolean;
+  stockQuantity?: number; // THÊM: Cho promotion mode
 }
 
 interface DefaultProductCardProps {
@@ -64,25 +69,26 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
   const variants: ProductVariant[] =
     !isPromotion && props.product.variants ? props.product.variants : [];
 
-  const baseProduct: BaseCardProduct = isPromotion
-    ? props.product
-    : {
-        id: props.product.id,
-        name: props.product.name,
-        imageUrl:
-          props.product.thumbnailUrl ??
-          (props.product.images && props.product.images.length > 0
-            ? props.product.images[0].imageUrl
-            : undefined),
-        originalPrice: defaultVariant?.price ?? props.product.price ?? 0,
-        finalPrice:
-          defaultVariant?.price ??
-          props.product.discountPrice ??
-          props.product.price ??
-          0,
-        discountPercent: undefined, // sẽ tính lại bên dưới
-        isGift: false,
-      };
+  // CẢI TIẾN: Memoize baseProduct để tránh tính toán mỗi render - FIX: Proper optional chaining for images
+  const baseProduct = useMemo<BaseCardProduct>(() => {
+    if (isPromotion) {
+      return props.product;
+    }
+    const defaultProps = props as DefaultProductCardProps;
+    const product = defaultProps.product;
+    return {
+      id: product.id,
+      name: product.name,
+      imageUrl:
+        product.thumbnailUrl ?? product.images?.[0]?.imageUrl ?? undefined, // FIX: Safe array access with optional chaining
+      originalPrice: defaultVariant?.price ?? product.price ?? 0,
+      finalPrice:
+        defaultVariant?.price ?? product.discountPrice ?? product.price ?? 0,
+      discountPercent: undefined,
+      isGift: false,
+      stockQuantity: undefined, // Default mode không cần
+    };
+  }, [isPromotion, props, defaultVariant]); // Dependencies: props changes trigger re-calc
 
   const {
     id,
@@ -97,31 +103,37 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
   const computedBasePrice = originalPrice ?? 0;
   const computedFinalPrice = finalPrice ?? computedBasePrice;
 
-  const hasDiscount =
-    !isGift && computedFinalPrice < computedBasePrice && computedBasePrice > 0;
+  // CẢI TIẾN: Memoize discount calculations
+  const discountInfo = useMemo(() => {
+    const hasDiscount =
+      !isGift &&
+      computedFinalPrice < computedBasePrice &&
+      computedBasePrice > 0;
+    const discountPercent =
+      inputDiscountPercent ??
+      (hasDiscount
+        ? Math.round(
+            ((computedBasePrice - computedFinalPrice) / computedBasePrice) * 100
+          )
+        : null);
+    return { hasDiscount, discountPercent };
+  }, [isGift, computedBasePrice, computedFinalPrice, inputDiscountPercent]);
 
-  const discountPercent =
-    inputDiscountPercent ??
-    (hasDiscount
-      ? Math.round(
-          ((computedBasePrice - computedFinalPrice) / computedBasePrice) * 100
-        )
-      : null);
+  const { hasDiscount, discountPercent } = discountInfo;
 
-  const handleAddToCart = async () => {
+  // SHARED FUNCTION: Handle common add logic (auth, variant, stock, addItem)
+  const handleAddWithVariant = async (afterAddCallback?: () => void) => {
     try {
       // Kiểm tra đăng nhập
       if (!isAuthenticated) {
         toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ");
-        navigate("/login", { state: { from: window.location.pathname } });
         return;
       }
-
 
       // Nếu có nhiều variant, yêu cầu chọn
       if (!isPromotion && variants.length > 1) {
         setVariantModalOpen(true);
-        setIsBuyNowFlow(false);
+        setIsBuyNowFlow(!!afterAddCallback); // Set flow dựa trên callback
         if (selectedVariantId == null) {
           setSelectedVariantId(defaultVariant?.id ?? variants[0]?.id ?? null);
         }
@@ -140,7 +152,6 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
           stockQuantity !== undefined &&
           stockQuantity <= 0
         ) {
-
           toast.warning("Sản phẩm đã hết hàng");
           return;
         }
@@ -152,55 +163,20 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         variantId: targetVariant?.id ?? null,
         quantity: 1,
       });
+
+      // Callback sau khi add thành công
+      afterAddCallback?.();
     } finally {
       setAddingProductId(null);
     }
   };
 
-  const handleBuyNow = async () => {
-    try {
-      if (!isAuthenticated) {
-        toast.warning("Vui lòng đăng nhập để mua ngay");
-        navigate("/login", { state: { from: window.location.pathname } });
-        return;
-      }
+  const handleAddToCart = () => {
+    handleAddWithVariant();
+  };
 
-      // Nếu có nhiều variant, dùng modal để chọn, sau đó sẽ navigate khi confirm
-      if (!isPromotion && variants.length > 1) {
-        setVariantModalOpen(true);
-        setIsBuyNowFlow(true);
-        if (selectedVariantId == null) {
-          setSelectedVariantId(defaultVariant?.id ?? variants[0]?.id ?? null);
-        }
-        setSelectedQty(1);
-        return;
-      }
-
-      const targetVariant =
-        variants.length > 0 ? (defaultVariant ?? variants[0]) : undefined;
-      if (!targetVariant) {
-        toast.error("Không tìm thấy phân loại sản phẩm");
-        return;
-      }
-      if (
-        targetVariant.stockQuantity !== null &&
-        targetVariant.stockQuantity !== undefined &&
-        targetVariant.stockQuantity <= 0
-      ) {
-        toast.warning("Sản phẩm đã hết hàng");
-        return;
-      }
-
-      setAddingProductId(id);
-      await addItem({
-        productId: id,
-        variantId: targetVariant.id ?? null,
-        quantity: 1,
-      });
-      navigate("/cart");
-    } finally {
-      setAddingProductId(null);
-    }
+  const handleBuyNow = () => {
+    handleAddWithVariant(() => navigate("/cart"));
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -264,27 +240,45 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
 
   const isAdding = adding || addingProductId === id;
 
-  // Kiểm tra tồn kho để disable button (chỉ với default mode)
-  const isOutOfStock =
-    !isPromotion &&
-    (() => {
-      const product = (props as DefaultProductCardProps).product;
-      // Kiểm tra stock từ variants hoặc hasStock computed field
-      if (product.hasStock === false) {
-        return true;
-      }
-      if (product.variants && product.variants.length > 0) {
-        return !product.variants.some(
-          v => v.isActive && (v.stockQuantity ?? 0) > 0
-        );
-      }
-      return false;
-    })();
+  // CẢI TIẾN: Memoize isOutOfStock để tránh tính toán mỗi render
+  const isOutOfStock = useMemo(() => {
+    if (isPromotion) {
+      // Promotion mode: Check stockQuantity từ props
+      const promotionProduct = props as PromotionProductCardProps;
+      return (
+        promotionProduct.product.stockQuantity !== undefined &&
+        promotionProduct.product.stockQuantity <= 0
+      );
+    }
+    // Default mode: Existing logic
+    const product = (props as DefaultProductCardProps).product;
+    if (product.hasStock === false) {
+      return true;
+    }
+    if (product.variants && product.variants.length > 0) {
+      return !product.variants.some(
+        (v) => v.isActive && (v.stockQuantity ?? 0) > 0
+      );
+    }
+    return false;
+  }, [isPromotion, props]);
 
   return (
     <div
-      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-red-100 bg-white p-0 text-[13px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-primary hover:shadow-sm"
+      role="button"
+      tabIndex={0}
+      aria-label={`Xem chi tiết sản phẩm ${name}`}
       onClick={handleCardClick}
+      onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          trackProductView.mutate(id, {
+            onError: () => {},
+          });
+          navigate(`/products/${id}`);
+        }
+      }}
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-red-100 bg-white p-0 text-[13px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-primary hover:shadow-sm"
     >
       {/* Image area */}
       <div className="relative flex w-full items-center justify-center overflow-hidden rounded-md h-[300px]">
@@ -292,6 +286,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
           <img
             src={imageUrl}
             alt={name}
+            loading="lazy"
             className="h-full w-full object-cover"
           />
         ) : (
@@ -316,6 +311,34 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
             }}
           >
             Mới
+          </Tag>
+        )}
+
+        {/* THÊM TAG HẾT HÀNG */}
+        {isOutOfStock && (
+          <Tag
+            id={`out-of-stock-${id}`} // ID cho aria-describedby
+            color="default"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              zIndex: 10,
+              backgroundColor: "#f5f5f5",
+              color: "#999",
+              border: "1px solid #d9d9d9",
+              fontSize: "12px",
+              fontWeight: "bold",
+              padding: "4px 6px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+            aria-label="Sản phẩm hết hàng"
+          >
+            <ExclamationCircleOutlined style={{ fontSize: "12px" }} />
+            Hết hàng
           </Tag>
         )}
       </div>
@@ -370,34 +393,58 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
               <Button
                 type="primary"
                 size="middle"
-                className="w-full py-2 text-[13px]"
+                className={`w-full py-2 text-[13px] ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isOutOfStock) {
+                    toast.info("Sản phẩm tạm thời hết hàng");
+                    return;
+                  }
                   handleBuyNow();
                 }}
+                disabled={isAdding || isOutOfStock}
+                aria-label={
+                  isOutOfStock
+                    ? "Sản phẩm hết hàng"
+                    : "Mua sản phẩm ngay lập tức"
+                }
+                aria-describedby={
+                  isOutOfStock ? `out-of-stock-${id}` : undefined
+                }
               >
-                Mua ngay
+                {isOutOfStock ? "Hết hàng" : "Mua ngay"}
               </Button>
 
               <Button
                 size="middle"
-                className="flex w-full items-center justify-center gap-1 px-3 text-[13px]"
-                icon={<ShoppingCartOutlined />}
+                className={`flex w-full items-center justify-center gap-1 px-3 text-[13px] ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
+                icon={<ShoppingCartOutlined aria-hidden />}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isOutOfStock) {
+                    toast.info("Sản phẩm tạm thời hết hàng");
+                    return;
+                  }
                   handleAddToCart();
                 }}
-                disabled={isAdding || isOutOfStock}
+                aria-label={
+                  isOutOfStock
+                    ? "Sản phẩm hết hàng"
+                    : "Thêm sản phẩm vào giỏ hàng"
+                }
+                aria-describedby={
+                  isOutOfStock ? `out-of-stock-${id}` : undefined
+                }
               >
-                Thêm giỏ hàng
+                {isOutOfStock ? "Hết hàng" : "Thêm giỏ hàng"}
               </Button>
             </div>
           </>
         )}
       </div>
 
-      {/* Hover actions overlay - chỉ desktop */}
-      {!isGift && (
+      {/* Hover actions overlay */}
+      {!isGift && !isOutOfStock && (
         <div className="pointer-events-none absolute inset-0 hidden items-center justify-center bg-black/5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:flex">
           <div className="pointer-events-auto flex w-full max-w-[90%] flex-col items-stretch gap-2 px-3">
             <Button
@@ -408,6 +455,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                 e.stopPropagation();
                 handleBuyNow();
               }}
+              aria-label="Mua sản phẩm ngay lập tức"
             >
               Mua ngay
             </Button>
@@ -415,19 +463,33 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
             <Button
               size="middle"
               className="flex w-full items-center justify-center gap-1 px-3 text-[13px] md:text-[14px]"
-              icon={<ShoppingCartOutlined />}
+              icon={<ShoppingCartOutlined aria-hidden />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleAddToCart();
               }}
-              disabled={isAdding || isOutOfStock}
+              disabled={isAdding}
+              aria-label="Thêm sản phẩm vào giỏ hàng"
             >
               Thêm giỏ hàng
             </Button>
           </div>
         </div>
       )}
+      {/* Overlay out of stock */}
+      {!isGift && isOutOfStock && (
+        <div
+          className="absolute inset-0 hidden items-center justify-center bg-gray-100 opacity-100 md:flex"
+          aria-live="polite"
+          aria-label="Sản phẩm tạm thời hết hàng"
+        >
+          <Tag color="default" className="text-lg font-semibold">
+            Tạm thời hết hàng
+          </Tag>
+        </div>
+      )}
 
+      {/* Variant selector modal */}
       <VariantSelectorModal
         open={variantModalOpen}
         variants={variants}

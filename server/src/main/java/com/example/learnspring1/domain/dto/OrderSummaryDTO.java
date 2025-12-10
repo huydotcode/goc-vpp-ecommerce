@@ -21,5 +21,13 @@ public class OrderSummaryDTO {
     private BigDecimal discountAmount;
     private BigDecimal finalAmount;
     private String appliedPromotions;
+    private String customerName;
+    private String customerEmail;
+    private String customerPhone;
     private List<OrderItemSummaryDTO> items;
+
+    // User info (if order is linked to a user account)
+    private Long userId;
+    private String userFirstName;
+    private String userLastName;
 }
