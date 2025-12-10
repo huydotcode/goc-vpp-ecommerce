@@ -52,6 +52,7 @@ type OrderDetail = {
   userFirstName?: string;
   userLastName?: string;
 };
+//
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
