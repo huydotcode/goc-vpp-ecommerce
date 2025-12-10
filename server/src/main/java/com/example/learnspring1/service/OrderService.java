@@ -274,14 +274,21 @@ public class OrderService {
             Pageable pageable) {
 
         Specification<Order> spec = (root, query, criteriaBuilder) -> {
-            // Eager load relationships
-            if (query != null) {
-                root.fetch("user", jakarta.persistence.criteria.JoinType.LEFT);
-                root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
-                        .fetch("product", jakarta.persistence.criteria.JoinType.LEFT);
-                root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
-                        .fetch("variant", jakarta.persistence.criteria.JoinType.LEFT);
-                query.distinct(true);
+            // Eager load relationships - only for SELECT queries, not COUNT queries
+            // COUNT queries return Long, SELECT queries return the entity type (Order)
+            if (query != null && query.getResultType() != null) {
+                Class<?> resultType = query.getResultType();
+                // Only fetch for SELECT queries (Order.class), not COUNT queries (Long.class)
+                if (resultType != Long.class && resultType != long.class) {
+                    // This is a SELECT query, safe to fetch
+                    root.fetch("user", jakarta.persistence.criteria.JoinType.LEFT);
+                    root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
+                            .fetch("product", jakarta.persistence.criteria.JoinType.LEFT);
+                    root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
+                            .fetch("variant", jakarta.persistence.criteria.JoinType.LEFT);
+                    query.distinct(true);
+                }
+                // If it's a COUNT query (Long.class), skip fetching to avoid the error
             }
 
             List<Predicate> predicates = new ArrayList<>();
