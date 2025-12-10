@@ -1,10 +1,11 @@
 import { useCategoriesFilter, useProducts } from "@/hooks";
 import type { ProductFilters } from "@/types/product.types";
 import {
-    AppstoreOutlined,
-    FilterOutlined,
-    SearchOutlined,
     SortAscendingOutlined,
+    FilterOutlined,
+    DollarOutlined,
+    AppstoreOutlined,
+    DownOutlined,
     CloseOutlined,
 } from "@ant-design/icons";
 import {
@@ -12,39 +13,48 @@ import {
     Col,
     Drawer,
     Empty,
-    Input,
     Pagination,
     Row,
     Select,
-    Slider,
-    Space,
     Spin,
-    Tag,
     Typography,
-    Collapse,
     Divider,
+    InputNumber,
+    Space,
+    Collapse,
+    Tag,
 } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 
 const { Title, Text } = Typography;
-const { Panel } = Collapse;
 
 interface FilterState {
     categoryId?: number;
+    search?: string;
     minPrice?: number;
     maxPrice?: number;
-    search?: string;
 }
+
+// Predefined price ranges (Shopee-style)
+const PRICE_RANGES = [
+    { label: "Tất cả mức giá", min: undefined, max: undefined },
+    { label: "Dưới 50.000đ", min: undefined, max: 50000 },
+    { label: "50.000đ - 100.000đ", min: 50000, max: 100000 },
+    { label: "100.000đ - 200.000đ", min: 100000, max: 200000 },
+    { label: "200.000đ - 500.000đ", min: 200000, max: 500000 },
+    { label: "Trên 500.000đ", min: 500000, max: undefined },
+];
 
 const Products: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // State management
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-    const [searchInput, setSearchInput] = useState("");
+    const [customMinPrice, setCustomMinPrice] = useState<number | null>(null);
+    const [customMaxPrice, setCustomMaxPrice] = useState<number | null>(null);
 
     // Parse URL params
     const page = parseInt(searchParams.get("page") || "1");
@@ -53,25 +63,34 @@ const Products: React.FC = () => {
     const directionParam = (searchParams.get("direction") || "desc") as "asc" | "desc";
     const categoryIdParam = searchParams.get("categoryId");
     const searchQueryParam = searchParams.get("search") || "";
+    const minPriceParam = searchParams.get("minPrice");
+    const maxPriceParam = searchParams.get("maxPrice");
 
     // Filters state
     const [filters, setFilters] = useState<FilterState>({
         categoryId: categoryIdParam ? parseInt(categoryIdParam) : undefined,
         search: searchQueryParam,
+        minPrice: minPriceParam ? parseInt(minPriceParam) : undefined,
+        maxPrice: maxPriceParam ? parseInt(maxPriceParam) : undefined,
     });
-    const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
 
-    // Initialize search input from URL
+    // Sync filters with URL params when they change
     useEffect(() => {
-        if (searchQueryParam) {
-            setSearchInput(searchQueryParam);
-        }
-    }, [searchQueryParam]);
+        setFilters({
+            categoryId: categoryIdParam ? parseInt(categoryIdParam) : undefined,
+            search: searchQueryParam,
+            minPrice: minPriceParam ? parseInt(minPriceParam) : undefined,
+            maxPrice: maxPriceParam ? parseInt(maxPriceParam) : undefined,
+        });
+        // Also update custom price inputs
+        setCustomMinPrice(minPriceParam ? parseInt(minPriceParam) : null);
+        setCustomMaxPrice(maxPriceParam ? parseInt(maxPriceParam) : null);
+    }, [categoryIdParam, searchQueryParam, minPriceParam, maxPriceParam]);
 
     // Fetch categories
     const { data: categories } = useCategoriesFilter({ isActive: true }, true);
 
-    // Build product filters
+    // Build product filters for API - always use normal API for search
     const productFilters: ProductFilters = {
         page,
         size,
@@ -80,36 +99,18 @@ const Products: React.FC = () => {
         isActive: true,
         categoryId: filters.categoryId,
         search: filters.search,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
     };
 
-    // Fetch products
+    // Fetch products using normal API (for all cases including search)
     const { data: productsData, isLoading } = useProducts(productFilters, true);
 
+    // Get products and total from API response
     const products = productsData?.result || [];
     const total = productsData?.metadata?.totalElements || 0;
 
-    // Handle search
-    const handleSearch = (value: string) => {
-        const trimmedValue = value.trim();
-        if (trimmedValue.length === 0) {
-            setSearchInput("");
-            setFilters((prev) => ({ ...prev, search: undefined }));
-            const newParams = new URLSearchParams(searchParams);
-            newParams.delete("search");
-            newParams.set("page", "1");
-            setSearchParams(newParams);
-            return;
-        }
-
-        setSearchInput(trimmedValue);
-        setFilters((prev) => ({ ...prev, search: trimmedValue }));
-        const newParams = new URLSearchParams(searchParams);
-        newParams.set("search", trimmedValue);
-        newParams.set("page", "1");
-        setSearchParams(newParams);
-    };
-
-    // Handle category filter
+    // Handle category change
     const handleCategoryChange = (categoryId?: number) => {
         setFilters((prev) => ({ ...prev, categoryId }));
         const newParams = new URLSearchParams(searchParams);
@@ -122,11 +123,59 @@ const Products: React.FC = () => {
         setSearchParams(newParams);
     };
 
-    // Handle sort change
+    // Handle clear search
+    const handleClearSearch = () => {
+        setFilters((prev) => ({ ...prev, search: "" }));
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("search");
+        newParams.set("page", "1");
+        setSearchParams(newParams);
+    };
+
+    // Handle price range change
+    const handlePriceRangeChange = (minPrice?: number, maxPrice?: number) => {
+        setFilters((prev) => ({ ...prev, minPrice, maxPrice }));
+        const newParams = new URLSearchParams(searchParams);
+        if (minPrice !== undefined) {
+            newParams.set("minPrice", minPrice.toString());
+        } else {
+            newParams.delete("minPrice");
+        }
+        if (maxPrice !== undefined) {
+            newParams.set("maxPrice", maxPrice.toString());
+        } else {
+            newParams.delete("maxPrice");
+        }
+        newParams.set("page", "1");
+        setSearchParams(newParams);
+    };
+
+    // Handle custom price apply
+    const handleApplyCustomPrice = () => {
+        handlePriceRangeChange(
+            customMinPrice ?? undefined,
+            customMaxPrice ?? undefined
+        );
+    };
+
+    // Check if current filter matches a predefined range
+    const isRangeActive = (min?: number, max?: number) => {
+        return filters.minPrice === min && filters.maxPrice === max;
+    };
+
+    // Handle sorting
     const handleSortChange = (value: string) => {
         const newParams = new URLSearchParams(searchParams);
 
         switch (value) {
+            case "newest":
+                newParams.set("sort", "createdAt");
+                newParams.set("direction", "desc");
+                break;
+            case "oldest":
+                newParams.set("sort", "createdAt");
+                newParams.set("direction", "asc");
+                break;
             case "price-asc":
                 newParams.set("sort", "price");
                 newParams.set("direction", "asc");
@@ -143,16 +192,6 @@ const Products: React.FC = () => {
                 newParams.set("sort", "name");
                 newParams.set("direction", "desc");
                 break;
-            case "newest":
-                newParams.set("sort", "createdAt");
-                newParams.set("direction", "desc");
-                break;
-            case "oldest":
-                newParams.set("sort", "createdAt");
-                newParams.set("direction", "asc");
-                break;
-            default:
-                break;
         }
 
         newParams.set("page", "1");
@@ -160,20 +199,14 @@ const Products: React.FC = () => {
     };
 
     // Handle pagination
-    const handlePageChange = (newPage: number, newSize: number) => {
+    const handlePageChange = (newPage: number, newSize?: number) => {
         const newParams = new URLSearchParams(searchParams);
         newParams.set("page", newPage.toString());
-        newParams.set("size", newSize.toString());
+        if (newSize) {
+            newParams.set("size", newSize.toString());
+        }
         setSearchParams(newParams);
         window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
-    // Clear all filters
-    const handleClearFilters = () => {
-        setFilters({});
-        setPriceRange([0, 1000000]);
-        setSearchInput("");
-        setSearchParams({});
     };
 
     // Get current sort value for display
@@ -190,292 +223,377 @@ const Products: React.FC = () => {
         return "newest";
     };
 
-    // Filter sidebar content
-    const filterContent = (
-        <div className="space-y-4">
-            <Collapse defaultActiveKey={["1", "2"]} ghost>
-                {/* Category Filter */}
-                <Panel header={<Text strong>Danh mục</Text>} key="1">
-                    <div className="space-y-2">
-                        <Button
-                            type={!filters.categoryId ? "primary" : "default"}
-                            block
-                            onClick={() => handleCategoryChange(undefined)}
-                            className="text-left"
-                        >
-                            Tất cả danh mục
-                        </Button>
-                        {categories?.map((cat) => (
-                            <Button
-                                key={cat.id}
-                                type={filters.categoryId === cat.id ? "primary" : "default"}
-                                block
-                                onClick={() => handleCategoryChange(cat.id)}
-                                className="text-left"
-                            >
-                                {cat.name}
-                            </Button>
-                        ))}
-                    </div>
-                </Panel>
+    // Get category name by id
+    const getCategoryName = (categoryId: number) => {
+        const category = categories?.find((c) => c.id === categoryId);
+        return category?.name || `Danh mục #${categoryId}`;
+    };
 
-                {/* Price Range Filter */}
-                <Panel header={<Text strong>Khoảng giá</Text>} key="2">
-                    <div className="px-2">
-                        <Slider
-                            range
-                            min={0}
-                            max={1000000}
-                            step={10000}
-                            value={priceRange}
-                            onChange={(value) => setPriceRange(value as [number, number])}
-                            tooltip={{
-                                formatter: (value) => `${(value || 0).toLocaleString("vi-VN")}đ`,
-                            }}
-                        />
-                        <div className="mt-2 flex justify-between text-sm text-gray-600">
-                            <span>{priceRange[0].toLocaleString("vi-VN")}đ</span>
-                            <span>{priceRange[1].toLocaleString("vi-VN")}đ</span>
-                        </div>
-                    </div>
-                </Panel>
-            </Collapse>
+    // Get price label
+    const getPriceLabel = () => {
+        if (filters.minPrice === undefined && filters.maxPrice === undefined) {
+            return null;
+        }
+        // Check if matches a predefined range
+        const matchedRange = PRICE_RANGES.find(
+            (r) => r.min === filters.minPrice && r.max === filters.maxPrice && (r.min !== undefined || r.max !== undefined)
+        );
+        if (matchedRange) {
+            return matchedRange.label;
+        }
+        // Custom range
+        if (filters.minPrice !== undefined && filters.maxPrice !== undefined) {
+            return `${filters.minPrice.toLocaleString("vi-VN")}đ - ${filters.maxPrice.toLocaleString("vi-VN")}đ`;
+        }
+        if (filters.minPrice !== undefined) {
+            return `Từ ${filters.minPrice.toLocaleString("vi-VN")}đ`;
+        }
+        if (filters.maxPrice !== undefined) {
+            return `Đến ${filters.maxPrice.toLocaleString("vi-VN")}đ`;
+        }
+        return null;
+    };
 
-            <Divider />
+    // Check if any filter is active
+    const hasActiveFilters = () => {
+        return filters.categoryId !== undefined ||
+            (filters.search && filters.search.trim() !== "") ||
+            filters.minPrice !== undefined ||
+            filters.maxPrice !== undefined;
+    };
 
-            {/* Clear Filters Button */}
+    // Active filter tags component
+    const ActiveFilterTags = () => {
+        if (!hasActiveFilters()) return null;
+
+        return (
+            <div className="mb-4 flex items-center gap-2 flex-wrap rounded-lg bg-white px-3 py-2 shadow-sm">
+                <Text type="secondary" className="text-sm">Đang lọc:</Text>
+
+                {/* Search tag */}
+                {filters.search && filters.search.trim() !== "" && (
+                    <Tag
+                        closable
+                        onClose={handleClearSearch}
+                        color="blue"
+                        style={{ margin: 0 }}
+                    >
+                        Tìm: "{filters.search}"
+                    </Tag>
+                )}
+
+                {/* Category tag */}
+                {filters.categoryId !== undefined && (
+                    <Tag
+                        closable
+                        onClose={() => handleCategoryChange(undefined)}
+                        color="green"
+                        style={{ margin: 0 }}
+                    >
+                        {getCategoryName(filters.categoryId)}
+                    </Tag>
+                )}
+
+                {/* Price range tag */}
+                {getPriceLabel() && (
+                    <Tag
+                        closable
+                        onClose={() => handlePriceRangeChange(undefined, undefined)}
+                        color="orange"
+                        style={{ margin: 0 }}
+                    >
+                        {getPriceLabel()}
+                    </Tag>
+                )}
+
+                {/* Clear all button */}
+                <Button
+                    type="link"
+                    size="small"
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={() => {
+                        handleCategoryChange(undefined);
+                        handlePriceRangeChange(undefined, undefined);
+                        handleClearSearch();
+                    }}
+                >
+                    Xóa tất cả
+                </Button>
+            </div>
+        );
+    };
+
+    // Price filter UI component
+    const PriceFilterSection = () => (
+        <div className="space-y-2">
+            <Text strong className="block mb-2">
+                <DollarOutlined className="mr-2" />
+                Khoảng giá
+            </Text>
+            {PRICE_RANGES.map((range, index) => (
+                <Button
+                    key={index}
+                    type={isRangeActive(range.min, range.max) ? "primary" : "default"}
+                    block
+                    onClick={() => handlePriceRangeChange(range.min, range.max)}
+                    className="text-left"
+                    size="small"
+                >
+                    {range.label}
+                </Button>
+            ))}
+            <Divider className="my-2" style={{ margin: "8px 0" }} />
+            <Text type="secondary" className="block mb-2 text-xs">
+                Hoặc nhập khoảng giá:
+            </Text>
+            <Space.Compact style={{ width: "100%" }}>
+                <InputNumber
+                    placeholder="Từ"
+                    value={customMinPrice}
+                    onChange={(value) => setCustomMinPrice(value)}
+                    min={0}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                    style={{ width: "50%" }}
+                    size="small"
+                />
+                <InputNumber
+                    placeholder="Đến"
+                    value={customMaxPrice}
+                    onChange={(value) => setCustomMaxPrice(value)}
+                    min={0}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                    style={{ width: "50%" }}
+                    size="small"
+                />
+            </Space.Compact>
             <Button
-                danger
+                type="primary"
                 block
-                icon={<CloseOutlined />}
-                onClick={handleClearFilters}
+                size="small"
+                onClick={handleApplyCustomPrice}
+                style={{ marginTop: 8 }}
             >
-                Xóa tất cả bộ lọc
+                Áp dụng
             </Button>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 py-6">
-            <div className="container mx-auto px-4">
-                {/* Page Header */}
+        <div
+            className="min-h-screen px-4 py-8"
+            style={{
+                background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)"
+            }}
+        >
+            <div className="mx-auto max-w-7xl">
+                {/* Page Title */}
                 <motion.div
+                    className="mb-6"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-6"
                 >
-                    <div className="flex items-center gap-3 mb-4">
-                        <AppstoreOutlined className="text-3xl text-primary" />
-                        <Title level={2} style={{ margin: 0 }}>
-                            Sản phẩm
-                        </Title>
-                    </div>
-
-                    {/* Search Bar */}
-                    <div className="rounded-xl bg-white p-4 shadow-sm">
-                        <Space.Compact style={{ width: "100%" }}>
-                            <Input
-                                size="large"
-                                placeholder="Tìm kiếm sản phẩm theo tên..."
-                                value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
-                                onPressEnter={(e) => handleSearch(e.currentTarget.value)}
-                                prefix={<SearchOutlined className="text-gray-400" />}
-                                suffix={
-                                    searchInput && (
-                                        <CloseOutlined
-                                            className="cursor-pointer text-gray-400 hover:text-gray-600"
-                                            onClick={() => {
-                                                setSearchInput("");
-                                                handleSearch("");
-                                            }}
-                                        />
-                                    )
-                                }
-                            />
-                            <Button
-                                type="primary"
-                                size="large"
-                                icon={<SearchOutlined />}
-                                onClick={() => handleSearch(searchInput)}
-                                loading={isLoading}
-                            >
-                                Tìm kiếm
-                            </Button>
-                        </Space.Compact>
-
-                        {/* Active Filters Display */}
-                        {(filters.categoryId || filters.search) && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                <Text type="secondary" className="text-xs">
-                                    Đang lọc:
-                                </Text>
-                                {filters.categoryId && (
-                                    <Tag
-                                        closable
-                                        onClose={() => handleCategoryChange(undefined)}
-                                        color="blue"
-                                    >
-                                        {categories?.find((c) => c.id === filters.categoryId)?.name}
-                                    </Tag>
-                                )}
-                                {filters.search && (
-                                    <Tag
-                                        closable
-                                        onClose={() => handleSearch("")}
-                                        color="green"
-                                    >
-                                        Tìm kiếm: "{filters.search}"
-                                    </Tag>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    <Title level={2}>
+                        Tất cả sản phẩm
+                    </Title>
                 </motion.div>
 
-                {/* Main Content */}
-                <div className="flex gap-6">
-                    {/* Desktop Filter Sidebar */}
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="hidden w-64 lg:block"
-                    >
-                        <div className="sticky top-4 rounded-xl bg-white p-4 shadow-sm">
-                            <div className="mb-4 flex items-center justify-between">
-                                <Text strong className="text-lg">
-                                    Bộ lọc
-                                </Text>
-                                <FilterOutlined className="text-primary" />
-                            </div>
-                            {filterContent}
-                        </div>
-                    </motion.div>
-
-                    {/* Products Grid */}
-                    <div className="flex-1">
-                        {/* Toolbar */}
-                        <div className="mb-4 flex items-center justify-between rounded-xl bg-white p-3 shadow-sm">
-                            <div className="flex items-center gap-2">
-                                <SortAscendingOutlined className="text-gray-500" />
-                                <Text strong>Sắp xếp:</Text>
-                                <Select
-                                    value={getCurrentSortValue()}
-                                    onChange={handleSortChange}
-                                    style={{ width: 180 }}
-                                    options={[
-                                        { label: "Mới nhất", value: "newest" },
-                                        { label: "Cũ nhất", value: "oldest" },
-                                        { label: "Giá: Thấp → Cao", value: "price-asc" },
-                                        { label: "Giá: Cao → Thấp", value: "price-desc" },
-                                        { label: "Tên: A → Z", value: "name-asc" },
-                                        { label: "Tên: Z → A", value: "name-desc" },
-                                    ]}
-                                />
-                            </div>
-
-                            {/* Mobile Filter Button */}
-                            <Button
-                                className="lg:hidden"
-                                icon={<FilterOutlined />}
-                                onClick={() => setFilterDrawerOpen(true)}
-                            >
-                                Lọc
-                            </Button>
-
-                            <Text type="secondary">
-                                {isLoading ? "Đang tải..." : `${total} sản phẩm`}
-                            </Text>
-                        </div>
-
-                        {/* Products Grid */}
-                        <AnimatePresence mode="wait">
-                            {isLoading ? (
-                                <motion.div
-                                    key="loading"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                >
-                                    <div className="flex justify-center py-12">
-                                        <Spin size="large" tip="Đang tải sản phẩm..." />
-                                    </div>
-                                </motion.div>
-                            ) : products.length === 0 ? (
-                                <motion.div
-                                    key="empty"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="rounded-xl bg-white p-8 shadow-sm"
-                                >
-                                    <Empty
-                                        description={
-                                            <div>
-                                                <Text>Không tìm thấy sản phẩm nào</Text>
-                                                <br />
-                                                <Button
-                                                    type="link"
-                                                    onClick={handleClearFilters}
-                                                    className="mt-2"
-                                                >
-                                                    Xóa bộ lọc
-                                                </Button>
-                                            </div>
-                                        }
-                                    />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="products"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                >
-                                    <Row gutter={[16, 16]}>
-                                        {products.map((product, index) => (
-                                            <Col xs={12} sm={12} md={8} lg={6} key={product.id}>
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: index * 0.05, duration: 0.3 }}
-                                                >
-                                                    <ProductCard product={product} />
-                                                </motion.div>
-                                            </Col>
-                                        ))}
-                                    </Row>
-
-                                    {/* Pagination */}
-                                    {total > 0 && (
-                                        <div className="mt-8 flex justify-center">
-                                            <Pagination
-                                                current={page}
-                                                pageSize={size}
-                                                total={total}
-                                                onChange={handlePageChange}
-                                                showSizeChanger
-                                                showTotal={(total) => `Tổng ${total} sản phẩm`}
-                                                pageSizeOptions={["12", "24", "36", "48"]}
-                                            />
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-
-                {/* Mobile Filter Drawer */}
+                {/* Filter Drawer - Mobile */}
                 <Drawer
-                    title="Bộ lọc"
+                    title={
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <FilterOutlined />
+                                <Text strong>Bộ lọc</Text>
+                            </div>
+                        </div>
+                    }
                     placement="left"
                     onClose={() => setFilterDrawerOpen(false)}
                     open={filterDrawerOpen}
                     width={280}
                 >
-                    {filterContent}
+                    {/* Category Filter - Collapsible */}
+                    <Collapse
+                        defaultActiveKey={['category']}
+                        ghost
+                        expandIcon={({ isActive }) => <DownOutlined rotate={isActive ? 180 : 0} />}
+                        items={[
+                            {
+                                key: 'category',
+                                label: (
+                                    <Text strong>
+                                        <AppstoreOutlined className="mr-2" />
+                                        Danh mục
+                                    </Text>
+                                ),
+                                children: (
+                                    <div
+                                        className="space-y-1"
+                                        style={{
+                                            maxHeight: '200px',
+                                            overflowY: 'auto',
+                                            paddingRight: '4px'
+                                        }}
+                                    >
+                                        <Button
+                                            type={!filters.categoryId ? "primary" : "text"}
+                                            block
+                                            onClick={() => handleCategoryChange(undefined)}
+                                            className="text-left"
+                                            size="small"
+                                        >
+                                            Tất cả danh mục
+                                        </Button>
+                                        {categories?.map((cat) => (
+                                            <Button
+                                                key={cat.id}
+                                                type={filters.categoryId === cat.id ? "primary" : "text"}
+                                                block
+                                                onClick={() => handleCategoryChange(cat.id)}
+                                                className="text-left"
+                                                title={cat.name}
+                                                size="small"
+                                                style={{
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {cat.name}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                ),
+                            },
+                        ]}
+                    />
+                    <Divider className="my-3" />
+                    {/* Price Filter */}
+                    <PriceFilterSection />
                 </Drawer>
+
+                {/* Main Content - Full Width */}
+                <div className="w-full">
+                    {/* Toolbar */}
+                    <div className="mb-4 flex items-center justify-between rounded-xl bg-white p-3 shadow-sm gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {/* Filter Button - Always visible */}
+                            <Button
+                                icon={<FilterOutlined />}
+                                onClick={() => setFilterDrawerOpen(true)}
+                            >
+                                Bộ lọc
+                            </Button>
+                            <Divider type="vertical" />
+                            <SortAscendingOutlined className="text-gray-500" />
+                            <Text strong className="whitespace-nowrap">Sắp xếp:</Text>
+                            <Select
+                                value={getCurrentSortValue()}
+                                onChange={handleSortChange}
+                                style={{ minWidth: 150 }}
+                                options={[
+                                    { label: "Mới nhất", value: "newest" },
+                                    { label: "Cũ nhất", value: "oldest" },
+                                    { label: "Giá: Thấp → Cao", value: "price-asc" },
+                                    { label: "Giá: Cao → Thấp", value: "price-desc" },
+                                    { label: "Tên: A → Z", value: "name-asc" },
+                                    { label: "Tên: Z → A", value: "name-desc" },
+                                ]}
+                            />
+                        </div>
+
+                        <Text type="secondary" className="whitespace-nowrap">
+                            {isLoading ? "Đang tải..." : `${total} sản phẩm`}
+                        </Text>
+                    </div>
+
+                    {/* Active Filter Tags */}
+                    <ActiveFilterTags />
+
+                    {/* Products Grid */}
+                    <AnimatePresence mode="wait">
+                        {isLoading ? (
+                            <motion.div
+                                key="loading"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                <div className="flex justify-center py-12">
+                                    <Spin size="large" tip="Đang tải sản phẩm..." />
+                                </div>
+                            </motion.div>
+                        ) : products.length === 0 ? (
+                            <motion.div
+                                key="empty"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                <div className="flex justify-center py-12">
+                                    <Empty description="Không tìm thấy sản phẩm" />
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="products"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                <Row gutter={[16, 16]}>
+                                    {products.map((product, index) => (
+                                        <Col
+                                            key={product.id}
+                                            xs={12}
+                                            sm={12}
+                                            md={8}
+                                            lg={6}
+                                            xl={6}
+                                        >
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{
+                                                    delay: index * 0.05,
+                                                    duration: 0.3,
+                                                }}
+                                            >
+                                                <ProductCard product={product} />
+                                            </motion.div>
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Pagination */}
+                    {!isLoading && products.length > 0 && (
+                        <motion.div
+                            className="mt-8 flex justify-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <Pagination
+                                current={page}
+                                total={total}
+                                pageSize={size}
+                                onChange={handlePageChange}
+                                showSizeChanger
+                                showQuickJumper
+                                showTotal={(total, range) =>
+                                    `${range[0]}-${range[1]} / ${total} sản phẩm`
+                                }
+                                pageSizeOptions={["12", "24", "36", "48"]}
+                            />
+                        </motion.div>
+                    )}
+                </div>
             </div>
         </div>
     );

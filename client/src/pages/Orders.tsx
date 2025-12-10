@@ -5,21 +5,7 @@ import { Card, Empty, Image, Spin, Tabs, Tag, Typography } from "antd";
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
-type OrderItemSummary = {
-  productName?: string;
-  quantity?: number;
-  imageUrl?: string;
-};
-
-type OrderSummary = {
-  id: number;
-  orderCode?: string;
-  createdAt: string;
-  totalAmount: number;
-  status: string;
-  paymentMethod?: string;
-  items?: OrderItemSummary[];
-};
+import type { Order, OrderItem } from "@/types/order.types";
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
@@ -38,6 +24,7 @@ const statusLabel = (status: string) => {
   switch (status) {
     case "COMPLETED":
       return "Hoàn thành";
+    // ... (keep existing statusLabel logic if unchanged, but simpler to replace whole block if I want to be safe)
     case "PENDING":
     case "PROCESSING":
       return "Đang xử lý";
@@ -66,18 +53,27 @@ const formatCurrency = (value: number) =>
     currency: "VND",
   }).format(value);
 
-const OrdersPage: React.FC = () => {
+interface OrdersPageProps {
+  isAdmin?: boolean;
+}
+
+const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = React.useState<string | undefined>();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["userOrders", statusFilter],
+    queryKey: [isAdmin ? "adminOrders" : "userOrders", statusFilter],
     queryFn: async () => {
       try {
-        const response = await orderService.getMyOrders({
-          status: statusFilter,
-        });
-        return response;
+        if (isAdmin) {
+          // Admin always fetches all orders, backend might support status filter later
+          // For now, client-side filtering is applied below, but consistent with user page pattern
+          return await orderService.getAllOrders();
+        } else {
+          return await orderService.getMyOrders({
+            status: statusFilter,
+          });
+        }
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -86,11 +82,17 @@ const OrdersPage: React.FC = () => {
   });
 
   const renderCards = useMemo(() => {
-    const orders: OrderSummary[] = (data as OrderSummary[]) || [];
+    let orders: Order[] = (data as Order[]) || [];
+
+    // Client-side filtering if API doesn't support it for Admin or if generic getMyOrders handling needs it
+    if (statusFilter && statusFilter !== "ALL") {
+      orders = orders.filter(o => o.status === statusFilter);
+    }
+
     if (!orders || orders.length === 0) {
       return (
         <div className="py-10">
-          <Empty description="Bạn chưa có đơn hàng nào." />
+          <Empty description={isAdmin ? "Không có đơn hàng nào." : "Bạn chưa có đơn hàng nào."} />
         </div>
       );
     }
@@ -101,7 +103,10 @@ const OrdersPage: React.FC = () => {
             key={order.id}
             hoverable
             onClick={() =>
-              navigate(`/user/orders/${order.orderCode || order.id}`)
+              navigate(isAdmin
+                ? `/admin/orders/${order.orderCode || order.id}`
+                : `/user/orders/${order.orderCode || order.id}`
+              )
             }
             className="transition-shadow"
             style={{ border: "1px solid #e5e7eb" }}
@@ -109,9 +114,9 @@ const OrdersPage: React.FC = () => {
             <div className="flex items-start justify-between gap-2">
               <div className="flex gap-3 flex-1">
                 <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                  {order.items && order.items[0]?.imageUrl ? (
+                  {order.items && order.items[0]?.productImageUrl ? (
                     <Image
-                      src={order.items[0].imageUrl}
+                      src={order.items[0].productImageUrl}
                       alt={order.items[0].productName}
                       preview={false}
                       width={64}
@@ -136,15 +141,17 @@ const OrdersPage: React.FC = () => {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
+                    {isAdmin && order.customerName && ` • ${order.customerName}`}
                   </div>
                   {order.items && order.items.length > 0 && (
                     <div className="text-sm text-gray-600 space-y-1">
                       {order.items
                         .slice(0, 2)
-                        .map((item: OrderItemSummary, idx: number) => (
+                        .map((item: OrderItem, idx: number) => (
                           <div key={idx} className="flex justify-between gap-2">
                             <span className="line-clamp-1">
                               {item.productName}
+                              {item.isGift && <span className="text-red-500 ml-1">(GIFT)</span>}
                             </span>
                             <span className="text-gray-500">
                               x{item.quantity}
@@ -159,7 +166,7 @@ const OrdersPage: React.FC = () => {
                     </div>
                   )}
                   <div className="text-base font-semibold">
-                    {formatCurrency(Number(order.totalAmount))}
+                    {formatCurrency(Number(order.finalAmount || order.totalAmount))}
                   </div>
                 </div>
               </div>
@@ -181,7 +188,7 @@ const OrdersPage: React.FC = () => {
         ))}
       </div>
     );
-  }, [data, navigate]);
+  }, [data, navigate, isAdmin, statusFilter]);
 
   const tabs = [
     { key: "ALL", label: "Tất cả", value: undefined },
@@ -194,10 +201,10 @@ const OrdersPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       <div className="flex flex-col flex-wrap gap-3">
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Đơn hàng của tôi
+          {isAdmin ? "Quản lý đơn hàng (Admin)" : "Đơn hàng của tôi"}
         </Typography.Title>
         <Tabs
           items={tabs.map((t) => ({ key: t.key, label: t.label }))}

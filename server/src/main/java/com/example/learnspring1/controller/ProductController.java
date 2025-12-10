@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import com.example.learnspring1.domain.Product;
@@ -73,6 +74,8 @@ public class ProductController {
             @RequestParam(name = "categoryId", required = false) Long categoryId,
             @RequestParam(name = "isFeatured", required = false) Boolean isFeatured,
             @RequestParam(name = "isActive", required = false) Boolean isActive,
+            @RequestParam(name = "minPrice", required = false) BigDecimal minPrice,
+            @RequestParam(name = "maxPrice", required = false) BigDecimal maxPrice,
             @RequestParam(name = "search", required = false) String search) {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         if (direction == null) {
@@ -81,7 +84,7 @@ public class ProductController {
         Sort sort = Sort.by(direction, sortField);
         Pageable pageable = PageRequest.of(page - 1, size, sort);
         Page<Product> result = productService.getProductsPageWithFilters(pageable, id, name, sku, brand, categoryId,
-                isFeatured, isActive, search);
+                isFeatured, isActive, minPrice, maxPrice, search);
         MetadataDTO metadata = MetadataDTO.builder()
                 .page(page)
                 .size(size)

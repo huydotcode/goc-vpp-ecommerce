@@ -33,6 +33,15 @@ public class Order {
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal totalAmount;
 
+    @Column(name = "discount_amount", precision = 19, scale = 4)
+    private BigDecimal discountAmount;
+
+    @Column(name = "final_amount", precision = 19, scale = 4)
+    private BigDecimal finalAmount;
+
+    @Column(name = "applied_promotions", columnDefinition = "TEXT")
+    private String appliedPromotions; // JSON string storing list of applied promotions
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PaymentMethod paymentMethod;

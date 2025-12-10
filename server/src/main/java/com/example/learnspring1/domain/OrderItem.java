@@ -35,6 +35,10 @@ public class OrderItem {
     @Column(nullable = false, length = 200)
     private String productName;
 
+    @Builder.Default
+    @Column(name = "is_gift", nullable = false)
+    private Boolean isGift = false;
+
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal unitPrice;
 

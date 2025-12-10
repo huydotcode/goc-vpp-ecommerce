@@ -47,10 +47,10 @@ const AdminLayout: React.FC = () => {
     }),
     ...(userRole !== "EMPLOYEE"
       ? [
-          getItem("Người dùng", "2", <UserOutlined />, () => {
-            navigate("/admin/users");
-          }),
-        ]
+        getItem("Người dùng", "2", <UserOutlined />, () => {
+          navigate("/admin/users");
+        }),
+      ]
       : []),
     getItem("Danh mục", "3", <AppstoreOutlined />, () => {
       navigate("/admin/categories");

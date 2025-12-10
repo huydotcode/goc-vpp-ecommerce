@@ -9,6 +9,7 @@ import com.example.learnspring1.domain.dto.CheckoutRequestDTO;
 import com.example.learnspring1.domain.dto.OrderSummaryDTO;
 import com.example.learnspring1.domain.dto.OrderItemSummaryDTO;
 import com.example.learnspring1.domain.dto.OrderDetailDTO;
+import com.example.learnspring1.repository.OrderRepository;
 import com.example.learnspring1.domain.dto.OrderAuditLogDTO;
 import com.example.learnspring1.service.OrderService;
 import com.example.learnspring1.service.OrderAuditLogService;
@@ -29,7 +30,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,14 +43,17 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
     private final UserService userService;
     private final OrderAuditLogService orderAuditLogService;
 
     public OrderController(
             OrderService orderService,
+            OrderRepository orderRepository,
             UserService userService,
             OrderAuditLogService orderAuditLogService) {
         this.orderService = orderService;
+        this.orderRepository = orderRepository;
         this.userService = userService;
         this.orderAuditLogService = orderAuditLogService;
     }
@@ -60,6 +66,118 @@ public class OrderController {
             throw new RuntimeException("User not found");
         }
         return user;
+    }
+
+    @Operation(summary = "Lấy thống kê dashboard", description = "Trả về doanh thu và số đơn hàng theo ngày/tuần/tháng/tổng")
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Object>> getStatistics() {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        ZonedDateTime now = ZonedDateTime.now(zoneId);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        // Date ranges
+        Instant todayStart = now.toLocalDate().atStartOfDay(zoneId).toInstant();
+        Instant todayEnd = todayStart.plus(Duration.ofDays(1));
+
+        Instant weekStart = now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay(zoneId)
+                .toInstant();
+        Instant weekEnd = todayEnd;
+
+        Instant monthStart = now.toLocalDate().withDayOfMonth(1).atStartOfDay(zoneId).toInstant();
+        Instant monthEnd = todayEnd;
+
+        // Statistics
+        Map<String, Object> stats = new HashMap<>();
+
+        // Today
+        stats.put("todayRevenue", orderRepository.sumRevenueByDateRange(todayStart, todayEnd));
+        stats.put("todayOrders", orderRepository.countOrdersByDateRange(todayStart, todayEnd));
+
+        // Week
+        stats.put("weekRevenue", orderRepository.sumRevenueByDateRange(weekStart, weekEnd));
+        stats.put("weekOrders", orderRepository.countOrdersByDateRange(weekStart, weekEnd));
+
+        // Month
+        stats.put("monthRevenue", orderRepository.sumRevenueByDateRange(monthStart, monthEnd));
+        stats.put("monthOrders", orderRepository.countOrdersByDateRange(monthStart, monthEnd));
+
+        // Total
+        stats.put("totalRevenue", orderRepository.sumTotalRevenue());
+        stats.put("totalOrders", orderRepository.countTotalOrders());
+        stats.put("totalCustomers", orderRepository.countUniqueCustomers());
+
+        // Daily sales for last 7 days
+        List<Map<String, Object>> dailySales = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = now.toLocalDate().minusDays(i);
+            Instant dayStart = date.atStartOfDay(zoneId).toInstant();
+            Instant dayEnd = dayStart.plus(Duration.ofDays(1));
+
+            Map<String, Object> dayStat = new HashMap<>();
+            dayStat.put("date", date.format(formatter));
+            dayStat.put("orders", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
+            dayStat.put("revenue", orderRepository.sumRevenueByDateRange(dayStart, dayEnd));
+            // Count unique customers for this day - using order count as approximation
+            dayStat.put("customers", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
+
+            dailySales.add(dayStat);
+        }
+        stats.put("dailySales", dailySales);
+
+        return ResponseEntity.ok(stats);
+    }
+
+    @Operation(summary = "Lấy thống kê theo khoảng thời gian", description = "Trả về doanh thu và số đơn hàng trong khoảng thời gian được chọn")
+    @GetMapping("/statistics/range")
+    public ResponseEntity<Map<String, Object>> getStatisticsByDateRange(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        // Parse dates
+        LocalDate start = LocalDate.parse(startDate, formatter);
+        LocalDate end = LocalDate.parse(endDate, formatter);
+
+        // Ensure end date is inclusive (end of day)
+        Instant rangeStart = start.atStartOfDay(zoneId).toInstant();
+        Instant rangeEnd = end.plusDays(1).atStartOfDay(zoneId).toInstant();
+
+        DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        // Statistics for the date range
+        Map<String, Object> stats = new HashMap<>();
+
+        BigDecimal rangeRevenue = orderRepository.sumRevenueByDateRange(rangeStart, rangeEnd);
+        Long rangeOrders = orderRepository.countOrdersByDateRange(rangeStart, rangeEnd);
+
+        stats.put("rangeRevenue", rangeRevenue != null ? rangeRevenue.longValue() : 0L);
+        stats.put("rangeOrders", rangeOrders != null ? rangeOrders : 0L);
+        stats.put("startDate", start.format(displayFormatter));
+        stats.put("endDate", end.format(displayFormatter));
+
+        // Daily sales for the selected date range
+        List<Map<String, Object>> dailySales = new ArrayList<>();
+        LocalDate currentDate = start;
+
+        while (!currentDate.isAfter(end)) {
+            Instant dayStart = currentDate.atStartOfDay(zoneId).toInstant();
+            Instant dayEnd = dayStart.plus(Duration.ofDays(1));
+
+            Map<String, Object> dayStat = new HashMap<>();
+            dayStat.put("date", currentDate.format(displayFormatter));
+            dayStat.put("orders", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
+
+            BigDecimal dayRevenue = orderRepository.sumRevenueByDateRange(dayStart, dayEnd);
+            dayStat.put("revenue", dayRevenue != null ? dayRevenue.longValue() : 0L);
+            dayStat.put("customers", orderRepository.countOrdersByDateRange(dayStart, dayEnd));
+
+            dailySales.add(dayStat);
+            currentDate = currentDate.plusDays(1);
+        }
+        stats.put("dailySales", dailySales);
+
+        return ResponseEntity.ok(stats);
     }
 
     public static class CreateCODOrderRequest {
@@ -200,11 +318,28 @@ public class OrderController {
         return ResponseEntity.ok(toDetailDTO(order));
     }
 
+    @GetMapping("/admin/{orderCode}")
+    public ResponseEntity<?> getAdminOrderByCode(@PathVariable String orderCode) {
+        // In a real app, verify ADMIN role here
+        Order order = orderService.getOrderWithItemsByCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        return ResponseEntity.ok(toDetailDTO(order));
+    }
+
     @GetMapping
     public ResponseEntity<?> getMyOrders() {
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(
                 orderService.getOrdersWithItemsByUserId(currentUser.getId()).stream().map(this::toSummaryDTO).toList());
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllOrders() {
+        // In a real app, verify ADMIN role here
+        return ResponseEntity.ok(orderRepository.findAll().stream()
+                .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
+                .map(this::toSummaryDTO)
+                .toList());
     }
 
     @Operation(summary = "Hủy đơn hàng", description = "Cho phép user hủy đơn hàng của mình (chỉ khi status là PENDING, PAID, hoặc CONFIRMED)")
@@ -243,6 +378,9 @@ public class OrderController {
                 .id(order.getId())
                 .orderCode(order.getOrderCode())
                 .totalAmount(order.getTotalAmount())
+                .discountAmount(order.getDiscountAmount())
+                .finalAmount(order.getFinalAmount())
+                .appliedPromotions(order.getAppliedPromotions())
                 .status(order.getStatus())
                 .paymentMethod(order.getPaymentMethod())
                 .createdAt(order.getCreatedAt())
@@ -257,6 +395,7 @@ public class OrderController {
                                         .unitPrice(oi.getUnitPrice())
                                         .subtotal(oi.getSubtotal())
                                         .imageUrl(resolveImage(oi))
+                                        .isGift(oi.getIsGift())
                                         .build())
                                 .toList()
                         : java.util.Collections.emptyList());
@@ -276,6 +415,9 @@ public class OrderController {
                 .id(order.getId())
                 .orderCode(order.getOrderCode())
                 .totalAmount(order.getTotalAmount())
+                .discountAmount(order.getDiscountAmount())
+                .finalAmount(order.getFinalAmount())
+                .appliedPromotions(order.getAppliedPromotions())
                 .status(order.getStatus())
                 .paymentMethod(order.getPaymentMethod())
                 .createdAt(order.getCreatedAt())
@@ -292,6 +434,7 @@ public class OrderController {
                                         .unitPrice(oi.getUnitPrice())
                                         .subtotal(oi.getSubtotal())
                                         .imageUrl(resolveImage(oi))
+                                        .isGift(oi.getIsGift())
                                         .build())
                                 .toList()
                         : java.util.Collections.emptyList());

@@ -425,8 +425,6 @@ const AdminOrderDetailPage: React.FC = () => {
   );
 };
 
-// Missing import for Space and Text
-import { Space } from "antd";
-const { Text } = Typography;
+
 
 export default AdminOrderDetailPage;

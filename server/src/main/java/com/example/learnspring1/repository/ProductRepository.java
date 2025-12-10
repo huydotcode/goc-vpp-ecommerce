@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +47,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
                      "(:categoryId IS NULL OR c.id IN :categoryIds) AND " +
                      "(:isFeatured IS NULL OR p.isFeatured = :isFeatured) AND " +
                      "(:isActive IS NULL OR p.isActive = :isActive) AND " +
+                     "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+                     "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
                      "(:search IS NULL OR p.name LIKE %:search% OR p.sku LIKE %:search% OR p.brand LIKE %:search% OR CAST(p.id AS string) LIKE %:search%) AND "
                      +
                      "(p.deletedBy IS NULL)")
@@ -56,6 +59,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
                      @Param("categoryIds") List<Long> categoryIds,
                      @Param("isFeatured") Boolean isFeatured,
                      @Param("isActive") Boolean isActive,
+                     @Param("minPrice") BigDecimal minPrice,
+                     @Param("maxPrice") BigDecimal maxPrice,
                      @Param("search") String search,
                      Pageable pageable);
 

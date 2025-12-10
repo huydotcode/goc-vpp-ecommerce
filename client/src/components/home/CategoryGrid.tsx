@@ -26,7 +26,7 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ maxItems = 10 }) => {
   );
 
   const handleCategoryClick = (categoryId: number) => {
-    navigate(`/?categoryId=${categoryId}`);
+    navigate(`/products?categoryId=${categoryId}`);
   };
 
   if (!inView && !categories) {
@@ -103,48 +103,48 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ maxItems = 10 }) => {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {showSkeleton
               ? Array.from({
-                  length: Math.min(displayCategories.length || 8, 8),
-                }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-28 animate-pulse rounded-lg bg-white/50"
-                  />
-                ))
+                length: Math.min(displayCategories.length || 8, 8),
+              }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-28 animate-pulse rounded-lg bg-white/50"
+                />
+              ))
               : displayCategories.map((category, index) => (
-                  <motion.div
-                    key={category.id}
-                    className="h-full cursor-pointer overflow-hidden rounded-lg bg-white text-center shadow-sm"
-                    onClick={() => handleCategoryClick(category.id)}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={
-                      inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-                    }
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                    whileHover={{
-                      y: -4,
-                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                    }}
-                  >
-                    <div className="flex h-24 items-center justify-center bg-white md:h-28">
-                      {category.thumbnailUrl ? (
-                        <img
-                          src={category.thumbnailUrl}
-                          alt={category.name}
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        <div className="text-3xl font-semibold text-red-400 md:text-4xl">
-                          {category.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <span className="block truncate text-sm font-medium leading-snug">
-                        {category.name}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+                <motion.div
+                  key={category.id}
+                  className="h-full cursor-pointer overflow-hidden rounded-lg bg-white text-center shadow-sm"
+                  onClick={() => handleCategoryClick(category.id)}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={
+                    inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                  }
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  whileHover={{
+                    y: -4,
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  <div className="flex h-24 items-center justify-center bg-white md:h-28">
+                    {category.thumbnailUrl ? (
+                      <img
+                        src={category.thumbnailUrl}
+                        alt={category.name}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-3xl font-semibold text-red-400 md:text-4xl">
+                        {category.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <span className="block truncate text-sm font-medium leading-snug">
+                      {category.name}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
           </div>
         </div>
       </div>

@@ -480,6 +480,28 @@ const CartPage: React.FC = () => {
                 <Text>Tạm tính:</Text>
                 <Text strong>{formatCurrency(selectedTotalAmount)}</Text>
               </div>
+
+              {cart.discountAmount && cart.discountAmount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", color: "#52c41a" }}>
+                  <Text type="success">Giảm giá:</Text>
+                  <Text strong type="success">-{formatCurrency(cart.discountAmount)}</Text>
+                </div>
+              )}
+
+              {cart.giftItems && cart.giftItems.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <Text strong style={{ color: "#faad14" }}>Quà tặng kèm:</Text>
+                  {cart.giftItems.map((gift, index) => (
+                    <div key={index} style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+                      {gift.productImageUrl && (
+                        <Image src={gift.productImageUrl} width={30} height={30} style={{ borderRadius: 4 }} preview={false} />
+                      )}
+                      <Text style={{ fontSize: 13 }}>{gift.productName} (x{gift.quantity})</Text>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div
                 style={{
                   borderTop: "1px solid #f0f0f0",
@@ -492,9 +514,16 @@ const CartPage: React.FC = () => {
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
-                  {formatCurrency(selectedTotalAmount)}
+                  {formatCurrency(cart.finalAmount && selectedItemIds.size === cart.items.length ? cart.finalAmount : selectedTotalAmount)}
                 </Text>
               </div>
+
+              {selectedItemIds.size !== cart.items.length && cart.discountAmount && (
+                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                  * Chọn tất cả sản phẩm để áp dụng mã giảm giá của đơn hàng.
+                </Text>
+              )}
+
               <Button
                 type="primary"
                 size="large"

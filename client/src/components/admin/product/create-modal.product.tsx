@@ -287,13 +287,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         }}
         width="60%"
       >
-        <Alert
-          message="Lưu ý về Variants"
-          description="Sau khi tạo sản phẩm, bạn có thể quản lý các variants (màu sắc, kích thước, chất liệu...) trong Variant Manager. Các trường 'Màu sắc', 'Kích thước' bên dưới là để tương thích với dữ liệu cũ."
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
+      
         <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
           <Form.Item
             label="Tên"

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,8 @@ public interface ProductService {
             Long categoryId,
             Boolean isFeatured,
             Boolean isActive,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
             String search);
 
     List<Product> getProductsWithFilters(String name, String sku, String brand, Long categoryId, Boolean isFeatured,

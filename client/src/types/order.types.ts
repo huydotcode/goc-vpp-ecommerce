@@ -40,30 +40,64 @@ export interface OrderItem {
   id: number;
   productId: number;
   productName: string;
+  variantName?: string | null;
+  sku?: string | null;
+  productImageUrl?: string | null;
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  isGift?: boolean;
 }
 
 export interface Order {
   id: number;
   orderCode: string;
-  userId?: number;
+  createdAt: string;
   totalAmount: number;
+  discountAmount?: number;
+  finalAmount?: number;
+  appliedPromotions?: string; // JSON string
+  status: OrderStatus;
   paymentMethod: PaymentMethod;
   paymentLinkId?: string | null;
-  status: OrderStatus;
-  description?: string | null;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  customerAddress?: string | null;
-  items: OrderItem[];
-  createdAt: string;
+  description?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  items?: OrderItem[];
+  // From Remote
   updatedAt?: string | null;
-  // User account info (if order is linked to a user account)
   userFirstName?: string;
   userLastName?: string;
+}
+
+export interface DailySale {
+  date: string;
+  orders: number;
+  revenue: number;
+  customers: number;
+}
+
+export interface OrderStatistics {
+  todayRevenue: number;
+  todayOrders: number;
+  weekRevenue: number;
+  weekOrders: number;
+  monthRevenue: number;
+  monthOrders: number;
+  totalRevenue: number;
+  totalOrders: number;
+  totalCustomers: number;
+  dailySales: DailySale[];
+}
+
+export interface OrderStatisticsByRange {
+  rangeRevenue: number;
+  rangeOrders: number;
+  startDate: string;
+  endDate: string;
+  dailySales: DailySale[];
 }
 
 export interface OrderDetail {
