@@ -1,10 +1,27 @@
 import { orderApi } from "@/api/order.api";
 import { handleApiError } from "@/utils/error";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  CopyOutlined,
+  LinkOutlined,
+} from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Divider, Empty, Spin, Steps, Tag, Typography } from "antd";
-import React from "react";
+import {
+  Button,
+  Card,
+  Divider,
+  Empty,
+  Input,
+  Space,
+  Spin,
+  Steps,
+  Tag,
+  Typography,
+  message,
+} from "antd";
+import React, { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getPayOSUrl, removePayOSUrl } from "../utils/payosStorage";
 
 type OrderItemSummary = {
   productName?: string;
@@ -33,6 +50,7 @@ const statusColorMap: Record<string, string> = {
   PENDING: "gold",
   SHIPPING: "blue",
   CONFIRMED: "blue",
+  DELIVERED: "purple",
   PAID: "green",
   REFUNDED: "volcano",
   CANCELLED: "red",
@@ -102,6 +120,47 @@ const OrderDetailPage: React.FC = () => {
     },
     enabled: !!orderCode,
   });
+
+  // Get PayOS checkout URL from localStorage
+  const payOSUrl = useMemo(() => {
+    if (!orderCode) return null;
+    return getPayOSUrl(orderCode);
+  }, [orderCode]);
+
+  // Check if order needs payment (PayOS method and pending status)
+  const needsPayment = useMemo(() => {
+    return (
+      data?.paymentMethod === "PAYOS" &&
+      (data?.status === "PENDING" || data?.status === "CONFIRMED") &&
+      payOSUrl !== null
+    );
+  }, [data?.paymentMethod, data?.status, payOSUrl]);
+
+  // Auto-remove PayOS URL when order is paid/completed
+  React.useEffect(() => {
+    if (
+      orderCode &&
+      data?.status &&
+      (data.status === "PAID" || data.status === "COMPLETED") &&
+      payOSUrl
+    ) {
+      // Order is paid, remove URL from localStorage
+      removePayOSUrl(orderCode);
+    }
+  }, [orderCode, data?.status, payOSUrl]);
+
+  const handleCopyUrl = () => {
+    if (payOSUrl) {
+      navigator.clipboard.writeText(payOSUrl);
+      message.success("Đã copy link thanh toán!");
+    }
+  };
+
+  const handlePayNow = () => {
+    if (payOSUrl) {
+      window.open(payOSUrl, "_blank");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -198,6 +257,49 @@ const OrderDetailPage: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* PayOS Payment Section */}
+      {needsPayment && (
+        <Card className="shadow-sm border-orange-200 bg-orange-50">
+          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+            <div>
+              <Typography.Text strong className="text-orange-800">
+                Đơn hàng chưa thanh toán
+              </Typography.Text>
+              <Typography.Paragraph className="text-sm text-gray-600 mt-1 mb-0">
+                Vui lòng thanh toán để đơn hàng được xử lý. Bạn có thể thanh
+                toán bằng cách nhấn nút bên dưới hoặc copy link thanh toán.
+              </Typography.Paragraph>
+            </div>
+            <Space direction="vertical" style={{ width: "100%" }} size="small">
+              <Button
+                type="primary"
+                size="large"
+                block
+                icon={<LinkOutlined />}
+                onClick={handlePayNow}
+              >
+                Thanh toán ngay
+              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={payOSUrl || ""}
+                  style={{ flex: 1 }}
+                  placeholder="Link thanh toán PayOS"
+                />
+                <Button
+                  icon={<CopyOutlined />}
+                  onClick={handleCopyUrl}
+                  title="Copy link thanh toán"
+                >
+                  Copy
+                </Button>
+              </div>
+            </Space>
+          </Space>
+        </Card>
+      )}
 
       <Card title="Sản phẩm" className="shadow-sm">
         {data.items && data.items.length > 0 ? (

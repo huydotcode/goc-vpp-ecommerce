@@ -27,6 +27,9 @@ const statusColorMap: Record<string, string> = {
   PROCESSING: "blue",
   SHIPPING: "blue",
   CONFIRMED: "blue",
+  DELIVERED: "purple",
+  PAID: "green",
+  REFUNDED: "volcano",
   CANCELLED: "red",
   FAILED: "volcano",
 };
@@ -42,6 +45,12 @@ const statusLabel = (status: string) => {
       return "Đã xác nhận";
     case "SHIPPING":
       return "Đang giao";
+    case "DELIVERED":
+      return "Đã giao";
+    case "PAID":
+      return "Đã thanh toán";
+    case "REFUNDED":
+      return "Đã hoàn tiền";
     case "CANCELLED":
       return "Đã hủy";
     case "FAILED":
