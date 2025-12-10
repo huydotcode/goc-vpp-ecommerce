@@ -104,7 +104,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       if (exists) {
         return prev;
       }
-      
+
       // Tạo preview và thêm vào fileList ngay
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -128,10 +128,10 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         });
       };
       reader.readAsDataURL(file);
-      
+
       return [...prev, file];
     });
-    
+
     return false; // Ngăn upload tự động, sẽ upload khi submit form
   };
 
@@ -164,7 +164,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       const removedFiles = fileList.filter(
         (oldFile) => !newFileList.some((newFile) => newFile.uid === oldFile.uid)
       );
-      
+
       if (removedFiles.length > 0) {
         // Có file bị xóa, cập nhật cả fileList và selectedFiles
         setFileList(newFileList);
@@ -216,13 +216,13 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
 
       // Lấy ảnh đầu tiên làm thumbnail
       const thumbnailUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl;
-      
+
       // Tự động tạo default variant nếu không có variants
       const defaultVariant = {
         variantType: VariantType.OTHER,
         variantValue: "Default",
         price: values.price || values.discountPrice || 0,
-        stockQuantity: (values as any).stockQuantity || 0,
+        stockQuantity: 0, // Tồn kho mặc định = 0, người dùng sẽ cập nhật trong Variant Manager
         sku: values.sku || undefined,
         imageUrl: thumbnailUrl || undefined,
         isActive: values.isActive ?? true,
@@ -232,6 +232,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       const productData: CreateProductRequest = {
         ...values,
         thumbnailUrl,
+        discountPrice: 0, // Mặc định giá giảm = 0
         isActive: values.isActive ?? true,
         isFeatured: values.isFeatured ?? false,
         categoryIds: values.categoryIds || [],
@@ -246,10 +247,10 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         placement: "topRight",
         duration: 5,
       });
-      
+
       // Tự động mở Variant Manager sau khi tạo thành công
       setIsVariantManagerVisible(true);
-      
+
       form.resetFields();
       setFileList([]);
       setSelectedFiles([]);
@@ -287,7 +288,7 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         }}
         width="60%"
       >
-      
+
         <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
           <Form.Item
             label="Tên"
@@ -311,9 +312,17 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
             <Input.TextArea rows={4} />
           </Form.Item>
 
-          <Form.Item label="Giá" name="price">
+          <Form.Item
+            label="Giá"
+            name="price"
+            rules={[
+              { required: true, message: "Vui lòng nhập giá sản phẩm" },
+              { type: "number", min: 1, message: "Giá phải lớn hơn 0" },
+            ]}
+          >
             <InputNumber<number>
               style={{ width: "100%" }}
+              placeholder="Nhập giá sản phẩm"
               formatter={(value) =>
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
@@ -323,24 +332,6 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
               }}
               min={0}
             />
-          </Form.Item>
-
-          <Form.Item label="Giá giảm" name="discountPrice">
-            <InputNumber<number>
-              style={{ width: "100%" }}
-              formatter={(value) =>
-                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-              }
-              parser={(value) => {
-                const cleaned = value?.replace(/\$\s?|(,*)/g, "") || "";
-                return cleaned ? Number(cleaned) : 0;
-              }}
-              min={0}
-            />
-          </Form.Item>
-
-          <Form.Item label="Số lượng" name="stockQuantity">
-            <InputNumber style={{ width: "100%" }} min={0} />
           </Form.Item>
 
           <Form.Item label="Màu sắc" name="color">
@@ -363,7 +354,13 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
             <Input.TextArea rows={4} />
           </Form.Item>
 
-          <Form.Item label="Danh mục" name="categoryIds">
+          <Form.Item
+            label="Danh mục"
+            name="categoryIds"
+            rules={[
+              { required: true, message: "Vui lòng chọn ít nhất 1 danh mục" },
+            ]}
+          >
             <Select
               mode="multiple"
               placeholder="Chọn danh mục"
@@ -375,7 +372,20 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Hình ảnh" name="thumbnailUrl">
+          <Form.Item
+            label="Hình ảnh"
+            name="thumbnailUrl"
+            rules={[
+              {
+                validator: () => {
+                  if (fileList.length === 0) {
+                    return Promise.reject(new Error("Vui lòng upload ít nhất 1 ảnh"));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
             <Upload {...uploadProps} listType="picture-card">
               {fileList.length >= 10 ? null : (
                 <div>

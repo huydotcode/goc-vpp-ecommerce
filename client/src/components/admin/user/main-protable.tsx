@@ -1,13 +1,12 @@
 import React, { useRef, useState } from "react";
 import {
-  DeleteOutlined,
   EditOutlined,
   ExportOutlined,
   ImportOutlined,
   MoreOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Space, Tag, notification, Popconfirm, Image } from "antd";
+import { Button, Space, Tag, notification, Image } from "antd";
 import type { ActionType, ProColumns } from "@ant-design/pro-components";
 import { ProTable } from "@ant-design/pro-components";
 import { userService } from "../../../services/user.service";
@@ -116,26 +115,6 @@ const UserAdminMain: React.FC = () => {
         message: "Lỗi xuất Excel",
         description: message,
         placement: "topRight",
-      });
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      await userService.deleteUser(id);
-      api.success({
-        message: "Xóa thành công",
-        description: "User đã được xóa thành công",
-        placement: "topRight",
-      });
-      reload();
-    } catch (error: unknown) {
-      const { message, errorCode, isAccessDenied } = extractErrorMessage(error);
-      api.error({
-        message: isAccessDenied ? "Không có quyền" : errorCode || "Lỗi",
-        description: message,
-        placement: "topRight",
-        duration: isAccessDenied ? 6 : 5,
       });
     }
   };
@@ -276,17 +255,6 @@ const UserAdminMain: React.FC = () => {
               fontSize: "16px",
             }}
           />
-          <Popconfirm
-            title="Xóa user"
-            description="Bạn có chắc chắn muốn xóa user này?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <DeleteOutlined
-              style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
-            />
-          </Popconfirm>
           <MoreOutlined
             style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
             onClick={() => handleOpenDetailModal(record)}

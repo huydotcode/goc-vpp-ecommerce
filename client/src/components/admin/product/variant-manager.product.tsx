@@ -4,7 +4,6 @@ import {
   Form,
   Input,
   InputNumber,
-  Select,
   Button,
   Space,
   Table,
@@ -29,7 +28,7 @@ import type {
   CreateVariantRequest,
   UpdateVariantRequest,
 } from "../../../types/variant.types";
-import { VariantType, VariantTypeLabels } from "../../../types/variant.types";
+import { VariantType } from "../../../types/variant.types";
 import { uploadApi } from "../../../api/upload.api";
 import { extractErrorMessage } from "../../../utils/error";
 
@@ -100,7 +99,7 @@ const VariantManager: React.FC<VariantManagerProps> = ({
       colorCode: variant.colorCode || undefined,
     });
     setColorValue(colorCode);
-    
+
     // Set image preview nếu có
     if (variant.imageUrl) {
       setImagePreviewUrl(variant.imageUrl);
@@ -116,7 +115,7 @@ const VariantManager: React.FC<VariantManagerProps> = ({
       setImagePreviewUrl("");
       setFileList([]);
     }
-    
+
     setIsModalVisible(true);
   };
 
@@ -143,6 +142,7 @@ const VariantManager: React.FC<VariantManagerProps> = ({
           sku: values.sku || null,
           sortOrder: values.sortOrder || null,
           isActive: values.isActive !== false,
+          isDefault: editingVariant.isDefault ?? false,
         };
         await variantApi.updateVariant(editingVariant.id!, updateData);
         message.success("Cập nhật variant thành công");
@@ -216,7 +216,7 @@ const VariantManager: React.FC<VariantManagerProps> = ({
       setImagePreviewUrl(result);
     };
     reader.readAsDataURL(file);
-    
+
     // Upload lên server
     handleImageUpload(file).then(() => {
       setFileList((prev) =>
@@ -226,19 +226,20 @@ const VariantManager: React.FC<VariantManagerProps> = ({
       setFileList([]);
       setImagePreviewUrl("");
     });
-    
+
     return false;
   };
 
   const columns = [
-    {
-      title: "Loại",
-      dataIndex: "variantType",
-      key: "variantType",
-      render: (type: VariantType) => (
-        <Tag color="blue">{VariantTypeLabels[type]}</Tag>
-      ),
-    },
+    // Tạm thời ẩn cột Loại vì mặc định là Màu sắc
+    // {
+    //   title: "Loại",
+    //   dataIndex: "variantType",
+    //   key: "variantType",
+    //   render: (type: VariantType) => (
+    //     <Tag color="blue">{VariantTypeLabels[type]}</Tag>
+    //   ),
+    // },
     {
       title: "Giá trị",
       dataIndex: "variantValue",
@@ -378,18 +379,13 @@ const VariantManager: React.FC<VariantManagerProps> = ({
             isActive: true,
           }}
         >
+          {/* Tạm thời ẩn loại variant, mặc định là COLOR */}
           <Form.Item
             name="variantType"
-            label="Loại variant"
-            rules={[{ required: true, message: "Vui lòng chọn loại variant" }]}
+            hidden
+            initialValue={VariantType.COLOR}
           >
-            <Select>
-              {Object.entries(VariantTypeLabels).map(([value, label]) => (
-                <Select.Option key={value} value={value}>
-                  {label}
-                </Select.Option>
-              ))}
-            </Select>
+            <input type="hidden" />
           </Form.Item>
 
           <Form.Item
@@ -400,79 +396,69 @@ const VariantManager: React.FC<VariantManagerProps> = ({
             <Input placeholder="Ví dụ: Đỏ, XL, Cotton..." />
           </Form.Item>
 
+          {/* Luôn hiển thị mã màu vì mặc định là COLOR */}
           <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.variantType !== currentValues.variantType
-            }
+            name="colorCode"
+            label="Mã màu (Hex)"
+            rules={[
+              {
+                pattern: /^#[0-9A-Fa-f]{6}$/,
+                message: "Mã màu phải là hex code (ví dụ: #FF0000)",
+                validateTrigger: "onBlur",
+              },
+            ]}
           >
-            {({ getFieldValue }) =>
-              getFieldValue("variantType") === VariantType.COLOR ? (
-                <Form.Item
-                  name="colorCode"
-                  label="Mã màu (Hex)"
-                  rules={[
-                    {
-                      pattern: /^#[0-9A-Fa-f]{6}$/,
-                      message: "Mã màu phải là hex code (ví dụ: #FF0000)",
-                      validateTrigger: "onBlur",
-                    },
-                  ]}
-                >
-                  <Compact>
-                    <ColorPicker
-                      showText={false}
-                      format="hex"
-                      value={colorValue}
-                      onChange={(color) => {
-                        const hexValue = color.toHexString();
-                        setColorValue(hexValue);
-                        form.setFieldValue("colorCode", hexValue);
-                        form.validateFields(["colorCode"]);
-                      }}
-                      onChangeComplete={(color) => {
-                        const hexValue = color.toHexString();
-                        setColorValue(hexValue);
-                        form.setFieldValue("colorCode", hexValue);
-                      }}
-                      trigger="click"
-                    >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 4,
-                          border: "1px solid #d9d9d9",
-                          backgroundColor: colorValue,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      />
-                    </ColorPicker>
-                    <Input
-                      placeholder="Nhập mã màu hex (ví dụ: #FF0000)"
-                      style={{ flex: 1 }}
-                      value={form.getFieldValue("colorCode") || colorValue}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setColorValue(value || "#000000");
-                        form.setFieldValue("colorCode", value);
-                        if (value && /^#[0-9A-Fa-f]{6}$/.test(value)) {
-                          form.setFields([
-                            {
-                              name: "colorCode",
-                              errors: [],
-                            },
-                          ]);
-                        }
-                      }}
-                    />
-                  </Compact>
-                </Form.Item>
-              ) : null
-            }
+            <Compact>
+              <ColorPicker
+                showText={false}
+                format="hex"
+                value={colorValue}
+                onChange={(color) => {
+                  const hexValue = color.toHexString();
+                  setColorValue(hexValue);
+                  form.setFieldValue("colorCode", hexValue);
+                  form.validateFields(["colorCode"]);
+                }}
+                onChangeComplete={(color) => {
+                  const hexValue = color.toHexString();
+                  setColorValue(hexValue);
+                  form.setFieldValue("colorCode", hexValue);
+                }}
+                trigger="click"
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    border: "1px solid #d9d9d9",
+                    backgroundColor: colorValue,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                />
+              </ColorPicker>
+              <Input
+                placeholder="Nhập mã màu hex (ví dụ: #FF0000)"
+                style={{ flex: 1 }}
+                value={form.getFieldValue("colorCode") || colorValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setColorValue(value || "#000000");
+                  form.setFieldValue("colorCode", value);
+                  if (value && /^#[0-9A-Fa-f]{6}$/.test(value)) {
+                    form.setFields([
+                      {
+                        name: "colorCode",
+                        errors: [],
+                      },
+                    ]);
+                  }
+                }}
+              />
+            </Compact>
           </Form.Item>
 
           <Form.Item name="imageUrl" label="URL ảnh">
@@ -540,7 +526,14 @@ const VariantManager: React.FC<VariantManagerProps> = ({
             />
           </Form.Item>
 
-          <Form.Item name="stockQuantity" label="Số lượng tồn kho">
+          <Form.Item
+            name="stockQuantity"
+            label="Số lượng tồn kho"
+            rules={[
+              { required: true, message: "Vui lòng nhập số lượng tồn kho" },
+              { type: "number", min: 0, message: "Số lượng phải >= 0" },
+            ]}
+          >
             <InputNumber
               style={{ width: "100%" }}
               min={0}

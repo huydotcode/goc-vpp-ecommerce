@@ -87,8 +87,6 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
         brand: dataDetailModal.brand,
         description: dataDetailModal.description,
         price: dataDetailModal.price,
-        discountPrice: dataDetailModal.discountPrice,
-        stockQuantity: dataDetailModal.stockQuantity,
         color: dataDetailModal.color,
         size: dataDetailModal.size,
         weight: dataDetailModal.weight,
@@ -291,7 +289,7 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
           )
         }
       >
-      
+
         <Form
           {...layout}
           form={form}
@@ -330,24 +328,6 @@ const ProductUpdate: React.FC<ProductUpdateProps> = ({
               }}
               min={0}
             />
-          </Form.Item>
-
-          <Form.Item label="Giá giảm" name="discountPrice">
-            <InputNumber<number>
-              style={{ width: "100%" }}
-              formatter={(value) =>
-                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-              }
-              parser={(value) => {
-                const cleaned = value?.replace(/\$\s?|(,*)/g, "") || "";
-                return cleaned ? Number(cleaned) : 0;
-              }}
-              min={0}
-            />
-          </Form.Item>
-
-          <Form.Item label="Số lượng" name="stockQuantity">
-            <InputNumber<number> style={{ width: "100%" }} min={0} />
           </Form.Item>
 
           <Form.Item label="Màu sắc" name="color">

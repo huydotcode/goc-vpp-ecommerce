@@ -1,20 +1,18 @@
 import React, { useRef, useState } from "react";
 import {
-  DeleteOutlined,
   EditOutlined,
   ExportOutlined,
   ImportOutlined,
   MoreOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Space, Tag, notification, Popconfirm, Image } from "antd";
+import { Button, Space, Tag, notification, Image } from "antd";
 import type { ActionType, ProColumns } from "@ant-design/pro-components";
 import { ProTable } from "@ant-design/pro-components";
 import { productService } from "../../../services/product.service";
 import type { ProductDTO } from "../../../services/product.service";
 import { extractErrorMessage } from "../../../utils/error";
 import { exportToExcel, type ExportColumn } from "../../../utils/exportExcel";
-import { useAuth } from "../../../contexts/AuthContext";
 import Barcode from "../../common/Barcode";
 import ProductDetail from "./detail.product";
 import ProductCreate from "./create-modal.product";
@@ -25,7 +23,6 @@ const ProductAdminMain: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [api, contextHolder] = notification.useNotification();
   const requestIdRef = useRef<number>(0);
-  const { userRole } = useAuth();
 
   const reload = async () => {
     console.log("🔄 [Product Table] Reloading table...");
@@ -85,7 +82,6 @@ const ProductAdminMain: React.FC = () => {
         { header: "SKU", key: "sku", width: 20 },
         { header: "Giá", key: "price", width: 15 },
         { header: "Giá giảm", key: "discountPrice", width: 15 },
-        { header: "Số lượng", key: "stockQuantity", width: 15 },
         { header: "Thương hiệu", key: "brand", width: 20 },
         { header: "Active", key: "isActive", width: 15 },
         { header: "Featured", key: "isFeatured", width: 15 },
@@ -101,7 +97,6 @@ const ProductAdminMain: React.FC = () => {
         discountPrice: product.discountPrice
           ? product.discountPrice.toLocaleString("vi-VN")
           : "",
-        stockQuantity: product.stockQuantity || 0,
         brand: product.brand || "",
         isActive: product.isActive ? "Yes" : "No",
         isFeatured: product.isFeatured ? "Yes" : "No",
@@ -127,26 +122,6 @@ const ProductAdminMain: React.FC = () => {
         message: "Lỗi xuất Excel",
         description: message,
         placement: "topRight",
-      });
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      await productService.deleteProduct(id);
-      api.success({
-        message: "Xóa thành công",
-        description: "Sản phẩm đã được xóa thành công",
-        placement: "topRight",
-      });
-      reload();
-    } catch (error: unknown) {
-      const { message, errorCode } = extractErrorMessage(error);
-      api.error({
-        message: errorCode || "Lỗi",
-        description: message,
-        placement: "topRight",
-        duration: 5,
       });
     }
   };
@@ -246,9 +221,9 @@ const ProductAdminMain: React.FC = () => {
       render: (_, record) =>
         record.price
           ? new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(record.price)
+            style: "currency",
+            currency: "VND",
+          }).format(record.price)
           : "N/A",
     },
     {
@@ -260,18 +235,10 @@ const ProductAdminMain: React.FC = () => {
       render: (_, record) =>
         record.discountPrice
           ? new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(record.discountPrice)
+            style: "currency",
+            currency: "VND",
+          }).format(record.discountPrice)
           : "N/A",
-    },
-    {
-      title: "Số lượng",
-      dataIndex: "stockQuantity",
-      key: "stockQuantity",
-      hideInSearch: true,
-      sorter: true,
-      render: (_, record) => record.stockQuantity ?? "N/A",
     },
     {
       title: "Thương hiệu",
@@ -361,23 +328,6 @@ const ProductAdminMain: React.FC = () => {
             }}
             style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
           />
-          {userRole !== "EMPLOYEE" && (
-            <Popconfirm
-              title="Xóa sản phẩm"
-              description="Bạn có chắc chắn muốn xóa sản phẩm này?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Xóa"
-              cancelText="Hủy"
-            >
-              <DeleteOutlined
-                style={{
-                  cursor: "pointer",
-                  color: "#ff5733",
-                  fontSize: "16px",
-                }}
-              />
-            </Popconfirm>
-          )}
           <MoreOutlined
             style={{ cursor: "pointer", color: "#ff5733", fontSize: "16px" }}
             onClick={() => handleOpenDetailModal(record)}

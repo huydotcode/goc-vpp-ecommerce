@@ -1,17 +1,15 @@
 import React, { useRef, useState } from "react";
 import {
-  DeleteOutlined,
   EditOutlined,
   MoreOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Space, Tag, notification, Popconfirm, Image } from "antd";
+import { Button, Space, Tag, notification, Image } from "antd";
 import type { ActionType, ProColumns } from "@ant-design/pro-components";
 import { ProTable } from "@ant-design/pro-components";
 import { categoryService } from "../../../services/category.service";
 import type { CategoryDTO } from "../../../services/category.service";
 import { extractErrorMessage } from "../../../utils/error";
-import { useAuth } from "../../../contexts/AuthContext";
 import CategoryDetail from "./detail.category";
 import CategoryCreate from "./create-modal.category";
 import CategoryUpdate from "./update.category";
@@ -20,7 +18,6 @@ const CategoryAdminMain: React.FC = () => {
   const actionRef = useRef<ActionType>(null);
   const [api, contextHolder] = notification.useNotification();
   const requestIdRef = useRef<number>(0);
-  const { userRole } = useAuth();
 
   const reload = async () => {
     console.log("🔄 [Category Table] Reloading table...");
@@ -47,26 +44,6 @@ const CategoryAdminMain: React.FC = () => {
 
   const handleOpenUpdateModal = () => {
     setIsOpenUpdateModal(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      await categoryService.deleteCategory(id);
-      api.success({
-        message: "Xóa thành công",
-        description: "Danh mục đã được xóa thành công",
-        placement: "topRight",
-      });
-      reload();
-    } catch (error: unknown) {
-      const { message, errorCode } = extractErrorMessage(error);
-      api.error({
-        message: errorCode || "Lỗi",
-        description: message,
-        placement: "topRight",
-        duration: 5,
-      });
-    }
   };
 
   const columns: ProColumns<CategoryDTO>[] = [
@@ -201,23 +178,6 @@ const CategoryAdminMain: React.FC = () => {
               fontSize: "16px",
             }}
           />
-          {userRole !== "EMPLOYEE" && (
-            <Popconfirm
-              title="Xóa danh mục"
-              description="Bạn có chắc chắn muốn xóa danh mục này?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Xóa"
-              cancelText="Hủy"
-            >
-              <DeleteOutlined
-                style={{
-                  cursor: "pointer",
-                  color: "var(--color-primary)",
-                  fontSize: "16px",
-                }}
-              />
-            </Popconfirm>
-          )}
           <MoreOutlined
             style={{
               cursor: "pointer",

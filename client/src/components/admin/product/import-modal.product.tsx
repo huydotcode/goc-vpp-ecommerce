@@ -43,9 +43,9 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
       render: (price: number) =>
         price
           ? new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(price)
+            style: "currency",
+            currency: "VND",
+          }).format(price)
           : "N/A",
     },
     {
@@ -55,15 +55,10 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
       render: (price: number) =>
         price
           ? new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(price)
+            style: "currency",
+            currency: "VND",
+          }).format(price)
           : "N/A",
-    },
-    {
-      title: "Số lượng",
-      dataIndex: "stockQuantity",
-      key: "stockQuantity",
     },
     {
       title: "Thương hiệu",
@@ -158,13 +153,6 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                       : obj["Discount Price"]
                         ? Number(obj["Discount Price"])
                         : undefined,
-                  stockQuantity: obj.stockQuantity
-                    ? Number(obj.stockQuantity)
-                    : obj["Số lượng"]
-                      ? Number(obj["Số lượng"])
-                      : obj["Stock Quantity"]
-                        ? Number(obj["Stock Quantity"])
-                        : 0,
                   sku: String(obj.sku || obj["SKU"] || obj["Mã SKU"] || ""),
                   brand: String(
                     obj.brand || obj["Thương hiệu"] || obj["Brand"] || ""
@@ -180,15 +168,15 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                   ),
                   dimensions: String(
                     obj.dimensions ||
-                      obj["Kích thước"] ||
-                      obj["Dimensions"] ||
-                      ""
+                    obj["Kích thước"] ||
+                    obj["Dimensions"] ||
+                    ""
                   ),
                   specifications: String(
                     obj.specifications ||
-                      obj["Thông số"] ||
-                      obj["Specifications"] ||
-                      ""
+                    obj["Thông số"] ||
+                    obj["Specifications"] ||
+                    ""
                   ),
                   isActive,
                   isFeatured,
@@ -257,13 +245,6 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                       : obj["Discount Price"]
                         ? Number(obj["Discount Price"])
                         : undefined;
-                  const stockQuantity = obj.stockQuantity
-                    ? Number(obj.stockQuantity)
-                    : obj["Số lượng"]
-                      ? Number(obj["Số lượng"])
-                      : obj["Stock Quantity"]
-                        ? Number(obj["Stock Quantity"])
-                        : 0;
                   const sku = String(
                     obj.sku || obj["SKU"] || obj["Mã SKU"] || ""
                   );
@@ -281,15 +262,15 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                   );
                   const dimensions = String(
                     obj.dimensions ||
-                      obj["Kích thước"] ||
-                      obj["Dimensions"] ||
-                      ""
+                    obj["Kích thước"] ||
+                    obj["Dimensions"] ||
+                    ""
                   );
                   const specifications = String(
                     obj.specifications ||
-                      obj["Thông số"] ||
-                      obj["Specifications"] ||
-                      ""
+                    obj["Thông số"] ||
+                    obj["Specifications"] ||
+                    ""
                   );
                   const isActive =
                     obj.isActive !== undefined
@@ -309,7 +290,6 @@ const ImportProductModal: React.FC<ImportProductModalProps> = ({
                     description,
                     price,
                     discountPrice,
-                    stockQuantity,
                     sku,
                     brand,
                     color,
