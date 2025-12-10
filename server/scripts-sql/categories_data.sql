@@ -1,159 +1,664 @@
--- Seed Categories with Parent Structure
--- This script creates parent categories and updates existing categories with parent_id
--- Run this after clearing existing category data
+-- ============================================================================
+-- Categories data from Fahasa
+-- Total categories: 73
+-- Structure: Main categories (level 1) + Subcategories (level 2)
+-- ============================================================================
 
--- Step 1: Insert Parent Categories
--- Note: IDs will be auto-generated, but we'll use variables to reference them
+SET @created_by = 'system';
 
--- Parent Category: Bìa các loại
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES ('Bìa các loại', NULL, 'Các loại bìa văn phòng', TRUE, NULL, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 1 (Main): Bút - Viết (ID: 100, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    100, 'Bút - Viết', 'Fahasa cat_id: 279', TRUE, NULL, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
-SET @parent_bia_id = LAST_INSERT_ID();
+-- Level 2 (Sub): Bút Gel - Bút Nước - Ruột Bút Gel (ID: 101, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    101, 'Bút Gel - Bút Nước - Ruột Bút Gel', 'Fahasa cat_id: 6212', TRUE, 100, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Parent Category: Bút các loại
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES ('Bút các loại', NULL, 'Các loại bút văn phòng', TRUE, NULL, 2, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Bút Chì - Ruột Bút Chì (ID: 102, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    102, 'Bút Chì - Ruột Bút Chì', 'Fahasa cat_id: 6203', TRUE, 100, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
-SET @parent_but_id = LAST_INSERT_ID();
+-- Level 2 (Sub): Bút Bi - Ruột Bút Bi (ID: 103, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    103, 'Bút Bi - Ruột Bút Bi', 'Fahasa cat_id: 6200', TRUE, 100, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Parent Category: Dụng cụ văn phòng (already exists, but we'll update it)
--- Note: If "Dụng cụ văn phòng" already exists, we'll use it as parent
--- Otherwise, we'll create a new one
+-- Level 2 (Sub): Bút Lông (ID: 104, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    104, 'Bút Lông', 'Fahasa cat_id: 6207', TRUE, 100, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Check if "Dụng cụ văn phòng" exists, if not create it
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-SELECT 'Dụng cụ văn phòng', NULL, 'Các dụng cụ văn phòng', TRUE, NULL, 3, NOW(), NOW(), 'root_admin@system.local', NULL, NULL
-WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Dụng cụ văn phòng' AND deleted_by IS NULL);
+-- Level 2 (Sub): Bút Dạ Quang (ID: 105, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    105, 'Bút Dạ Quang', 'Fahasa cat_id: 6208', TRUE, 100, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
-SET @parent_dung_cu_id = (SELECT id FROM categories WHERE name = 'Dụng cụ văn phòng' AND deleted_by IS NULL LIMIT 1);
+-- Level 2 (Sub): Bút Kỹ Thuật (ID: 106, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    106, 'Bút Kỹ Thuật', 'Fahasa cat_id: 6213', TRUE, 100, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Parent Category: Pin
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES ('Pin', NULL, 'Các loại pin', TRUE, NULL, 4, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Bút Mực - Bút Máy (ID: 107, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    107, 'Bút Mực - Bút Máy', 'Fahasa cat_id: 6199', TRUE, 100, 7,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
-SET @parent_pin_id = LAST_INSERT_ID();
+-- Level 2 (Sub): Bút Cao Cấp (ID: 108, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    108, 'Bút Cao Cấp', 'Fahasa cat_id: 6219', TRUE, 100, 8,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Parent Category: Phụ kiện bút
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES ('Phụ kiện bút', NULL, 'Phụ kiện cho bút', TRUE, NULL, 5, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Bút Thư Pháp (ID: 109, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    109, 'Bút Thư Pháp', 'Fahasa cat_id: 6214', TRUE, 100, 9,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
-SET @parent_phu_kien_but_id = LAST_INSERT_ID();
+-- Level 2 (Sub): Bút Sơn (ID: 110, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    110, 'Bút Sơn', 'Fahasa cat_id: 6217', TRUE, 100, 10,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Parent Category: Sổ
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES ('Sổ', NULL, 'Các loại sổ', TRUE, NULL, 6, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Bút Ký (ID: 111, Parent: 100)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    111, 'Bút Ký', 'Fahasa cat_id: 6229', TRUE, 100, 11,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
-SET @parent_so_id = LAST_INSERT_ID();
+-- Level 1 (Main): Sản phẩm về giấy (ID: 112, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    112, 'Sản phẩm về giấy', 'Fahasa cat_id: 96', TRUE, NULL, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Step 2: Insert Child Categories with parent_id
+-- Level 2 (Sub): Sổ Các Loại (ID: 113, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    113, 'Sổ Các Loại', 'Fahasa cat_id: 6319', TRUE, 112, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Bìa các loại - Children
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES 
-('Bìa acco - bìa báo cáo', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834347/app/dev/categories/thumbnailurl_1764834341100_b062d385.jpg', 'Bìa acco - bìa báo cáo', TRUE, @parent_bia_id, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bìa cây - Bìa treo', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834324/app/dev/categories/thumbnailurl_1764834321164_cbe6c5ea.jpg', 'Bìa cây - Bìa treo', TRUE, @parent_bia_id, 2, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bìa còng', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834228/app/dev/categories/thumbnailurl_1764834224808_3340ba2f.jpg', 'Bìa còng', TRUE, @parent_bia_id, 3, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bìa hộp', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834179/app/dev/categories/thumbnailurl_1764834175537_cf53e48e.jpg', 'Bìa hộp', TRUE, @parent_bia_id, 4, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bìa lá - bìa nhiều lá', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834150/app/dev/categories/thumbnailurl_1764834146022_5c558776.jpg', 'Bìa lá - bìa nhiều lá', TRUE, @parent_bia_id, 5, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Tập - Vở (ID: 114, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    114, 'Tập - Vở', 'Fahasa cat_id: 6309', TRUE, 112, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update parent thumbnail from first child
-UPDATE categories 
-SET thumbnail_url = (
-    SELECT thumbnail_url FROM categories 
-    WHERE parent_id = @parent_bia_id AND thumbnail_url IS NOT NULL 
-    ORDER BY sort_order ASC LIMIT 1
-),
-updated_at = NOW()
-WHERE id = @parent_bia_id;
+-- Level 2 (Sub): Giấy Note (ID: 115, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    115, 'Giấy Note', 'Fahasa cat_id: 6318', TRUE, 112, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Bút các loại - Children
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES 
-('Bút dạ quang', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834212/app/dev/categories/thumbnailurl_1764834208206_5cea549e.jpg', 'Bút dạ quang', TRUE, @parent_but_id, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bút lông bảng - lông dầu', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834257/app/dev/categories/thumbnailurl_1764834253126_1ef37b4f.jpg', 'Bút lông bảng - lông dầu', TRUE, @parent_but_id, 2, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bút lông dầu', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834431/app/dev/categories/thumbnailurl_1764834427654_72bbdf34.webp', 'Bút lông dầu', TRUE, @parent_but_id, 3, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bút phấn nước', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834040/app/dev/categories/thumbnailurl_1764834036809_a095688f.jpg', 'Bút phấn nước', TRUE, @parent_but_id, 4, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Bút xóa', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834407/app/dev/categories/thumbnailurl_1764834403931_d30dbe69.jpg', 'Bút xóa', TRUE, @parent_but_id, 5, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Các Loại Giấy Khác (ID: 116, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    116, 'Các Loại Giấy Khác', 'Fahasa cat_id: 6478', TRUE, 112, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update parent thumbnail from first child
-UPDATE categories 
-SET thumbnail_url = (
-    SELECT thumbnail_url FROM categories 
-    WHERE parent_id = @parent_but_id AND thumbnail_url IS NOT NULL 
-    ORDER BY sort_order ASC LIMIT 1
-),
-updated_at = NOW()
-WHERE id = @parent_but_id;
+-- Level 2 (Sub): Sticker (ID: 117, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    117, 'Sticker', 'Fahasa cat_id: 6381', TRUE, 112, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Dụng cụ văn phòng - Children
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES 
-('Bấm kim', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834298/app/dev/categories/thumbnailurl_1764834294983_9de04801.jpg', 'Bấm kim', TRUE, @parent_dung_cu_id, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Băng keo', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834198/app/dev/categories/thumbnailurl_1764834194866_4847bf2c.jpg', 'Băng keo', TRUE, @parent_dung_cu_id, 2, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Dao rọc giấy', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834246/app/dev/categories/thumbnailurl_1764834241775_41dfa8ec.jpg', 'Dao rọc giấy', TRUE, @parent_dung_cu_id, 3, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Hộp cắm bút', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834468/app/dev/categories/thumbnailurl_1764834464367_2cc7c60a.jpg', 'Hộp cắm bút', TRUE, @parent_dung_cu_id, 4, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Kéo văn phòng', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834276/app/dev/categories/thumbnailurl_1764834272335_4d105182.jpg', 'Kéo văn phòng', TRUE, @parent_dung_cu_id, 5, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Kẹp giấy', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834012/app/dev/categories/thumbnailurl_1764834006092_403f71af.jpg', 'Kẹp giấy', TRUE, @parent_dung_cu_id, 6, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Lưỡi dao rọc giấy', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834396/app/dev/categories/thumbnailurl_1764834392113_505f6b17.jpg', 'Lưỡi dao rọc giấy', TRUE, @parent_dung_cu_id, 7, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Nhãn Vở - Nhãn Tên (ID: 118, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    118, 'Nhãn Vở - Nhãn Tên', 'Fahasa cat_id: 6317', TRUE, 112, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update existing "Dụng cụ văn phòng" category to have NULL parent_id (it's a parent)
-UPDATE categories 
-SET parent_id = NULL, sort_order = 3, updated_at = NOW()
-WHERE name = 'Dụng cụ văn phòng' AND deleted_by IS NULL;
+-- Level 2 (Sub): Giấy Thủ Công - Giấy Màu (ID: 119, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    119, 'Giấy Thủ Công - Giấy Màu', 'Fahasa cat_id: 6313', TRUE, 112, 7,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update parent thumbnail from first child
-UPDATE categories 
-SET thumbnail_url = (
-    SELECT thumbnail_url FROM categories 
-    WHERE parent_id = @parent_dung_cu_id AND thumbnail_url IS NOT NULL 
-    ORDER BY sort_order ASC LIMIT 1
-),
-updated_at = NOW()
-WHERE id = @parent_dung_cu_id;
+-- Level 2 (Sub): Giấy Kiểm Tra (ID: 120, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    120, 'Giấy Kiểm Tra', 'Fahasa cat_id: 6314', TRUE, 112, 8,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Pin - Children
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES 
-('Pin Alkaline', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834381/app/dev/categories/thumbnailurl_1764834376449_32e57b41.jpg', 'Pin Alkaline', TRUE, @parent_pin_id, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL),
-('Pin Carbon', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834311/app/dev/categories/thumbnailurl_1764834307070_1d5f3bd9.jpg', 'Pin Carbon', TRUE, @parent_pin_id, 2, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Đánh Dấu Trang - Giấy Phân Trang (ID: 121, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    121, 'Đánh Dấu Trang - Giấy Phân Trang', 'Fahasa cat_id: 6322', TRUE, 112, 9,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update parent thumbnail from first child
-UPDATE categories 
-SET thumbnail_url = (
-    SELECT thumbnail_url FROM categories 
-    WHERE parent_id = @parent_pin_id AND thumbnail_url IS NOT NULL 
-    ORDER BY sort_order ASC LIMIT 1
-),
-updated_at = NOW()
-WHERE id = @parent_pin_id;
+-- Level 2 (Sub): Giấy Kê Tay (ID: 122, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    122, 'Giấy Kê Tay', 'Fahasa cat_id: 6310', TRUE, 112, 10,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Phụ kiện bút - Children
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES 
-('Mực bút lông bảng - lông dầu', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834365/app/dev/categories/thumbnailurl_1764834362196_76c198bb.webp', 'Mực bút lông bảng - lông dầu', TRUE, @parent_phu_kien_but_id, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Giấy Photo (ID: 123, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    123, 'Giấy Photo', 'Fahasa cat_id: 6320', TRUE, 112, 11,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update parent thumbnail from first child
-UPDATE categories 
-SET thumbnail_url = (
-    SELECT thumbnail_url FROM categories 
-    WHERE parent_id = @parent_phu_kien_but_id AND thumbnail_url IS NOT NULL 
-    ORDER BY sort_order ASC LIMIT 1
-),
-updated_at = NOW()
-WHERE id = @parent_phu_kien_but_id;
+-- Level 2 (Sub): Tập Chép Nhạc (ID: 124, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    124, 'Tập Chép Nhạc', 'Fahasa cat_id: 6312', TRUE, 112, 12,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Sổ - Children
-INSERT INTO categories (name, thumbnail_url, description, is_active, parent_id, sort_order, created_at, updated_at, created_by, updated_by, deleted_by)
-VALUES 
-('Sổ lò xo', 'https://res.cloudinary.com/dlgqtldwk/image/upload/v1764834289/app/dev/categories/thumbnailurl_1764834284804_4e21dbe8.jpg', 'Sổ lò xo', TRUE, @parent_so_id, 1, NOW(), NOW(), 'root_admin@system.local', NULL, NULL);
+-- Level 2 (Sub): Flash Card (ID: 125, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    125, 'Flash Card', 'Fahasa cat_id: 6330', TRUE, 112, 13,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
 
--- Update parent thumbnail from first child
-UPDATE categories 
-SET thumbnail_url = (
-    SELECT thumbnail_url FROM categories 
-    WHERE parent_id = @parent_so_id AND thumbnail_url IS NOT NULL 
-    ORDER BY sort_order ASC LIMIT 1
-),
-updated_at = NOW()
-WHERE id = @parent_so_id;
+-- Level 2 (Sub): Giấy Bìa (ID: 126, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    126, 'Giấy Bìa', 'Fahasa cat_id: 6482', TRUE, 112, 14,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Thời Khóa Biểu (ID: 127, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    127, 'Thời Khóa Biểu', 'Fahasa cat_id: 6311', TRUE, 112, 15,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bao Lì Xì (ID: 128, Parent: 112)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    128, 'Bao Lì Xì', 'Fahasa cat_id: 6759', TRUE, 112, 16,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Dụng cụ học sinh (ID: 129, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    129, 'Dụng cụ học sinh', 'Fahasa cat_id: 94', TRUE, NULL, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Gôm - tẩy (ID: 130, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    130, 'Gôm - tẩy', 'Fahasa cat_id: 3108', TRUE, 129, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bóp Viết - Hộp Bút (ID: 131, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    131, 'Bóp Viết - Hộp Bút', 'Fahasa cat_id: 268', TRUE, 129, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Gọt Bút Chì (ID: 132, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    132, 'Gọt Bút Chì', 'Fahasa cat_id: 269', TRUE, 129, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Thước (ID: 133, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    133, 'Thước', 'Fahasa cat_id: 3153', TRUE, 129, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Ba Lô (ID: 134, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    134, 'Ba Lô', 'Fahasa cat_id: 7038', TRUE, 129, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bao Tập - Bao Sách (ID: 135, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    135, 'Bao Tập - Bao Sách', 'Fahasa cat_id: 6148', TRUE, 129, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bảng Viết - Bông Lau Bảng (ID: 136, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    136, 'Bảng Viết - Bông Lau Bảng', 'Fahasa cat_id: 281', TRUE, 129, 7,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Compa (ID: 137, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    137, 'Compa', 'Fahasa cat_id: 3156', TRUE, 129, 8,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bộ Dụng Cụ Học Tập (ID: 138, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    138, 'Bộ Dụng Cụ Học Tập', 'Fahasa cat_id: 6150', TRUE, 129, 9,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Mực (ID: 139, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    139, 'Mực', 'Fahasa cat_id: 3151', TRUE, 129, 10,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Dụng Cụ Học Sinh Khác (ID: 140, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    140, 'Dụng Cụ Học Sinh Khác', 'Fahasa cat_id: 6474', TRUE, 129, 11,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Phấn - Hộp Đựng Phấn (ID: 141, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    141, 'Phấn - Hộp Đựng Phấn', 'Fahasa cat_id: 6237', TRUE, 129, 12,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Cặp (ID: 142, Parent: 129)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    142, 'Cặp', 'Fahasa cat_id: 7037', TRUE, 129, 13,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Dụng Cụ Vẽ (ID: 143, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    143, 'Dụng Cụ Vẽ', 'Fahasa cat_id: 6221', TRUE, NULL, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bút Vẽ (ID: 144, Parent: 143)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    144, 'Bút Vẽ', 'Fahasa cat_id: 6222', TRUE, 143, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Màu Vẽ (ID: 145, Parent: 143)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    145, 'Màu Vẽ', 'Fahasa cat_id: 6227', TRUE, 143, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Tập Vẽ - Giấy Vẽ (ID: 146, Parent: 143)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    146, 'Tập Vẽ - Giấy Vẽ', 'Fahasa cat_id: 6228', TRUE, 143, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Khay - Cọ Vẽ (ID: 147, Parent: 143)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    147, 'Khay - Cọ Vẽ', 'Fahasa cat_id: 6226', TRUE, 143, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bộ Vẽ Sáng Tạo (ID: 148, Parent: 143)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    148, 'Bộ Vẽ Sáng Tạo', 'Fahasa cat_id: 6232', TRUE, 143, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Giá Vẽ - Khung Vẽ (ID: 149, Parent: 143)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    149, 'Giá Vẽ - Khung Vẽ', 'Fahasa cat_id: 6294', TRUE, 143, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Sản Phẩm VPP Khác (ID: 150, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    150, 'Sản Phẩm VPP Khác', 'Fahasa cat_id: 6281', TRUE, NULL, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Dao Rọc Giấy - Lưỡi Dao Rọc Giấy - Kéo (ID: 151, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    151, 'Dao Rọc Giấy - Lưỡi Dao Rọc Giấy - Kéo', 'Fahasa cat_id: 6282', TRUE, 150, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bút Xóa Nước - Xóa Kéo (ID: 152, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    152, 'Bút Xóa Nước - Xóa Kéo', 'Fahasa cat_id: 6285', TRUE, 150, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Keo Khô - Hồ Dán (ID: 153, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    153, 'Keo Khô - Hồ Dán', 'Fahasa cat_id: 6284', TRUE, 150, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Băng Keo - Cắt Băng Keo (ID: 154, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    154, 'Băng Keo - Cắt Băng Keo', 'Fahasa cat_id: 6283', TRUE, 150, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Dây Đeo - Bảng Tên (ID: 155, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    155, 'Dây Đeo - Bảng Tên', 'Fahasa cat_id: 6475', TRUE, 150, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Văn Phòng Phẩm Khác (ID: 156, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    156, 'Văn Phòng Phẩm Khác', 'Fahasa cat_id: 6473', TRUE, 150, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Quả Địa Cầu (ID: 157, Parent: 150)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    157, 'Quả Địa Cầu', 'Fahasa cat_id: 7047', TRUE, 150, 7,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Dụng cụ văn phòng (ID: 158, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    158, 'Dụng cụ văn phòng', 'Fahasa cat_id: 95', TRUE, NULL, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Bìa - File Hồ Sơ (ID: 159, Parent: 158)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    159, 'Bìa - File Hồ Sơ', 'Fahasa cat_id: 6261', TRUE, 158, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Đồ Bấm Kim - Kim Bấm - Gỡ Kim - Kim Kẹp (ID: 160, Parent: 158)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    160, 'Đồ Bấm Kim - Kim Bấm - Gỡ Kim - Kim Kẹp', 'Fahasa cat_id: 240', TRUE, 158, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Kẹp Giấy - Kẹp Bướm - Kẹp Các Loại (ID: 161, Parent: 158)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    161, 'Kẹp Giấy - Kẹp Bướm - Kẹp Các Loại', 'Fahasa cat_id: 6145', TRUE, 158, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Cắm Bút (ID: 162, Parent: 158)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    162, 'Cắm Bút', 'Fahasa cat_id: 6147', TRUE, 158, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Mực Dấu - Con Dấu - Tăm Bông (ID: 163, Parent: 158)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    163, 'Mực Dấu - Con Dấu - Tăm Bông', 'Fahasa cat_id: 5965', TRUE, 158, 5,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Đục Lỗ - Máy bấm giá (ID: 164, Parent: 158)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    164, 'Đục Lỗ - Máy bấm giá', 'Fahasa cat_id: 241', TRUE, 158, 6,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Lịch Agenda (ID: 165, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    165, 'Lịch Agenda', 'Fahasa cat_id: 6523', TRUE, NULL, 7,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Lịch bloc (ID: 166, Parent: 165)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    166, 'Lịch bloc', 'Fahasa cat_id: 6525', TRUE, 165, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Lịch bàn (ID: 167, Parent: 165)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    167, 'Lịch bàn', 'Fahasa cat_id: 6526', TRUE, 165, 2,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Lịch Tờ, Lịch Lò Xo (ID: 168, Parent: 165)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    168, 'Lịch Tờ, Lịch Lò Xo', 'Fahasa cat_id: 6524', TRUE, 165, 3,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Lịch khác (ID: 169, Parent: 165)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    169, 'Lịch khác', 'Fahasa cat_id: 6527', TRUE, 165, 4,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Sản Phẩm Điện Tử (ID: 170, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    170, 'Sản Phẩm Điện Tử', 'Fahasa cat_id: 6298', TRUE, NULL, 8,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 2 (Sub): Máy tính điện tử (ID: 171, Parent: 170)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    171, 'Máy tính điện tử', 'Fahasa cat_id: 6299', TRUE, 170, 1,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
+
+-- Level 1 (Main): Thiệp (ID: 172, Parent: NULL)
+INSERT INTO categories (
+    id, name, description, is_active, parent_id, sort_order,
+    created_at, updated_at, created_by, updated_by, deleted_by
+) VALUES (
+    172, 'Thiệp', 'Fahasa cat_id: 6529', TRUE, NULL, 9,
+    NOW(), NOW(), @created_by, NULL, NULL
+);
