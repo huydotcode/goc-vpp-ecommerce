@@ -367,7 +367,7 @@ const AdminOrdersPage: React.FC = () => {
       return await adminOrderService.bulkUpdateOrders(request);
     },
     onSuccess: (response) => {
-      toast.success(response.message);
+      toast.success("Cập nhật trạng thái đơn hàng thành công");
       setSelectedOrderIds(new Set());
       setIsBulkModalOpen(false);
       setBulkStatus("");
@@ -381,7 +381,7 @@ const AdminOrdersPage: React.FC = () => {
           .map((r) => `${r.orderCode || r.orderId}: ${r.message}`)
           .join("\n");
         Modal.warning({
-          title: "Một số đơn hàng không thể cập nhật",
+          title: "Cập nhật trạng thái đơn hàng thất bại",
           content: (
             <div>
               <p>
