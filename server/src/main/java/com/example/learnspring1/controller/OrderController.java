@@ -207,6 +207,37 @@ public class OrderController {
                 orderService.getOrdersWithItemsByUserId(currentUser.getId()).stream().map(this::toSummaryDTO).toList());
     }
 
+    @Operation(summary = "Hủy đơn hàng", description = "Cho phép user hủy đơn hàng của mình (chỉ khi status là PENDING, PAID, hoặc CONFIRMED)")
+    @PostMapping("/{orderCode}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelOrder(
+            @PathVariable String orderCode,
+            @RequestBody(required = false) Map<String, String> request) {
+        try {
+            User currentUser = getCurrentUser();
+            String reason = request != null ? request.get("reason") : null;
+
+            Order order = orderService.cancelOrder(orderCode, currentUser.getId(), reason);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("orderCode", order.getOrderCode());
+            response.put("status", order.getStatus().name());
+            response.put("message", "Đơn hàng đã được hủy thành công");
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (RuntimeException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to cancel order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
     private OrderSummaryDTO toSummaryDTO(Order order) {
         OrderSummaryDTO.OrderSummaryDTOBuilder builder = OrderSummaryDTO.builder()
                 .id(order.getId())

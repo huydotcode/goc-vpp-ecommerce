@@ -5,22 +5,23 @@ import {
   CopyOutlined,
   LinkOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Card,
   Divider,
   Empty,
   Input,
+  Modal,
   Space,
   Spin,
   Steps,
   Tag,
   Typography,
-  message,
 } from "antd";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { getPayOSUrl, removePayOSUrl } from "../utils/payosStorage";
 
 type OrderItemSummary = {
@@ -106,8 +107,11 @@ const formatCurrency = (value: number | string | undefined) =>
 const OrderDetailPage: React.FC = () => {
   const { orderCode } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
-  const { data, isLoading } = useQuery<OrderDetail | null>({
+  const { data, isLoading, refetch } = useQuery<OrderDetail | null>({
     queryKey: ["orderDetail", orderCode],
     queryFn: async () => {
       if (!orderCode) return null;
@@ -120,6 +124,46 @@ const OrderDetailPage: React.FC = () => {
     },
     enabled: !!orderCode,
   });
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async ({
+      orderCode,
+      reason,
+    }: {
+      orderCode: string;
+      reason?: string;
+    }) => {
+      return await orderApi.cancelOrder(orderCode, reason);
+    },
+    onSuccess: () => {
+      toast.success("Đã hủy đơn hàng thành công");
+      setCancelModalOpen(false);
+      setCancelReason("");
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["userOrders"] });
+    },
+    onError: (error) => {
+      handleApiError(error);
+    },
+  });
+
+  const canCancelOrder = (order: OrderDetail | null) => {
+    if (!order) return false;
+    return (
+      order.status === "PENDING" ||
+      order.status === "PAID" ||
+      order.status === "CONFIRMED"
+    );
+  };
+
+  const handleCancelOrder = () => {
+    if (orderCode) {
+      cancelOrderMutation.mutate({
+        orderCode,
+        reason: cancelReason.trim() || undefined,
+      });
+    }
+  };
 
   // Get PayOS checkout URL from localStorage
   const payOSUrl = useMemo(() => {
@@ -146,13 +190,14 @@ const OrderDetailPage: React.FC = () => {
     ) {
       // Order is paid, remove URL from localStorage
       removePayOSUrl(orderCode);
+      toast.success("Đã xóa link thanh toán");
     }
   }, [orderCode, data?.status, payOSUrl]);
 
   const handleCopyUrl = () => {
     if (payOSUrl) {
       navigator.clipboard.writeText(payOSUrl);
-      message.success("Đã copy link thanh toán!");
+      toast.success("Đã copy link thanh toán!");
     }
   };
 
@@ -349,6 +394,73 @@ const OrderDetailPage: React.FC = () => {
           <Empty description="Không có sản phẩm" />
         )}
       </Card>
+
+      {/* Cancel Order Section */}
+      {canCancelOrder(data) && (
+        <Card className="shadow-sm border-red-200 bg-red-50">
+          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+            <Button
+              danger
+              block
+              size="large"
+              onClick={() => setCancelModalOpen(true)}
+            >
+              Hủy đơn hàng
+            </Button>
+          </Space>
+        </Card>
+      )}
+
+      {/* Cancel Order Modal */}
+      <Modal
+        title="Hủy đơn hàng"
+        open={cancelModalOpen}
+        onOk={handleCancelOrder}
+        onCancel={() => {
+          setCancelModalOpen(false);
+          setCancelReason("");
+        }}
+        confirmLoading={cancelOrderMutation.isPending}
+        okText="Xác nhận hủy"
+        cancelText="Không"
+        okButtonProps={{ danger: true }}
+      >
+        <div className="space-y-3">
+          <Typography.Text>
+            Bạn có chắc chắn muốn hủy đơn hàng <strong>#{orderCode}</strong>?
+          </Typography.Text>
+          <div>
+            <Typography.Text strong>Lý do hủy (tùy chọn):</Typography.Text>
+            <div style={{ marginTop: 8, marginBottom: 8 }}>
+              <Space size={[8, 8]} wrap>
+                {[
+                  "Đổi ý, không muốn mua nữa",
+                  "Đặt nhầm sản phẩm",
+                  "Tìm thấy sản phẩm rẻ hơn",
+                  "Thông tin địa chỉ sai",
+                  "Không đủ tiền thanh toán",
+                  "Sản phẩm không còn phù hợp",
+                ].map((reason) => (
+                  <Tag
+                    key={reason}
+                    style={{ cursor: "pointer" }}
+                    color={cancelReason === reason ? "blue" : "default"}
+                    onClick={() => setCancelReason(reason)}
+                  >
+                    {reason}
+                  </Tag>
+                ))}
+              </Space>
+            </div>
+            <Input.TextArea
+              rows={3}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Hoặc nhập lý do hủy đơn hàng của bạn..."
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

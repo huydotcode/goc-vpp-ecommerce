@@ -1,8 +1,8 @@
-import React, { useMemo } from "react";
-import { Card, Tag, Typography, Tabs, Empty, Spin, Image } from "antd";
-import { useQuery } from "@tanstack/react-query";
-import { handleApiError } from "@/utils/error";
 import { orderService } from "@/services/order.service";
+import { handleApiError } from "@/utils/error";
+import { useQuery } from "@tanstack/react-query";
+import { Card, Empty, Image, Spin, Tabs, Tag, Typography } from "antd";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 type OrderItemSummary = {
@@ -167,6 +167,7 @@ const OrdersPage: React.FC = () => {
                 <Tag color={statusColorMap[order.status] || "default"}>
                   {statusLabel(order.status)}
                 </Tag>
+
                 {order.paymentMethod && (
                   <Typography.Text type="secondary" className="text-xs">
                     {order.paymentMethod === "COD"

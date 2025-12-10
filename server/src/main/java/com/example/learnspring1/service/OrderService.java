@@ -128,6 +128,43 @@ public class OrderService {
         throw new RuntimeException("Order not found with code: " + orderCode);
     }
 
+    /**
+     * Cancel order by user
+     * Only allows cancellation if order status is PENDING, PAID, or CONFIRMED
+     */
+    @Transactional
+    public Order cancelOrder(String orderCode, Long userId, String reason) {
+        Optional<Order> orderOpt = orderRepository.findByOrderCode(orderCode);
+        if (!orderOpt.isPresent()) {
+            throw new RuntimeException("Order not found with code: " + orderCode);
+        }
+
+        Order order = orderOpt.get();
+
+        // Verify order belongs to user
+        if (order.getUser() == null || !order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Order does not belong to user");
+        }
+
+        Order.OrderStatus currentStatus = order.getStatus();
+
+        // Validate: chỉ cho phép hủy nếu status là PENDING, PAID, hoặc CONFIRMED
+        if (currentStatus != Order.OrderStatus.PENDING &&
+                currentStatus != Order.OrderStatus.PAID &&
+                currentStatus != Order.OrderStatus.CONFIRMED) {
+            throw new IllegalStateException(
+                    "Cannot cancel order with status: " + currentStatus +
+                            ". Only PENDING, PAID, or CONFIRMED orders can be cancelled.");
+        }
+
+        // Update status to CANCELLED
+        String note = reason != null && !reason.trim().isEmpty()
+                ? "Lý do hủy: " + reason
+                : "Đơn hàng được hủy bởi khách hàng";
+
+        return updateOrderStatus(orderCode, Order.OrderStatus.CANCELLED, note, null);
+    }
+
     public Optional<Order> getOrderByCode(String orderCode) {
         return orderRepository.findByOrderCode(orderCode);
     }
