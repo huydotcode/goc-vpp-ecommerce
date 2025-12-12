@@ -86,13 +86,17 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
 
     // Client-side filtering if API doesn't support it for Admin or if generic getMyOrders handling needs it
     if (statusFilter && statusFilter !== "ALL") {
-      orders = orders.filter(o => o.status === statusFilter);
+      orders = orders.filter((o) => o.status === statusFilter);
     }
 
     if (!orders || orders.length === 0) {
       return (
         <div className="py-10">
-          <Empty description={isAdmin ? "Không có đơn hàng nào." : "Bạn chưa có đơn hàng nào."} />
+          <Empty
+            description={
+              isAdmin ? "Không có đơn hàng nào." : "Bạn chưa có đơn hàng nào."
+            }
+          />
         </div>
       );
     }
@@ -103,9 +107,10 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
             key={order.id}
             hoverable
             onClick={() =>
-              navigate(isAdmin
-                ? `/admin/orders/${order.orderCode || order.id}`
-                : `/user/orders/${order.orderCode || order.id}`
+              navigate(
+                isAdmin
+                  ? `/admin/orders/${order.orderCode || order.id}`
+                  : `/user/orders/${order.orderCode || order.id}`
               )
             }
             className="transition-shadow"
@@ -114,9 +119,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
             <div className="flex items-start justify-between gap-2">
               <div className="flex gap-3 flex-1">
                 <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                  {order.items && order.items[0]?.productImageUrl ? (
+                  {order.items && order.items[0]?.imageUrl ? (
                     <Image
-                      src={order.items[0].productImageUrl}
+                      src={order.items[0].imageUrl}
                       alt={order.items[0].productName}
                       preview={false}
                       width={64}
@@ -141,7 +146,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                    {isAdmin && order.customerName && ` • ${order.customerName}`}
+                    {isAdmin &&
+                      order.customerName &&
+                      ` • ${order.customerName}`}
                   </div>
                   {order.items && order.items.length > 0 && (
                     <div className="text-sm text-gray-600 space-y-1">
@@ -151,7 +158,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                           <div key={idx} className="flex justify-between gap-2">
                             <span className="line-clamp-1">
                               {item.productName}
-                              {item.isGift && <span className="text-red-500 ml-1">(GIFT)</span>}
+                              {item.isGift && (
+                                <span className="text-red-500 ml-1">
+                                  (GIFT)
+                                </span>
+                              )}
                             </span>
                             <span className="text-gray-500">
                               x{item.quantity}
@@ -166,7 +177,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                     </div>
                   )}
                   <div className="text-base font-semibold">
-                    {formatCurrency(Number(order.finalAmount || order.totalAmount))}
+                    {formatCurrency(
+                      Number(order.finalAmount || order.totalAmount)
+                    )}
                   </div>
                 </div>
               </div>
