@@ -1,4 +1,3 @@
-import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { useTrackProductView } from "@/hooks/useProducts";
 import type { ProductDTO } from "@/services/product.service";
@@ -50,7 +49,6 @@ type ProductCardProps = DefaultProductCardProps | PromotionProductCardProps;
 
 const ProductCard: React.FC<ProductCardProps> = (props) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const { addItem, adding } = useCart();
   const trackProductView = useTrackProductView();
   const [addingProductId, setAddingProductId] = useState<number | null>(null);
@@ -132,15 +130,8 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
 
   const { id, name, imageUrl, originalPrice, finalPrice, isGift } = baseProduct;
 
-  // SHARED FUNCTION: Handle common add logic (auth, variant, stock, addItem)
   const handleAddWithVariant = async (afterAddCallback?: () => void) => {
     try {
-      // Kiểm tra đăng nhập
-      if (!isAuthenticated) {
-        toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ");
-        return;
-      }
-
       // Nếu có nhiều variant, yêu cầu chọn
       if (!isPromotion && variants.length > 1) {
         setVariantModalOpen(true);
@@ -173,6 +164,11 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         productId: id,
         variantId: targetVariant?.id ?? null,
         quantity: 1,
+        productName: baseProduct.name,
+        variantName: targetVariant?.variantValue ?? null,
+        sku: targetVariant?.sku ?? null,
+        productImageUrl: baseProduct.imageUrl ?? null,
+        unitPrice: baseProduct.finalPrice ?? baseProduct.originalPrice ?? 0,
       });
 
       // Callback sau khi add thành công
@@ -219,6 +215,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       return;
     }
     const variant = variants.find((v) => v.id === selectedVariantId);
+    console.log("variant");
     if (!variant) {
       toast.error("Không tìm thấy phân loại");
       return;
@@ -238,6 +235,11 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         productId: id,
         variantId: variant.id ?? null,
         quantity: selectedQty,
+        productName: baseProduct.name,
+        variantName: variant.variantValue ?? null,
+        sku: variant.sku ?? null,
+        productImageUrl: baseProduct.imageUrl ?? null,
+        unitPrice: baseProduct.finalPrice ?? baseProduct.originalPrice ?? 0,
       });
       setVariantModalOpen(false);
       if (isBuyNowFlow) {
