@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { useTrackProductView } from "@/hooks/useProducts";
 import type { ProductDTO } from "@/services/product.service";
+import { PromotionDiscountType } from "@/types/promotion.types";
 import type { ProductVariant } from "@/types/variant.types";
 import { formatPrice } from "@/utils/format";
 import {
@@ -10,7 +11,7 @@ import {
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { Button, Tag, Typography } from "antd";
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import VariantSelectorModal from "./VariantSelectorModal";
@@ -26,6 +27,8 @@ interface BaseCardProduct {
   discountPercent?: number | null;
   isGift?: boolean;
   stockQuantity?: number; // THÊM: Cho promotion mode
+  promotionType?: string;
+  promotionDiscountAmount?: number | null;
 }
 
 import type { PromotionResponse } from "@/types/promotion.types";
@@ -80,50 +83,54 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
     }
     const defaultProps = props as DefaultProductCardProps;
     const product = defaultProps.product;
+
+    const applicablePromotion = (defaultProps.activePromotions ?? []).find(
+      (promo) =>
+        !promo.conditions ||
+        promo.conditions.length === 0 ||
+        promo.conditions.some((c) =>
+          c.details.some((d) => d.productId === product.id)
+        )
+    );
+
+    const basePrice = defaultVariant?.price ?? product.price ?? 0;
+    const discountedBase =
+      defaultVariant?.price ?? product.discountPrice ?? product.price ?? 0;
+
+    let finalPrice = discountedBase;
+    let promotionType: string | undefined;
+    let promotionDiscountAmount: number | null | undefined;
+
+    if (
+      applicablePromotion &&
+      applicablePromotion.discountType ===
+        PromotionDiscountType.DISCOUNT_AMOUNT &&
+      (applicablePromotion.discountAmount ?? 0) > 0
+    ) {
+      promotionType = applicablePromotion.discountType;
+      promotionDiscountAmount = applicablePromotion.discountAmount ?? 0;
+      finalPrice = Math.max(0, discountedBase - (promotionDiscountAmount ?? 0));
+    } else if (applicablePromotion) {
+      promotionType = applicablePromotion.discountType;
+      promotionDiscountAmount = applicablePromotion.discountAmount;
+    }
+
     return {
       id: product.id,
       name: product.name,
       imageUrl:
         product.thumbnailUrl ?? product.images?.[0]?.imageUrl ?? undefined, // FIX: Safe array access with optional chaining
-      originalPrice: defaultVariant?.price ?? product.price ?? 0,
-      finalPrice:
-        defaultVariant?.price ?? product.discountPrice ?? product.price ?? 0,
+      originalPrice: basePrice,
+      finalPrice,
       discountPercent: undefined,
       isGift: false,
       stockQuantity: undefined, // Default mode không cần
+      promotionType,
+      promotionDiscountAmount,
     };
-  }, [isPromotion, props, defaultVariant]); // Dependencies: props changes trigger re-calc
+  }, [isPromotion, props, defaultVariant]);
 
-  const {
-    id,
-    name,
-    imageUrl,
-    originalPrice,
-    finalPrice,
-    discountPercent: inputDiscountPercent,
-    isGift,
-  } = baseProduct;
-
-  const computedBasePrice = originalPrice ?? 0;
-  const computedFinalPrice = finalPrice ?? computedBasePrice;
-
-  // CẢI TIẾN: Memoize discount calculations
-  const discountInfo = useMemo(() => {
-    const hasDiscount =
-      !isGift &&
-      computedFinalPrice < computedBasePrice &&
-      computedBasePrice > 0;
-    const discountPercent =
-      inputDiscountPercent ??
-      (hasDiscount
-        ? Math.round(
-          ((computedBasePrice - computedFinalPrice) / computedBasePrice) * 100
-        )
-        : null);
-    return { hasDiscount, discountPercent };
-  }, [isGift, computedBasePrice, computedFinalPrice, inputDiscountPercent]);
-
-  const { hasDiscount, discountPercent } = discountInfo;
+  const { id, name, imageUrl, originalPrice, finalPrice, isGift } = baseProduct;
 
   // SHARED FUNCTION: Handle common add logic (auth, variant, stock, addItem)
   const handleAddWithVariant = async (afterAddCallback?: () => void) => {
@@ -277,7 +284,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           trackProductView.mutate(id, {
-            onError: () => { },
+            onError: () => {},
           });
           navigate(`/products/${id}`);
         }
@@ -367,29 +374,52 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
               </Tag>
             )}
 
-            {!isPromotion && (props as DefaultProductCardProps).activePromotions?.map(promo => {
-              const isApplicable = !promo.conditions || promo.conditions.length === 0 ||
-                promo.conditions.some(c => c.details.some(d => d.productId === id));
-              if (!isApplicable) return null;
+            {!isPromotion &&
+              (props as DefaultProductCardProps).activePromotions?.map(
+                (promo) => {
+                  const isApplicable =
+                    !promo.conditions ||
+                    promo.conditions.length === 0 ||
+                    promo.conditions.some((c) =>
+                      c.details.some((d) => d.productId === id)
+                    );
+                  if (!isApplicable) return null;
 
-              return (
-                <Tag
-                  key={promo.id}
-                  color={promo.discountType === "GIFT" ? "purple" : "volcano"}
-                  className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[10px]"
-                >
-                  {promo.discountType === "GIFT" ? <><GiftOutlined /> +Quà</> : "Giảm giá"}
-                </Tag>
-              );
-            })}
+                  return (
+                    <Tag
+                      key={promo.id}
+                      color={
+                        promo.discountType === "GIFT" ? "purple" : "volcano"
+                      }
+                      className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[10px]"
+                    >
+                      {promo.discountType === "GIFT" ? (
+                        <>
+                          <GiftOutlined /> +Quà
+                        </>
+                      ) : (
+                        "Giảm giá"
+                      )}
+                    </Tag>
+                  );
+                }
+              )}
 
             {/* Show badge in promotion mode */}
             {isPromotion && baseProduct.promotionType && (
               <Tag
-                color={baseProduct.promotionType === "GIFT" ? "purple" : "volcano"}
+                color={
+                  baseProduct.promotionType === "GIFT" ? "purple" : "volcano"
+                }
                 className="m-0 flex items-center gap-1 border-none px-1 py-0 text-[10px]"
               >
-                {baseProduct.promotionType === "GIFT" ? <><GiftOutlined /> +Quà</> : "Giảm giá"}
+                {baseProduct.promotionType === "GIFT" ? (
+                  <>
+                    <GiftOutlined /> +Quà
+                  </>
+                ) : (
+                  <>{formatPrice(baseProduct.promotionDiscountAmount ?? 0)}</>
+                )}
               </Tag>
             )}
           </div>
@@ -400,10 +430,16 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
             {/* Giá + % giảm */}
             <div className="mt-1 flex items-end justify-between gap-2 text-[12px] md:text-[13px]">
               <div className="flex flex-col">
-                {/* Removed strikethrough original price */}
                 <span className="text-[15px] font-semibold text-red-600 md:text-[16px]">
-                  {formatPrice(originalPrice)}
+                  {formatPrice(finalPrice ?? originalPrice)}
                 </span>
+                {finalPrice !== null &&
+                  finalPrice !== undefined &&
+                  originalPrice > (finalPrice ?? originalPrice) && (
+                    <span className="text-xs text-gray-500 line-through">
+                      {formatPrice(originalPrice)}
+                    </span>
+                  )}
               </div>
 
               {/* Removed discount percentage badge */}

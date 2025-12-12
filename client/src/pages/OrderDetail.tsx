@@ -1,4 +1,5 @@
 import { orderApi } from "@/api/order.api";
+import type { Order } from "@/types/order.types";
 import { handleApiError } from "@/utils/error";
 import {
   ArrowLeftOutlined,
@@ -23,22 +24,45 @@ import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { getPayOSUrl, removePayOSUrl } from "../utils/payosStorage";
-import { orderService } from "@/services/order.service";
-import { adminOrderService } from "@/services/adminOrder.service";
+import type { PromotionSummary } from "@/types/cart.types";
 
-type OrderItemSummary = {
-  productName?: string;
-  quantity?: number;
-  unitPrice?: number | string;
-  subtotal?: number | string;
-  imageUrl?: string | null;
-};
+// type OrderItemSummary = {
+//   productName?: string;
+//   quantity?: number;
+//   unitPrice?: number | string;
+//   subtotal?: number | string;
+//   imageUrl?: string | null;
+// };
 
-type OrderDetail = {
-  id: number;
-  name: string;
-  value: number;
-};
+// type OrderDetail = {
+//   id: number;
+//   name: string;
+//   value: number;
+// };
+
+// type OrderItemSummary = {
+//   productName?: string;
+//   quantity?: number;
+//   unitPrice?: number | string;
+//   subtotal?: number | string;
+//   imageUrl?: string | null;
+// };
+
+// type OrderDetail = {
+//   id: number;
+//   orderCode?: string;
+//   createdAt: string;
+//   totalAmount: number;
+//   status: string;
+//   paymentMethod?: string;
+//   customerName?: string;
+//   customerPhone?: string;
+//   customerEmail?: string;
+//   customerAddress?: string | null;
+//   items?: OrderItemSummary[];
+//   name: string;
+//   value: number;
+// };
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
@@ -112,16 +136,12 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  const { data, isLoading, refetch } = useQuery<OrderDetail | null>({
+  const { data, isLoading, refetch } = useQuery<Order | null>({
     queryKey: ["orderDetail", orderCode],
     queryFn: async () => {
       if (!code) return null;
       try {
-        if (isAdmin) {
-          return await orderApi.getOrderByCode(code);
-        } else {
-          return await orderApi.getOrderByCode(code);
-        }
+        return await orderApi.getOrderByCode(code);
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -152,7 +172,7 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     },
   });
 
-  const canCancelOrder = (order: OrderDetail | null) => {
+  const canCancelOrder = (order: Order | null) => {
     if (!order) return false;
     return (
       order.status === "PENDING" ||
@@ -385,9 +405,9 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
                     style={{ opacity: item.isGift ? 0.8 : 1 }}
                   >
                     <div className="w-16 h-16 bg-gray-100 border border-gray-200 rounded overflow-hidden relative">
-                      {item.productImageUrl ? (
+                      {item.imageUrl ? (
                         <img
-                          src={item.productImageUrl}
+                          src={item.imageUrl}
                           alt={item.productName}
                           className="w-full h-full object-cover"
                         />
