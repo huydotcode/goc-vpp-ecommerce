@@ -1,14 +1,14 @@
-import { useActivePromotions } from "@/hooks";
 import ProductCard from "@/components/ProductCard";
+import { useActivePromotions } from "@/hooks";
 import type {
   PromotionConditionDetailResponse,
   PromotionGiftItemResponse,
   PromotionResponse,
 } from "@/types/promotion.types";
 import { Col, Row, Typography } from "antd";
-import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
+import { useInView } from "react-intersection-observer";
 
 const { Text } = Typography;
 
@@ -69,13 +69,6 @@ const PromotionsSection: React.FC = () => {
       products: collectProductsFromPromotion(promo),
     }));
   }, [promotions]);
-
-  useEffect(() => {
-    console.log("PromotionsSection", {
-      inView,
-      promotions,
-    });
-  }, [inView, promotions]);
 
   if (!inView && !promotions) {
     return <div ref={ref} className="mb-8 h-40" />;
@@ -156,54 +149,58 @@ const PromotionsSection: React.FC = () => {
               {/* Danh sách sản phẩm trong chương trình */}
               {products.length > 0 ? (
                 <Row gutter={[16, 16]} className="mt-2">
-                  {products.filter(p => !p.isGift).slice(0, 8).map((product) => {
-                    const originalPrice = product.price ?? null;
-                    const discountAmount =
-                      !product.isGift &&
+                  {products
+                    .filter((p) => !p.isGift)
+                    .slice(0, 8)
+                    .map((product) => {
+                      const originalPrice = product.price ?? null;
+                      const discountAmount =
+                        !product.isGift &&
                         promo.discountType === "DISCOUNT_AMOUNT" &&
                         promo.discountAmount
-                        ? promo.discountAmount
-                        : 0;
+                          ? promo.discountAmount
+                          : 0;
 
-                    const hasDiscount =
-                      !product.isGift &&
-                      originalPrice !== null &&
-                      discountAmount > 0;
+                      const hasDiscount =
+                        !product.isGift &&
+                        originalPrice !== null &&
+                        discountAmount > 0;
 
-                    const finalPrice =
-                      originalPrice !== null
-                        ? Math.max(originalPrice - discountAmount, 0)
-                        : null;
+                      const finalPrice =
+                        originalPrice !== null
+                          ? Math.max(originalPrice - discountAmount, 0)
+                          : null;
 
-                    const discountPercent =
-                      hasDiscount && originalPrice
-                        ? Math.round((discountAmount / originalPrice) * 100)
-                        : null;
+                      const discountPercent =
+                        hasDiscount && originalPrice
+                          ? Math.round((discountAmount / originalPrice) * 100)
+                          : null;
 
-                    return (
-                      <Col
-                        xs={12}
-                        sm={12}
-                        md={6}
-                        lg={6}
-                        key={`${product.id}-${product.isGift}`}
-                      >
-                        <ProductCard
-                          mode="promotion"
-                          product={{
-                            id: product.id,
-                            name: product.name,
-                            imageUrl: product.imageUrl,
-                            originalPrice,
-                            finalPrice,
-                            discountPercent,
-                            isGift: product.isGift,
-                            promotionType: promo.discountType, // Pass promotion type for badge
-                          }}
-                        />
-                      </Col>
-                    );
-                  })}
+                      return (
+                        <Col
+                          xs={12}
+                          sm={12}
+                          md={6}
+                          lg={6}
+                          key={`${product.id}-${product.isGift}`}
+                        >
+                          <ProductCard
+                            mode="promotion"
+                            product={{
+                              id: product.id,
+                              name: product.name,
+                              imageUrl: product.imageUrl,
+                              originalPrice,
+                              finalPrice,
+                              discountPercent,
+                              isGift: product.isGift,
+                              promotionType: promo.discountType, // Pass promotion type for badge
+                              promotionDiscountAmount: promo.discountAmount,
+                            }}
+                          />
+                        </Col>
+                      );
+                    })}
                 </Row>
               ) : (
                 <Text className="text-xs text-gray-500">
