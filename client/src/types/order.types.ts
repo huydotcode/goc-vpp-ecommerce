@@ -42,7 +42,7 @@ export interface OrderItem {
   productName: string;
   variantName?: string | null;
   sku?: string | null;
-  productImageUrl?: string | null;
+  imageUrl?: string | null;
   unitPrice: number;
   quantity: number;
   subtotal: number;
