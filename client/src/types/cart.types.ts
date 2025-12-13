@@ -9,6 +9,7 @@ export interface CartItem {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  isGuest?: boolean;
 }
 
 export interface CartResponse {
@@ -41,6 +42,11 @@ export interface AddCartItemRequest {
   productId: number;
   variantId?: number | null;
   quantity: number;
+  productName?: string;
+  variantName?: string | null;
+  sku?: string | null;
+  productImageUrl?: string | null;
+  unitPrice?: number;
 }
 
 export interface UpdateCartItemRequest {
