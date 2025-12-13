@@ -384,6 +384,7 @@ public class OrderController {
                 .items(order.getItems() != null
                         ? order.getItems().stream()
                                 .map(oi -> OrderItemSummaryDTO.builder()
+                                        .productId(oi.getId())
                                         .productName(oi.getProductName())
                                         .quantity(oi.getQuantity())
                                         .unitPrice(oi.getUnitPrice())
@@ -423,6 +424,7 @@ public class OrderController {
                 .items(order.getItems() != null
                         ? order.getItems().stream()
                                 .map(oi -> OrderItemSummaryDTO.builder()
+                                        .productId(oi.getId())
                                         .productName(oi.getProductName())
                                         .quantity(oi.getQuantity())
                                         .unitPrice(oi.getUnitPrice())

@@ -8,7 +8,12 @@ import org.springframework.data.domain.Pageable;
 
 public interface ReviewService {
     ProductReview createReview(CreateReviewRequestDTO request);
+
     Page<ProductReview> getReviewsByProduct(Long productId, Pageable pageable);
+
     ReviewStatsDTO getReviewStats(Long productId);
+
     void deleteReview(Long id);
+
+    boolean hasUserReviewedProduct(Long productId, String userEmail);
 }

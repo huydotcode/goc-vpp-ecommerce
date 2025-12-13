@@ -8,6 +8,7 @@ import com.example.learnspring1.domain.dto.PaginatedResponseDTO;
 import com.example.learnspring1.domain.dto.ReviewDTO;
 import com.example.learnspring1.domain.dto.ReviewStatsDTO;
 import com.example.learnspring1.service.ReviewService;
+import com.example.learnspring1.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -63,8 +64,7 @@ public class ReviewController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
-            @RequestParam(defaultValue = "desc") String direction
-    ) {
+            @RequestParam(defaultValue = "desc") String direction) {
         page = Math.max(1, page);
         size = Math.min(Math.max(1, size), 100);
 
@@ -93,8 +93,24 @@ public class ReviewController {
                 .build();
     }
 
+    @GetMapping("/check/{productId}")
+    @Operation(summary = "Kiểm tra user đã đánh giá sản phẩm chưa")
+    public APIResponse<Boolean> checkUserReviewed(@PathVariable Long productId) {
+        String userEmail = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("Unauthorized"));
+
+        boolean hasReviewed = reviewService.hasUserReviewedProduct(productId, userEmail);
+
+        APIResponse<Boolean> response = new APIResponse<>();
+        response.setStatus("success");
+        response.setData(hasReviewed);
+        response.setTimestamp(LocalDateTime.now());
+        return response;
+    }
+
     private ReviewDTO toDTO(ProductReview entity) {
-        if (entity == null) return null;
+        if (entity == null)
+            return null;
         return ReviewDTO.builder()
                 .id(entity.getId())
                 .productId(entity.getProduct().getId())

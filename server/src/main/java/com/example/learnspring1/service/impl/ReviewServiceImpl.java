@@ -71,9 +71,14 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void deleteReview(Long id) {
-         ProductReview review = reviewRepository.findById(id)
-            .orElseThrow(() -> new NoSuchElementException("Review not found"));
-         review.softDelete();
-         reviewRepository.save(review);
+        ProductReview review = reviewRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Review not found"));
+        review.softDelete();
+        reviewRepository.save(review);
+    }
+
+    @Override
+    public boolean hasUserReviewedProduct(Long productId, String userEmail) {
+        return reviewRepository.findByProductIdAndUserEmail(productId, userEmail).isPresent();
     }
 }
