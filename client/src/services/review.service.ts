@@ -32,4 +32,14 @@ export const reviewService = {
     const response = await reviewApi.createReview(data);
     return response;
   },
+
+  checkUserReviewed: async (productId: number) => {
+    try {
+      const response = await reviewApi.checkUserReviewed(productId);
+      return (response as any).data as boolean;
+    } catch (error) {
+      console.error("Error checking review status:", error);
+      return false;
+    }
+  },
 };

@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 @Builder
 public class OrderItemSummaryDTO {
+    private Long productId;
     private String productName;
     private Integer quantity;
     private BigDecimal unitPrice;

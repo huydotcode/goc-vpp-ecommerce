@@ -5,6 +5,7 @@ import {
   ArrowLeftOutlined,
   CopyOutlined,
   LinkOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,19 +13,23 @@ import {
   Card,
   Divider,
   Empty,
+  Form,
   Input,
   Modal,
+  Rate,
   Space,
   Spin,
   Steps,
   Tag,
   Typography,
 } from "antd";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { getPayOSUrl, removePayOSUrl } from "../utils/payosStorage";
 import type { PromotionSummary } from "@/types/cart.types";
+import { reviewService } from "@/services/review.service";
+import { useAuth } from "@/contexts/AuthContext";
 
 // type OrderItemSummary = {
 //   productName?: string;
@@ -133,8 +138,17 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
   const code = orderCode || id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewingProductId, setReviewingProductId] = useState<number | null>(
+    null
+  );
+  const [reviewForm] = Form.useForm();
+  const [productReviewStatus, setProductReviewStatus] = useState<
+    Record<number, boolean>
+  >({});
 
   const { data, isLoading, refetch } = useQuery<Order | null>({
     queryKey: ["orderDetail", orderCode],
@@ -195,6 +209,71 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     if (!orderCode) return null;
     return getPayOSUrl(orderCode);
   }, [orderCode]);
+
+  // Fetch review status for products in completed orders
+  useEffect(() => {
+    console.log({
+      data,
+    });
+    if (data?.status === "COMPLETED" && data.items && user && !isAdmin) {
+      const checkReviews = async () => {
+        const statusMap: Record<number, boolean> = {};
+        for (const item of data.items || []) {
+          console.log({ item });
+          if (!item.isGift && item.productId) {
+            try {
+              const hasReviewed = await reviewService.checkUserReviewed(
+                item.productId
+              );
+              statusMap[item.productId] = hasReviewed;
+            } catch {
+              statusMap[item.productId] = false;
+            }
+          }
+        }
+        setProductReviewStatus(statusMap);
+      };
+      checkReviews();
+    }
+  }, [data, user, isAdmin]);
+
+  // Mutation to create review
+  const createReviewMutation = useMutation({
+    mutationFn: async (values: { rating: number; content: string }) => {
+      if (!reviewingProductId) throw new Error("Product ID not set");
+      return await reviewService.createReview({
+        productId: reviewingProductId,
+        rating: values.rating,
+        content: values.content,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Đánh giá thành công!");
+      setReviewModalOpen(false);
+      reviewForm.resetFields();
+      if (reviewingProductId) {
+        setProductReviewStatus((prev) => ({
+          ...prev,
+          [reviewingProductId]: true,
+        }));
+      }
+      setReviewingProductId(null);
+    },
+    onError: (error) => {
+      handleApiError(error);
+    },
+  });
+
+  const handleOpenReviewModal = (productId: number) => {
+    setReviewingProductId(productId);
+    setReviewModalOpen(true);
+  };
+
+  const handleSubmitReview = () => {
+    reviewForm.validateFields().then((values) => {
+      createReviewMutation.mutate(values);
+    });
+  };
 
   // Check if order needs payment (PayOS method and pending status)
   const needsPayment = useMemo(() => {
@@ -434,6 +513,29 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
                       <div className="text-sm text-gray-500">
                         x{item.quantity}
                       </div>
+                      {/* Review button for completed orders */}
+                      {!isAdmin &&
+                        data.status === "COMPLETED" &&
+                        !item.isGift &&
+                        item.productId && (
+                          <div className="mt-2">
+                            {productReviewStatus[item.productId] ? (
+                              <Tag color="green" icon={<StarOutlined />}>
+                                Đã đánh giá
+                              </Tag>
+                            ) : (
+                              <Button
+                                size="small"
+                                icon={<StarOutlined />}
+                                onClick={() =>
+                                  handleOpenReviewModal(item.productId)
+                                }
+                              >
+                                Đánh giá sản phẩm
+                              </Button>
+                            )}
+                          </div>
+                        )}
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-gray-500">
@@ -561,6 +663,40 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
             />
           </div>
         </div>
+      </Modal>
+
+      {/* Review Modal */}
+      <Modal
+        title="Đánh giá sản phẩm"
+        open={reviewModalOpen}
+        onOk={handleSubmitReview}
+        onCancel={() => {
+          setReviewModalOpen(false);
+          reviewForm.resetFields();
+          setReviewingProductId(null);
+        }}
+        confirmLoading={createReviewMutation.isPending}
+        okText="Gửi đánh giá"
+        cancelText="Hủy"
+      >
+        <Form form={reviewForm} layout="vertical" initialValues={{ rating: 5 }}>
+          <Form.Item
+            name="rating"
+            label="Đánh giá"
+            rules={[{ required: true, message: "Vui lòng chọn số sao" }]}
+          >
+            <Rate />
+          </Form.Item>
+
+          <Form.Item name="content" label="Nhận xét">
+            <Input.TextArea
+              rows={4}
+              placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+              maxLength={500}
+              showCount
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );
