@@ -30,6 +30,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCart } from "../hooks";
 import { formatCurrency } from "../utils/format";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { Title, Text } = Typography;
 
@@ -39,6 +40,7 @@ const CartPage: React.FC = () => {
   const isMobile = !screens.xl;
   const imageSize = isMobile ? 80 : 100;
 
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const {
     cart,
@@ -186,6 +188,12 @@ const CartPage: React.FC = () => {
       toast.warning("Vui lòng chọn ít nhất một sản phẩm");
       return;
     }
+
+    if (!isAuthenticated) {
+      toast.warning("Vui lòng đăng nhập để tiếp tục");
+      return;
+    }
+
     navigate("/checkout", {
       state: { selectedCartItemIds: Array.from(selectedItemIds) },
     });
