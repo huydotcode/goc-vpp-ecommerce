@@ -81,7 +81,6 @@ const ProductAdminMain: React.FC = () => {
         { header: "Tên", key: "name", width: 30 },
         { header: "SKU", key: "sku", width: 20 },
         { header: "Giá", key: "price", width: 15 },
-        { header: "Giá giảm", key: "discountPrice", width: 15 },
         { header: "Thương hiệu", key: "brand", width: 20 },
         { header: "Active", key: "isActive", width: 15 },
         { header: "Featured", key: "isFeatured", width: 15 },
@@ -94,9 +93,6 @@ const ProductAdminMain: React.FC = () => {
         name: product.name,
         sku: product.sku || "",
         price: product.price ? product.price.toLocaleString("vi-VN") : "",
-        discountPrice: product.discountPrice
-          ? product.discountPrice.toLocaleString("vi-VN")
-          : "",
         brand: product.brand || "",
         isActive: product.isActive ? "Yes" : "No",
         isFeatured: product.isFeatured ? "Yes" : "No",
@@ -224,20 +220,6 @@ const ProductAdminMain: React.FC = () => {
             style: "currency",
             currency: "VND",
           }).format(record.price)
-          : "N/A",
-    },
-    {
-      title: "Giá giảm",
-      dataIndex: "discountPrice",
-      key: "discountPrice",
-      hideInSearch: true,
-      sorter: true,
-      render: (_, record) =>
-        record.discountPrice
-          ? new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-          }).format(record.discountPrice)
           : "N/A",
     },
     {
