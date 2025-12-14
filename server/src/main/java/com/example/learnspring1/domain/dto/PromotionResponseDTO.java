@@ -13,6 +13,7 @@ public class PromotionResponseDTO {
 
     private Long id;
     private String name;
+    private String slug;
     private String thumbnailUrl;
     private String description;
     private PromotionDiscountType discountType;
@@ -26,6 +27,7 @@ public class PromotionResponseDTO {
 
     public PromotionResponseDTO(Long id,
             String name,
+            String slug,
             String thumbnailUrl,
             String description,
             PromotionDiscountType discountType,
@@ -35,6 +37,7 @@ public class PromotionResponseDTO {
             List<GiftItemDTO> giftItems) {
         this.id = id;
         this.name = name;
+        this.slug = slug;
         this.thumbnailUrl = thumbnailUrl;
         this.description = description;
         this.discountType = discountType;
@@ -60,6 +63,7 @@ public class PromotionResponseDTO {
         return new PromotionResponseDTO(
                 promotion.getId(),
                 promotion.getName(),
+                promotion.getSlug(),
                 promotion.getThumbnailUrl(),
                 promotion.getDescription(),
                 promotion.getDiscountType(),
@@ -75,6 +79,10 @@ public class PromotionResponseDTO {
 
     public String getName() {
         return name;
+    }
+
+    public String getSlug() {
+        return slug;
     }
 
     public String getThumbnailUrl() {

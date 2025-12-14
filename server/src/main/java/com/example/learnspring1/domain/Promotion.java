@@ -45,6 +45,9 @@ public class Promotion {
     @Column(nullable = false, length = 150)
     private String name;
 
+    @Column(length = 255, unique = true)
+    private String slug;
+
     @Column(length = 255)
     private String thumbnailUrl;
 

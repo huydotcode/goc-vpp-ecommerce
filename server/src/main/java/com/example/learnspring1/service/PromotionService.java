@@ -13,6 +13,8 @@ public interface PromotionService {
 
     Promotion getPromotion(Long id);
 
+    Promotion getPromotionBySlug(String slug);
+
     java.util.List<Promotion> getActivePromotions();
 
     Page<Promotion> getPromotionsPageWithFilters(Pageable pageable, Long id, String name, Boolean isActive, String search);

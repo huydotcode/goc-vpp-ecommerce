@@ -54,6 +54,13 @@ export const promotionService = {
   },
 
   /**
+   * Get promotion by slug
+   */
+  getPromotionBySlug: async (slug: string): Promise<PromotionResponse> => {
+    return promotionApi.getPromotionBySlug(slug);
+  },
+
+  /**
    * Create new promotion
    */
   createPromotion: async (

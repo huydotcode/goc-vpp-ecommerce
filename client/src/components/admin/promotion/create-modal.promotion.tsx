@@ -401,6 +401,14 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
             <Input />
           </Form.Item>
 
+          <Form.Item
+            label="Slug"
+            name="slug"
+            tooltip="Đường dẫn URL cho trang khuyến mãi (để trống sẽ tự động tạo từ tên)"
+          >
+            <Input placeholder="vd: khuyen-mai-giam-gia-50" />
+          </Form.Item>
+
           <Form.Item label="Mô tả" name="description">
             <Input.TextArea rows={4} />
           </Form.Item>

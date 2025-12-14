@@ -111,6 +111,13 @@ public class PromotionController {
         return PromotionResponseDTO.fromEntity(promotion);
     }
 
+    @Operation(summary = "Get promotion details by slug")
+    @GetMapping("/slug/{slug}")
+    public PromotionResponseDTO getPromotionBySlug(@PathVariable("slug") String slug) {
+        Promotion promotion = promotionService.getPromotionBySlug(slug);
+        return PromotionResponseDTO.fromEntity(promotion);
+    }
+
     @Operation(summary = "Get active promotions")
     @GetMapping("/active")
     public List<PromotionResponseDTO> getActivePromotions() {

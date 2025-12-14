@@ -40,8 +40,16 @@ public class PromotionServiceImpl implements PromotionService {
     public Promotion createPromotion(PromotionRequestDTO request) {
         PromotionRequestDTO safeRequest = Objects.requireNonNull(request, "promotion payload is required");
 
+        String slug = safeRequest.getSlug();
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = generateSlug(safeRequest.getName());
+        } else {
+            slug = slug.trim().toLowerCase();
+        }
+
         Promotion promotion = Promotion.builder()
                 .name(safeRequest.getName())
+                .slug(slug)
                 .thumbnailUrl(safeRequest.getThumbnailUrl())
                 .description(safeRequest.getDescription())
                 .discountType(safeRequest.getDiscountType())
@@ -67,6 +75,18 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Promotion getPromotionBySlug(String slug) {
+        if (slug == null || slug.trim().isEmpty()) {
+            throw new IllegalArgumentException("promotion slug is required");
+        }
+        Promotion promotion = promotionRepository.findBySlug(slug.trim().toLowerCase())
+                .orElseThrow(() -> new NoSuchElementException("Promotion not found with slug " + slug));
+        initializePromotion(promotion);
+        return promotion;
+    }
+
+    @Override
     @Transactional
     public Promotion updatePromotion(Long id, PromotionRequestDTO request) {
         if (id == null) {
@@ -77,7 +97,15 @@ public class PromotionServiceImpl implements PromotionService {
         Promotion existing = promotionRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Promotion not found with id " + id));
         
+        String slug = safeRequest.getSlug();
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = generateSlug(safeRequest.getName());
+        } else {
+            slug = slug.trim().toLowerCase();
+        }
+
         existing.setName(safeRequest.getName());
+        existing.setSlug(slug);
         existing.setThumbnailUrl(safeRequest.getThumbnailUrl());
         existing.setDescription(safeRequest.getDescription());
         existing.setDiscountType(safeRequest.getDiscountType());
@@ -198,6 +226,18 @@ public class PromotionServiceImpl implements PromotionService {
                     .build();
             promotion.addGiftItem(giftItem);
         }
+    }
+
+    private String generateSlug(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        return name.trim()
+                .toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 }
 

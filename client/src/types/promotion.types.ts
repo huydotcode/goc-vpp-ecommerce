@@ -107,6 +107,7 @@ export interface Promotion {
  */
 export interface PromotionRequest {
   name: string;
+  slug?: string;
   thumbnailUrl?: string;
   description?: string;
   discountType: PromotionDiscountType;
@@ -122,6 +123,7 @@ export interface PromotionRequest {
 export interface PromotionResponse {
   id: number;
   name: string;
+  slug?: string | null;
   thumbnailUrl?: string | null;
   description?: string | null;
   discountType: PromotionDiscountType;

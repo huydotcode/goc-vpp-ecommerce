@@ -26,6 +26,8 @@ public class PromotionRequestDTO {
     @NotBlank(message = "name is required")
     private String name;
 
+    private String slug;
+
     private String thumbnailUrl;
 
     private String description;

@@ -9,6 +9,7 @@ import { Col, Row, Typography } from "antd";
 import { motion } from "framer-motion";
 import React, { useMemo } from "react";
 import { useInView } from "react-intersection-observer";
+import { useNavigate } from "react-router-dom";
 
 const { Text } = Typography;
 
@@ -55,6 +56,7 @@ const collectProductsFromPromotion = (
 };
 
 const PromotionsSection: React.FC = () => {
+  const navigate = useNavigate();
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.2,
@@ -137,7 +139,14 @@ const PromotionsSection: React.FC = () => {
             <div className="space-y-3">
               {/* Ảnh banner full width */}
               {promo.thumbnailUrl && (
-                <div className="overflow-hidden rounded-lg">
+                <div
+                  className="overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.02]"
+                  onClick={() => {
+                    if (promo.slug) {
+                      navigate(`/promotions/${promo.slug}`);
+                    }
+                  }}
+                >
                   <img
                     src={promo.thumbnailUrl}
                     alt={promo.name}

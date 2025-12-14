@@ -94,6 +94,7 @@ const PromotionUpdate: React.FC<PromotionUpdateProps> = ({
       // Set Form Values
       form.setFieldsValue({
         name: dataDetailModal.name,
+        slug: dataDetailModal.slug,
         description: dataDetailModal.description,
         discountType: dataDetailModal.discountType,
         discountAmount: dataDetailModal.discountAmount,
@@ -440,6 +441,14 @@ const PromotionUpdate: React.FC<PromotionUpdateProps> = ({
             ]}
           >
             <Input />
+          </Form.Item>
+
+          <Form.Item
+            label="Slug"
+            name="slug"
+            tooltip="Đường dẫn URL cho trang khuyến mãi (để trống sẽ tự động tạo từ tên)"
+          >
+            <Input placeholder="vd: khuyen-mai-giam-gia-50" />
           </Form.Item>
 
           <Form.Item label="Mô tả" name="description">

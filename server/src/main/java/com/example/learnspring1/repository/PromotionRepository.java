@@ -10,6 +10,8 @@ import com.example.learnspring1.domain.Promotion;
 
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
     java.util.List<Promotion> findByIsActiveTrue();
+    
+    java.util.Optional<Promotion> findBySlug(String slug);
 
     @Query("SELECT p FROM Promotion p WHERE " +
            "(:id IS NULL OR p.id = :id) AND " +

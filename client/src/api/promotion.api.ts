@@ -43,6 +43,16 @@ export const promotionApi = {
   },
 
   /**
+   * Get promotion by slug
+   */
+  getPromotionBySlug: async (slug: string): Promise<PromotionResponse> => {
+    const response = await apiClient.get<PromotionResponse>(
+      `${API_ENDPOINTS.PROMOTIONS}/slug/${slug}`
+    );
+    return response.data;
+  },
+
+  /**
    * Create new promotion
    */
   createPromotion: async (promotion: PromotionRequest): Promise<Promotion> => {
