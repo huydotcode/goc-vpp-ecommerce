@@ -83,7 +83,7 @@ const PromotionsSection: React.FC = () => {
   return (
     <motion.div
       ref={ref}
-      className="mb-8 bg-secondary rounded-xl"
+      className="mb-8 bg-secondary rounded-xl py-4"
       initial={{ opacity: 0, y: 24 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -134,13 +134,13 @@ const PromotionsSection: React.FC = () => {
         promotionsWithProducts.map(({ promo, products }) => (
           <div
             key={promo.id}
-            className="border-none bg-white shadow-md py-4 px-6 rounded-xl"
+            className="border-none bg-white shadow-md py-4 px-6 rounded-xl mt-4 mx-4"
           >
             <div className="space-y-3">
               {/* Ảnh banner full width */}
               {promo.thumbnailUrl && (
                 <div
-                  className="overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.02]"
+                  className="overflow-hidden rounded-lg cursor-pointer transition-transform"
                   onClick={() => {
                     if (promo.slug) {
                       navigate(`/promotions/${promo.slug}`);
