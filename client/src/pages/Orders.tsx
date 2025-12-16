@@ -25,6 +25,7 @@ import ReviewModal, {
 } from "@/components/order/ReviewModal";
 import { reviewService } from "@/services/review.service";
 import { toast } from "sonner";
+import CancelOrderModal from "@/components/order/CancelOrderModal";
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
@@ -83,6 +84,10 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
   const [reviewingProductId, setReviewingProductId] = useState<number | null>(
+    null
+  );
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancellingOrderCode, setCancellingOrderCode] = useState<string | null>(
     null
   );
 
@@ -151,11 +156,13 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: async (orderCode: string) => {
-      return orderService.cancelOrder(orderCode);
+    mutationFn: async (params: { orderCode: string; reason?: string }) => {
+      return orderService.cancelOrder(params.orderCode, params.reason);
     },
     onSuccess: () => {
       toast.success("Hủy đơn hàng thành công");
+      setCancelModalOpen(false);
+      setCancellingOrderCode(null);
       queryClient.invalidateQueries({
         queryKey: [isAdmin ? "adminOrders" : "userOrders"],
       });
@@ -446,16 +453,10 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                     <Button
                       size="middle"
                       danger
-                      loading={cancelMutation.isPending}
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
-                        try {
-                          await cancelMutation.mutateAsync(
-                            order.orderCode || String(order.id)
-                          );
-                        } catch {
-                          // handled in onError
-                        }
+                        setCancellingOrderCode(order.orderCode || String(order.id));
+                        setCancelModalOpen(true);
                       }}
                     >
                       Hủy
@@ -570,6 +571,24 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
           />
         </div>
       )}
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        open={cancelModalOpen}
+        loading={cancelMutation.isPending}
+        orderCode={cancellingOrderCode}
+        onSubmit={(reason) => {
+          if (!cancellingOrderCode) return;
+          void cancelMutation.mutate({
+            orderCode: cancellingOrderCode,
+            reason,
+          });
+        }}
+        onCancel={() => {
+          setCancelModalOpen(false);
+          setCancellingOrderCode(null);
+        }}
+      />
 
       {/* Review Modal from Orders page */}
       <ReviewModal

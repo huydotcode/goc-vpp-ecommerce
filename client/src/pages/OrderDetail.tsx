@@ -14,7 +14,6 @@ import {
   Divider,
   Empty,
   Input,
-  Modal,
   Space,
   Spin,
   Steps,
@@ -32,6 +31,7 @@ import ReviewModal, {
   type ReviewFormValues,
   type ReviewableItem,
 } from "@/components/order/ReviewModal";
+import CancelOrderModal from "@/components/order/CancelOrderModal";
 
 // type OrderItemSummary = {
 //   productName?: string;
@@ -143,7 +143,6 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewingProductId, setReviewingProductId] = useState<number | null>(
     null
@@ -167,19 +166,12 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
   });
 
   const cancelOrderMutation = useMutation({
-    mutationFn: async ({
-      orderCode,
-      reason,
-    }: {
-      orderCode: string;
-      reason?: string;
-    }) => {
-      return await orderApi.cancelOrder(orderCode, reason);
+    mutationFn: async (params: { orderCode: string; reason?: string }) => {
+      return await orderApi.cancelOrder(params.orderCode, params.reason);
     },
     onSuccess: () => {
       toast.success("Đã hủy đơn hàng thành công");
       setCancelModalOpen(false);
-      setCancelReason("");
       refetch();
       queryClient.invalidateQueries({ queryKey: ["userOrders"] });
     },
@@ -197,11 +189,11 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     );
   };
 
-  const handleCancelOrder = () => {
+  const handleCancelOrder = (reason?: string) => {
     if (orderCode) {
       cancelOrderMutation.mutate({
         orderCode,
-        reason: cancelReason.trim() || undefined,
+        reason,
       });
     }
   };
@@ -642,57 +634,13 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
       )}
 
       {/* Cancel Order Modal */}
-      <Modal
-        title="Hủy đơn hàng"
+      <CancelOrderModal
         open={cancelModalOpen}
-        onOk={handleCancelOrder}
-        onCancel={() => {
-          setCancelModalOpen(false);
-          setCancelReason("");
-        }}
-        confirmLoading={cancelOrderMutation.isPending}
-        okText="Xác nhận hủy"
-        cancelText="Không"
-        okButtonProps={{ danger: true }}
-      >
-        <div className="space-y-3">
-          <Typography.Text>
-            Bạn có chắc chắn muốn hủy đơn hàng <strong>#{orderCode}</strong>?
-          </Typography.Text>
-          <div>
-            <Typography.Text strong>Lý do hủy (tùy chọn):</Typography.Text>
-            <div style={{ marginTop: 8, marginBottom: 8 }}>
-              <Space size={[8, 8]} wrap>
-                {[
-                  "Đổi ý, không muốn mua nữa",
-                  "Đặt nhầm sản phẩm",
-                  "Tìm thấy sản phẩm rẻ hơn",
-                  "Thông tin địa chỉ sai",
-                  "Không đủ tiền thanh toán",
-                  "Sản phẩm không còn phù hợp",
-                ].map((reason) => (
-                  <Tag
-                    key={reason}
-                    style={{ cursor: "pointer" }}
-                    color={cancelReason === reason ? "blue" : "default"}
-                    onClick={() => setCancelReason(reason)}
-                  >
-                    {reason}
-                  </Tag>
-                ))}
-              </Space>
-            </div>
-            <Input.TextArea
-              rows={3}
-              value={cancelReason}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                setCancelReason(e.target.value)
-              }
-              placeholder="Hoặc nhập lý do hủy đơn hàng của bạn..."
-            />
-          </div>
-        </div>
-      </Modal>
+        loading={cancelOrderMutation.isPending}
+        orderCode={orderCode}
+        onSubmit={handleCancelOrder}
+        onCancel={() => setCancelModalOpen(false)}
+      />
 
       {/* Review Modal */}
       <ReviewModal
