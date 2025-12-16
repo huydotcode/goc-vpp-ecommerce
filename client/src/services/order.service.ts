@@ -1,5 +1,6 @@
 import { orderApi } from "@/api/order.api";
 import type { Order } from "@/types/order.types";
+import type { PageResult } from "@/types/page.types";
 
 export interface OrderFilter {
   status?: string;
@@ -13,6 +14,21 @@ export const orderService = {
       return orders.filter((o) => o.status === filter.status);
     }
     return orders;
+  },
+
+  getMyOrdersPaged: async (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortDir?: "ASC" | "DESC";
+  }): Promise<PageResult<Order>> => {
+    return await orderApi.getMyOrdersPaged(params);
+  },
+
+  cancelOrder: async (orderCode: string, reason?: string): Promise<Order> => {
+    return await orderApi.cancelOrder(orderCode, reason);
   },
 
   getAllOrders: async (): Promise<Order[]> => {

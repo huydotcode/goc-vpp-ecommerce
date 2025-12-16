@@ -195,6 +195,44 @@ public class OrderService {
         return orderRepository.findWithItemsByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    public Page<Order> getOrdersWithItemsByUserIdPaged(Long userId, String status, String search, Pageable pageable) {
+
+        Specification<Order> spec = (root, query, criteriaBuilder) -> {
+            // Eager fetch for SELECT
+            if (query != null && query.getResultType() != null) {
+                Class<?> resultType = query.getResultType();
+                if (resultType != Long.class && resultType != long.class) {
+                    root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
+                            .fetch("product", jakarta.persistence.criteria.JoinType.LEFT);
+                    root.fetch("items", jakarta.persistence.criteria.JoinType.LEFT)
+                            .fetch("variant", jakarta.persistence.criteria.JoinType.LEFT);
+                    query.distinct(true);
+                }
+            }
+
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userId));
+
+            if (status != null && !status.trim().isEmpty()) {
+                try {
+                    Order.OrderStatus orderStatus = Order.OrderStatus.valueOf(status.toUpperCase());
+                    predicates.add(criteriaBuilder.equal(root.get("status"), orderStatus));
+                } catch (IllegalArgumentException e) {
+                    // ignore invalid status
+                }
+            }
+
+            if (search != null && !search.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("orderCode")), "%" + search.toLowerCase() + "%"));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return orderRepository.findAll(spec, pageable);
+    }
+
     public Optional<Order> getOrderWithItemsByCode(String orderCode) {
         return orderRepository.findWithItemsByOrderCode(orderCode);
     }
@@ -276,7 +314,7 @@ public class OrderService {
         // Calculate Promotions
         List<Promotion> activePromotions = promotionService.getActivePromotions();
         PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, itemsToCheckout, activePromotions);
-        
+
         String appliedPromotionsJson = null;
         try {
             if (!promoResult.getAppliedPromotions().isEmpty()) {
@@ -332,10 +370,10 @@ public class OrderService {
         // Add Gift Items
         for (PromotionGiftItem gift : promoResult.getGiftItems()) {
              // Create mock variant/product info for gift if needed, or link to actual product
-             // Should check if gift item needs to reduce stock? Assuming gifts also reduce stock logic is needed but out of scope for strict 'add item', 
+             // Should check if gift item needs to reduce stock? Assuming gifts also reduce stock logic is needed but out of scope for strict 'add item',
              // but let's assume we link to product.
              // For simplicity, we just add OrderItem with price 0.
-             
+
              OrderItem giftItem = OrderItem.builder()
                     .order(order)
                     .product(gift.getProduct())

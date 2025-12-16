@@ -318,13 +318,55 @@ public class OrderController {
         return ResponseEntity.ok(toDetailDTO(order));
     }
 
+    @Operation(summary = "Lấy lịch sử đơn hàng cho user", description = "Trả về timeline thay đổi của đơn hàng hiện tại của user")
+    @GetMapping("/{orderCode}/history")
+    public ResponseEntity<?> getMyOrderHistory(@PathVariable String orderCode) {
+        try {
+            User currentUser = getCurrentUser();
 
+            // Đảm bảo user chỉ xem được lịch sử đơn hàng của chính mình
+            Order order = orderService.getOrderByCode(orderCode)
+                    .filter(o -> o.getUser() != null && o.getUser().getId().equals(currentUser.getId()))
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            java.util.List<OrderAuditLog> history = orderAuditLogService.getOrderHistory(order.getId());
+            java.util.List<OrderAuditLogDTO> historyDTOs = orderAuditLogService.toHistoryDTOList(history);
+            return ResponseEntity.ok(historyDTOs);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to get order history: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 
     @GetMapping
     public ResponseEntity<?> getMyOrders() {
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(
                 orderService.getOrdersWithItemsByUserId(currentUser.getId()).stream().map(this::toSummaryDTO).toList());
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<OrderSummaryDTO>> getMyOrdersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        User currentUser = getCurrentUser();
+        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        String sortField = switch (sortBy) {
+            case "finalAmount", "totalAmount" -> "finalAmount";
+            default -> "createdAt";
+        };
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        Page<Order> orders = orderService.getOrdersWithItemsByUserIdPaged(currentUser.getId(), status, search,
+                pageable);
+        Page<OrderSummaryDTO> dtoPage = orders.map(this::toSummaryDTO);
+        return ResponseEntity.ok(dtoPage);
     }
 
     @GetMapping("/all")

@@ -7,6 +7,7 @@ import type {
   OrderStatistics,
   OrderStatisticsByRange,
 } from "../types/order.types";
+import type { OrderHistoryItem } from "./adminOrder.api";
 
 interface ApiResponseWrapper<T> {
   status: string;
@@ -68,6 +69,29 @@ export const orderApi = {
     }
 
     throw new Error("Không đọc được danh sách đơn hàng");
+  },
+
+  getMyOrdersPaged: async (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortDir?: "ASC" | "DESC";
+  }) => {
+    const { page = 0, size = 10, status, search, sortBy, sortDir } = params;
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("size", String(size));
+    if (status) query.set("status", status);
+    if (search) query.set("search", search);
+    if (sortBy) query.set("sortBy", sortBy);
+    if (sortDir) query.set("sortDir", sortDir);
+
+    const res = await apiClient.get(
+      `${API_ENDPOINTS.ORDERS}/page?${query.toString()}`
+    );
+    return res.data ?? res;
   },
 
   getStatistics: async (): Promise<OrderStatistics> => {
@@ -163,5 +187,20 @@ export const orderApi = {
     }
 
     throw new Error("Không thể hủy đơn hàng");
+  },
+
+  getOrderHistory: async (orderCode: string): Promise<OrderHistoryItem[]> => {
+    const res = (await apiClient.get(
+      `${API_ENDPOINTS.ORDERS}/${orderCode}/history`
+    )) as OrderHistoryItem[] | ApiResponseWrapper<OrderHistoryItem[]>;
+
+    if (Array.isArray(res)) {
+      return res;
+    }
+    if (res && typeof res === "object" && "data" in res && res.data) {
+      return (res as ApiResponseWrapper<OrderHistoryItem[]>).data;
+    }
+
+    throw new Error("Không đọc được lịch sử đơn hàng");
   },
 };

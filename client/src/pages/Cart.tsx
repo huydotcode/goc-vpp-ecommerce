@@ -77,7 +77,9 @@ const CartPage: React.FC = () => {
   const applicablePromotions = useMemo(() => {
     if (!cart || selectedItemIds.size === 0) return [];
 
-    const selectedItems = cart.items.filter((item) => selectedItemIds.has(item.id));
+    const selectedItems = cart.items.filter((item) =>
+      selectedItemIds.has(item.id)
+    );
 
     return activePromotions.filter((promo) => {
       // Only discount promotions can be selected
@@ -116,7 +118,7 @@ const CartPage: React.FC = () => {
 
   // Get all promotion IDs for automatic application
   const autoAppliedPromotionIds = useMemo(
-    () => applicablePromotions.map(p => p.id),
+    () => applicablePromotions.map((p) => p.id),
     [applicablePromotions]
   );
 
@@ -332,7 +334,6 @@ const CartPage: React.FC = () => {
     (sum, item) => sum + item.quantity,
     0
   );
-
 
   if (isLoading) {
     return (
