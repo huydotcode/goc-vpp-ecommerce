@@ -1,6 +1,10 @@
 import type { CartItem, CartPromotionPreview } from "@/types/cart.types";
 import type { UserAddress } from "@/types/user.types";
-import { EnvironmentOutlined } from "@ant-design/icons";
+import {
+  EnvironmentOutlined,
+  HomeOutlined,
+  PhoneOutlined,
+} from "@ant-design/icons";
 import {
   Button,
   Card,
@@ -564,7 +568,6 @@ const CheckoutPage: React.FC = () => {
           addressService.buildFullAddress(addressData) || values.address || "";
       }
 
-
       const checkoutResponse = await checkoutMutation.mutateAsync({
         paymentMethod: paymentMethod,
         customerName: values.fullName || "",
@@ -581,7 +584,10 @@ const CheckoutPage: React.FC = () => {
         console.log("displaySubtotal:", displaySubtotal);
         console.log("displayDiscountAmount:", displayDiscountAmount);
         console.log("displayFinalAmount:", displayFinalAmount);
-        console.log("Math.round(displayFinalAmount):", Math.round(displayFinalAmount));
+        console.log(
+          "Math.round(displayFinalAmount):",
+          Math.round(displayFinalAmount)
+        );
         console.log("previewPromo:", previewPromo);
         console.log("===========================");
 
@@ -844,7 +850,7 @@ const CheckoutPage: React.FC = () => {
                             marginBottom: 8,
                           }}
                         >
-                          <EnvironmentOutlined style={{ color: "#1890ff" }} />
+                          <HomeOutlined />
                           <Text strong>
                             {buildAddressDisplay(selectedAddress)}
                           </Text>
@@ -856,7 +862,7 @@ const CheckoutPage: React.FC = () => {
                         </div>
                         {selectedAddress.phone && (
                           <Text type="secondary" style={{ fontSize: 14 }}>
-                            📞 {selectedAddress.phone}
+                            <PhoneOutlined /> {selectedAddress.phone}
                           </Text>
                         )}
                       </div>
