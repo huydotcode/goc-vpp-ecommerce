@@ -485,12 +485,18 @@ const OrdersPage: React.FC = () => {
         open={cancelModalOpen}
         loading={cancelMutation.isPending}
         orderCode={cancellingOrderCode}
-        onSubmit={(reason) => {
+        onSubmit={async (reason) => {
           if (!cancellingOrderCode) return;
-          void cancelMutation.mutate({
-            orderCode: cancellingOrderCode,
-            reason,
-          });
+          try {
+            await cancelMutation.mutateAsync({
+              orderCode: cancellingOrderCode,
+              reason,
+            });
+            setCancelModalOpen(false);
+            setCancellingOrderCode(null);
+          } catch {
+            // errors are handled in cancelMutation.onError
+          }
         }}
         onCancel={() => {
           setCancelModalOpen(false);
