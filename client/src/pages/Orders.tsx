@@ -1,6 +1,4 @@
-import { orderService } from "@/services/order.service";
-import { handleApiError } from "@/utils/error";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUserOrders } from "@/hooks/useOrders";
 import {
   Card,
   Empty,
@@ -26,6 +24,8 @@ import ReviewModal, {
 import { reviewService } from "@/services/review.service";
 import { toast } from "sonner";
 import CancelOrderModal from "@/components/order/CancelOrderModal";
+import { useMutation } from "@tanstack/react-query";
+import { handleApiError } from "@/utils/error";
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
@@ -75,7 +75,6 @@ const formatCurrency = (value: number) =>
 
 const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
@@ -111,49 +110,12 @@ const OrdersPage: React.FC = () => {
     setSearchParams(next);
   };
 
-  const { data, isLoading } = useQuery<{
-    content: Order[];
-    totalElements: number;
-    number: number;
-  }>({
-    queryKey: ["userOrders", statusFilter, searchText, sortKey, currentPage],
-    queryFn: async () => {
-      try {
-        const sortBy =
-          sortKey === "amountDesc" || sortKey === "amountAsc"
-            ? "finalAmount"
-            : "createdAt";
-        const sortDir =
-          sortKey === "oldest" || sortKey === "amountAsc" ? "ASC" : "DESC";
-
-        return await orderService.getMyOrdersPaged({
-          page: currentPage - 1,
-          size: pageSize,
-          status: statusFilter,
-          search: searchText.trim() || undefined,
-          sortBy,
-          sortDir,
-        });
-      } catch (error) {
-        handleApiError(error);
-        throw error;
-      }
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: async (params: { orderCode: string; reason?: string }) => {
-      return orderService.cancelOrder(params.orderCode, params.reason);
-    },
-    onSuccess: () => {
-      toast.success("Hủy đơn hàng thành công");
-      setCancelModalOpen(false);
-      setCancellingOrderCode(null);
-      queryClient.invalidateQueries({
-        queryKey: ["userOrders"],
-      });
-    },
-    onError: handleApiError,
+  const { ordersData, isLoading, cancelMutation } = useUserOrders({
+    status: statusFilter,
+    search: searchText,
+    sortKey,
+    page: currentPage,
+    pageSize,
   });
 
   const canCancelOrder = (order: Order) =>
@@ -206,15 +168,6 @@ const OrdersPage: React.FC = () => {
   }, [reviewingOrder]);
 
   const [reviewStatus, setReviewStatus] = useState<Record<number, boolean>>({});
-
-  const ordersData = useMemo(
-    () => ({
-      content: data?.content ?? [],
-      totalElements: data?.totalElements ?? 0,
-      number: data?.number ?? 0,
-    }),
-    [data]
-  );
 
   const ensureCanReview = useCallback(
     async (productId: number): Promise<boolean> => {
