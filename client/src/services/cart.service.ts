@@ -2,6 +2,7 @@ import { cartApi } from "@/api/cart.api";
 import type {
   AddCartItemRequest,
   CartResponse,
+  CartPromotionPreview,
   UpdateCartItemRequest,
   UpdateCartItemVariantRequest,
 } from "@/types/cart.types";
@@ -18,4 +19,6 @@ export const cartService = {
   removeItem: (cartItemId: number): Promise<CartResponse> =>
     cartApi.removeItem(cartItemId),
   clearCart: (): Promise<void> => cartApi.clearCart(),
+  previewPromotions: (cartItemIds: number[]): Promise<CartPromotionPreview> =>
+    cartApi.previewPromotions(cartItemIds),
 };

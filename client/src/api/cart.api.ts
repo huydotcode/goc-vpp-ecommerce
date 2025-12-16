@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "./endpoints";
 import type {
   AddCartItemRequest,
   CartResponse,
+  CartPromotionPreview,
   UpdateCartItemRequest,
   UpdateCartItemVariantRequest,
 } from "@/types/cart.types";
@@ -52,5 +53,15 @@ export const cartApi = {
 
   clearCart: async (): Promise<void> => {
     await apiClient.delete<void>(API_ENDPOINTS.CART);
+  },
+
+  previewPromotions: async (
+    cartItemIds: number[]
+  ): Promise<CartPromotionPreview> => {
+    const res = await apiClient.post<CartPromotionPreview>(
+      `${API_ENDPOINTS.CART}/promotion-preview`,
+      { cartItemIds }
+    );
+    return res.data;
   },
 };
