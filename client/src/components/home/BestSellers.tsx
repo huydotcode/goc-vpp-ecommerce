@@ -69,7 +69,7 @@ const BestSellers: React.FC<BestSellersProps> = ({ activePromotions }) => {
           <div className="mt-3">
             <Row gutter={[16, 16]}>
               {Array.from({ length: 4 }).map((_, index) => (
-                <Col xs={24} sm={12} md={6} lg={4} key={index}>
+                <Col xs={24} sm={12} md={6} lg={6} key={index}>
                   <div className="h-48 animate-pulse rounded-lg bg-gray-100" />
                 </Col>
               ))}
@@ -80,9 +80,12 @@ const BestSellers: React.FC<BestSellersProps> = ({ activePromotions }) => {
         <>
           <div className="mt-3">
             <Row gutter={[16, 16]}>
-              {products.filter(p => !p.isGift).slice(0, 6).map((product) => (
-                <Col xs={24} sm={12} md={6} lg={4} key={product.id}>
-                  <ProductCard product={product} activePromotions={activePromotions} />
+              {products.slice(0, 6).map((product) => (
+                <Col xs={24} sm={12} md={6} lg={6} key={product.id}>
+                  <ProductCard
+                    product={product}
+                    activePromotions={activePromotions}
+                  />
                 </Col>
               ))}
             </Row>

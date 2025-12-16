@@ -25,7 +25,11 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
     threshold: 0.2,
   });
 
-  const { data: historyData, isLoading: historyLoading, isFetching: historyFetching } = useHistoryBasedSuggestions(
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    isFetching: historyFetching,
+  } = useHistoryBasedSuggestions(
     {
       limit,
       categoryId,
@@ -34,27 +38,37 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
   );
 
   // Fallback sang best sellers nếu history-based trả về rỗng
-  const shouldShowBestSellers = !historyLoading && (!historyData || historyData.length === 0);
-  const { data: bestSellersData, isLoading: bestSellersLoading } = useBestSellers(
-    limit,
-    inView && shouldShowBestSellers
-  );
+  const shouldShowBestSellers =
+    !historyLoading && (!historyData || historyData.length === 0);
+  const { data: bestSellersData, isLoading: bestSellersLoading } =
+    useBestSellers(limit, inView && shouldShowBestSellers);
 
-  const products = historyData && historyData.length > 0 ? historyData : (bestSellersData?.result || []);
+  const products =
+    historyData && historyData.length > 0
+      ? historyData
+      : bestSellersData?.result || [];
 
   // Debug logging
   React.useEffect(() => {
     if (inView) {
-      console.log("[HistorySuggest] Component in view, fetching suggestions...");
+      console.log(
+        "[HistorySuggest] Component in view, fetching suggestions..."
+      );
     }
   }, [inView]);
 
   React.useEffect(() => {
     if (historyData) {
-      console.log("[HistorySuggest] Received history products:", historyData.length);
+      console.log(
+        "[HistorySuggest] Received history products:",
+        historyData.length
+      );
     }
     if (bestSellersData) {
-      console.log("[HistorySuggest] Received best sellers:", bestSellersData.result?.length || 0);
+      console.log(
+        "[HistorySuggest] Received best sellers:",
+        bestSellersData.result?.length || 0
+      );
     }
   }, [historyData, bestSellersData]);
 
@@ -62,7 +76,8 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
     return <div ref={ref} className="mb-8 h-40" />;
   }
 
-  const isLoading = historyLoading || (shouldShowBestSellers && bestSellersLoading);
+  const isLoading =
+    historyLoading || (shouldShowBestSellers && bestSellersLoading);
   const isFetching = historyFetching;
 
   if (!isLoading && products.length === 0) {
@@ -103,7 +118,7 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
           <div className="mt-3">
             <Row gutter={[16, 16]}>
               {Array.from({ length: 4 }).map((_, index) => (
-                <Col xs={12} sm={12} md={6} lg={4} key={index}>
+                <Col xs={12} sm={12} md={6} lg={6} key={index}>
                   <div className="h-48 animate-pulse rounded-lg bg-gray-100" />
                 </Col>
               ))}
@@ -115,7 +130,7 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
           <div className="mt-3">
             <Row gutter={[16, 16]}>
               {products.slice(0, limit).map((product) => (
-                <Col xs={12} sm={12} md={6} lg={4} key={product.id}>
+                <Col xs={12} sm={12} md={6} lg={6} key={product.id}>
                   <ProductCard product={product} />
                 </Col>
               ))}
@@ -128,4 +143,3 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
 };
 
 export default HistoryBasedSuggestions;
-
