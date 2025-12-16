@@ -27,6 +27,10 @@ export const orderService = {
     return await orderApi.getMyOrdersPaged(params);
   },
 
+  cancelOrder: async (orderCode: string, reason?: string): Promise<Order> => {
+    return await orderApi.cancelOrder(orderCode, reason);
+  },
+
   getAllOrders: async (): Promise<Order[]> => {
     return await orderApi.getAllOrders();
   },

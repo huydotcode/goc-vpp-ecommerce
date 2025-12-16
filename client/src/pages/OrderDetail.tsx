@@ -13,10 +13,8 @@ import {
   Card,
   Divider,
   Empty,
-  Form,
   Input,
   Modal,
-  Rate,
   Space,
   Spin,
   Steps,
@@ -24,12 +22,16 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { getPayOSUrl, removePayOSUrl } from "../utils/payosStorage";
 import type { PromotionSummary } from "@/types/cart.types";
 import { reviewService } from "@/services/review.service";
 import { useAuth } from "@/contexts/AuthContext";
+import ReviewModal, {
+  type ReviewFormValues,
+  type ReviewableItem,
+} from "@/components/order/ReviewModal";
 
 // type OrderItemSummary = {
 //   productName?: string;
@@ -137,6 +139,7 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
   const { orderCode, id } = useParams(); // 'orderCode' for user, 'id' (which is orderCode) for admin
   const code = orderCode || id;
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -145,7 +148,6 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
   const [reviewingProductId, setReviewingProductId] = useState<number | null>(
     null
   );
-  const [reviewForm] = Form.useForm();
   const [productReviewStatus, setProductReviewStatus] = useState<
     Record<number, boolean>
   >({});
@@ -212,9 +214,6 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
 
   // Fetch review status for products in completed orders
   useEffect(() => {
-    console.log({
-      data,
-    });
     if (data?.status === "COMPLETED" && data.items && user && !isAdmin) {
       const checkReviews = async () => {
         const statusMap: Record<number, boolean> = {};
@@ -237,9 +236,27 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     }
   }, [data, user, isAdmin]);
 
+  // Auto open review modal when navigated with state (from Orders page)
+  useEffect(() => {
+    if (
+      location.state &&
+      (location.state as { openReview?: boolean }).openReview &&
+      data?.status === "COMPLETED" &&
+      data.items &&
+      !isAdmin
+    ) {
+      const firstReviewable = data.items.find(
+        (item) => !item.isGift && item.productId
+      );
+      if (firstReviewable && firstReviewable.productId) {
+        handleOpenReviewModal(firstReviewable.productId);
+      }
+    }
+  }, [location.state, data, isAdmin]);
+
   // Mutation to create review
   const createReviewMutation = useMutation({
-    mutationFn: async (values: { rating: number; content: string }) => {
+    mutationFn: async (values: ReviewFormValues) => {
       if (!reviewingProductId) throw new Error("Product ID not set");
       return await reviewService.createReview({
         productId: reviewingProductId,
@@ -250,7 +267,6 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     onSuccess: () => {
       toast.success("Đánh giá thành công!");
       setReviewModalOpen(false);
-      reviewForm.resetFields();
       if (reviewingProductId) {
         setProductReviewStatus((prev) => ({
           ...prev,
@@ -269,11 +285,22 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     setReviewModalOpen(true);
   };
 
-  const handleSubmitReview = () => {
-    reviewForm.validateFields().then((values) => {
-      createReviewMutation.mutate(values);
-    });
+  const handleSubmitReview = (values: ReviewFormValues) => {
+    createReviewMutation.mutate(values);
   };
+
+  const reviewableItems: ReviewableItem[] = useMemo(
+    () =>
+      (data?.items || [])
+        .filter((item) => !item.isGift && item.productId)
+        .map((item) => ({
+          productId: item.productId!,
+          productName: item.productName,
+          imageUrl: item.imageUrl,
+          quantity: item.quantity,
+        })),
+    [data?.items]
+  );
 
   // Check if order needs payment (PayOS method and pending status)
   const needsPayment = useMemo(() => {
@@ -658,7 +685,9 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
             <Input.TextArea
               rows={3}
               value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setCancelReason(e.target.value)
+              }
               placeholder="Hoặc nhập lý do hủy đơn hàng của bạn..."
             />
           </div>
@@ -666,38 +695,18 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
       </Modal>
 
       {/* Review Modal */}
-      <Modal
-        title="Đánh giá sản phẩm"
+      <ReviewModal
         open={reviewModalOpen}
-        onOk={handleSubmitReview}
+        loading={createReviewMutation.isPending}
+        items={reviewableItems}
+        reviewingProductId={reviewingProductId}
+        onChangeProduct={(id) => setReviewingProductId(id)}
+        onSubmit={handleSubmitReview}
         onCancel={() => {
           setReviewModalOpen(false);
-          reviewForm.resetFields();
           setReviewingProductId(null);
         }}
-        confirmLoading={createReviewMutation.isPending}
-        okText="Gửi đánh giá"
-        cancelText="Hủy"
-      >
-        <Form form={reviewForm} layout="vertical" initialValues={{ rating: 5 }}>
-          <Form.Item
-            name="rating"
-            label="Đánh giá"
-            rules={[{ required: true, message: "Vui lòng chọn số sao" }]}
-          >
-            <Rate />
-          </Form.Item>
-
-          <Form.Item name="content" label="Nhận xét">
-            <Input.TextArea
-              rows={4}
-              placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
-              maxLength={500}
-              showCount
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
     </div>
   );
 };

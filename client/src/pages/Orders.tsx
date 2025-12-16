@@ -1,6 +1,6 @@
 import { orderService } from "@/services/order.service";
 import { handleApiError } from "@/utils/error";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Empty,
@@ -13,11 +13,18 @@ import {
   Tag,
   Typography,
   Space,
+  Button,
 } from "antd";
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import type { Order, OrderItem } from "@/types/order.types";
+import ReviewModal, {
+  type ReviewFormValues,
+  type ReviewableItem,
+} from "@/components/order/ReviewModal";
+import { reviewService } from "@/services/review.service";
+import { toast } from "sonner";
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
@@ -71,7 +78,13 @@ interface OrdersPageProps {
 
 const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
+  const [reviewingProductId, setReviewingProductId] = useState<number | null>(
+    null
+  );
 
   const statusFilter = searchParams.get("status") || undefined;
   const searchText = searchParams.get("q") || "";
@@ -137,6 +150,70 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async (orderCode: string) => {
+      return orderService.cancelOrder(orderCode);
+    },
+    onSuccess: () => {
+      toast.success("Hủy đơn hàng thành công");
+      queryClient.invalidateQueries({
+        queryKey: [isAdmin ? "adminOrders" : "userOrders"],
+      });
+    },
+    onError: handleApiError,
+  });
+
+  const canCancelOrder = (order: Order) =>
+    ["PENDING", "PAID", "CONFIRMED"].includes(order.status);
+
+  const createReviewMutation = useMutation({
+    mutationFn: async (params: {
+      productId: number;
+      values: ReviewFormValues;
+    }) => {
+      return await reviewService.createReview({
+        productId: params.productId,
+        rating: params.values.rating,
+        content: params.values.content,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Đánh giá thành công!");
+      setReviewModalOpen(false);
+      setReviewingOrder(null);
+      setReviewingProductId(null);
+      if (reviewingProductId) {
+        setReviewStatus((prev) => ({
+          ...prev,
+          [reviewingProductId]: true,
+        }));
+      }
+    },
+    onError: handleApiError,
+  });
+
+  const handleSubmitReview = (values: ReviewFormValues) => {
+    if (!reviewingProductId) {
+      toast.error("Không xác định được sản phẩm cần đánh giá");
+      return;
+    }
+    createReviewMutation.mutate({ productId: reviewingProductId, values });
+  };
+
+  const reviewableItems: ReviewableItem[] = useMemo(() => {
+    if (!reviewingOrder || !reviewingOrder.items) return [];
+    return reviewingOrder.items
+      .filter((item) => !item.isGift && item.productId)
+      .map((item) => ({
+        productId: item.productId!,
+        productName: item.productName,
+        imageUrl: item.imageUrl,
+        quantity: item.quantity,
+      }));
+  }, [reviewingOrder]);
+
+  const [reviewStatus, setReviewStatus] = useState<Record<number, boolean>>({});
+
   const isAdminMode = isAdmin;
   const ordersData = useMemo(() => {
     if (isAdminMode) {
@@ -156,6 +233,74 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     );
   }, [data, isAdminMode]);
 
+  const ensureCanReview = useCallback(
+    async (productId: number): Promise<boolean> => {
+      if (!productId) return false;
+      const cached = reviewStatus[productId];
+      if (cached === true) {
+        toast.info("Bạn đã đánh giá sản phẩm này rồi");
+        return false;
+      }
+      if (cached === false) return true;
+
+      try {
+        const hasReviewed = await reviewService.checkUserReviewed(productId);
+        setReviewStatus((prev) => ({ ...prev, [productId]: hasReviewed }));
+        if (hasReviewed) {
+          toast.info("Bạn đã đánh giá sản phẩm này rồi");
+          return false;
+        }
+        return true;
+      } catch {
+        // Nếu API lỗi, vẫn cho phép mở form để không chặn user
+        return true;
+      }
+    },
+    [reviewStatus]
+  );
+
+  // Prefetch review status for products in currently loaded orders
+  useEffect(() => {
+    if (isAdminMode) return;
+    const items = ordersData?.content || [];
+
+    const missingProductIds: number[] = [];
+    for (const order of items) {
+      for (const item of order.items || []) {
+        if (!item.isGift && item.productId) {
+          const pid = item.productId;
+          if (
+            reviewStatus[pid] === undefined &&
+            !missingProductIds.includes(pid)
+          ) {
+            missingProductIds.push(pid);
+          }
+        }
+      }
+    }
+
+    if (missingProductIds.length === 0) return;
+
+    const fetchStatuses = async () => {
+      const updates: Record<number, boolean> = {};
+      await Promise.all(
+        missingProductIds.map(async (pid) => {
+          try {
+            const hasReviewed = await reviewService.checkUserReviewed(pid);
+            updates[pid] = hasReviewed;
+          } catch {
+            // ignore errors, treat as not-reviewed (will be re-checked on click)
+          }
+        })
+      );
+      if (Object.keys(updates).length > 0) {
+        setReviewStatus((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    void fetchStatuses();
+  }, [ordersData, isAdminMode, reviewStatus]);
+
   const renderCards = useMemo(() => {
     const items = ordersData?.content || [];
     if (!items || items.length === 0) {
@@ -171,106 +316,186 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     }
     return (
       <div className="flex flex-col gap-3 sm:gap-4">
-        {items.map((order) => (
-          <Card
-            key={order.id}
-            hoverable
-            onClick={() =>
-              navigate(
-                isAdmin
-                  ? `/admin/orders/${order.orderCode || order.id}`
-                  : `/user/orders/${order.orderCode || order.id}`
-              )
-            }
-            className="transition-shadow"
-            style={{ border: "1px solid #e5e7eb" }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex gap-3 flex-1">
-                <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                  {order.items && order.items[0]?.imageUrl ? (
-                    <Image
-                      src={order.items[0].imageUrl}
-                      alt={order.items[0].productName}
-                      preview={false}
-                      width={64}
-                      height={64}
-                      style={{ objectFit: "cover" }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                      No image
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1 flex-1 min-w-0">
-                  <Typography.Text strong>
-                    Đơn hàng #{order.orderCode || order.id}
-                  </Typography.Text>
-                  <div className="text-sm text-gray-500">
-                    {new Date(order.createdAt).toLocaleString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {isAdmin &&
-                      order.customerName &&
-                      ` • ${order.customerName}`}
-                  </div>
-                  {order.items && order.items.length > 0 && (
-                    <div className="text-sm text-gray-600 space-y-1">
-                      {order.items
-                        .slice(0, 2)
-                        .map((item: OrderItem, idx: number) => (
-                          <div key={idx} className="flex justify-between gap-2">
-                            <span className="line-clamp-1">
-                              {item.productName}
-                              {item.isGift && (
-                                <span className="text-red-500 ml-1">
-                                  (GIFT)
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-gray-500">
-                              x{item.quantity}
-                            </span>
-                          </div>
-                        ))}
-                      {order.items.length > 2 && (
-                        <div className="text-gray-500">
-                          +{order.items.length - 2} sản phẩm khác
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="text-base font-semibold">
-                    {formatCurrency(
-                      Number(order.finalAmount || order.totalAmount)
+        {items.map((order) => {
+          const orderReviewableItems =
+            (order.items || []).filter(
+              (item) => !item.isGift && item.productId
+            ) || [];
+          const nextUnreviewedProduct = orderReviewableItems.find(
+            (item) => reviewStatus[item.productId!] !== true
+          );
+          const hasUnreviewedProduct = !!nextUnreviewedProduct;
+          const canReview =
+            !isAdmin &&
+            ["DELIVERED", "COMPLETED"].includes(order.status) &&
+            hasUnreviewedProduct;
+          return (
+            <Card
+              key={order.id}
+              hoverable
+              onClick={() =>
+                navigate(
+                  isAdmin
+                    ? `/admin/orders/${order.orderCode || order.id}`
+                    : `/user/orders/${order.orderCode || order.id}`
+                )
+              }
+              className="transition-shadow"
+              style={{ border: "1px solid #e5e7eb" }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex gap-3 flex-1">
+                  <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                    {order.items && order.items[0]?.imageUrl ? (
+                      <Image
+                        src={order.items[0].imageUrl}
+                        alt={order.items[0].productName}
+                        preview={false}
+                        width={64}
+                        height={64}
+                        style={{ objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                        No image
+                      </div>
                     )}
                   </div>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <Typography.Text strong>
+                      Đơn hàng #{order.orderCode || order.id}
+                    </Typography.Text>
+                    <div className="text-sm text-gray-500">
+                      {new Date(order.createdAt).toLocaleString("vi-VN", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {isAdmin &&
+                        order.customerName &&
+                        ` • ${order.customerName}`}
+                    </div>
+                    {order.items && order.items.length > 0 && (
+                      <div className="text-sm text-gray-600 space-y-1">
+                        {order.items
+                          .slice(0, 2)
+                          .map((item: OrderItem, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between gap-2"
+                            >
+                              <span className="line-clamp-1">
+                                {item.productName}
+                                {item.isGift && (
+                                  <span className="text-red-500 ml-1">
+                                    (GIFT)
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-gray-500">
+                                x{item.quantity}
+                              </span>
+                            </div>
+                          ))}
+                        {order.items.length > 2 && (
+                          <div className="text-gray-500">
+                            +{order.items.length - 2} sản phẩm khác
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-base font-semibold">
+                      {formatCurrency(
+                        Number(order.finalAmount || order.totalAmount)
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <Tag color={statusColorMap[order.status] || "default"}>
+                    {statusLabel(order.status)}
+                  </Tag>
+
+                  {order.paymentMethod && (
+                    <Typography.Text type="secondary" className="text-xs">
+                      {order.paymentMethod === "COD"
+                        ? "COD"
+                        : "Thanh toán online"}
+                    </Typography.Text>
+                  )}
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <Tag color={statusColorMap[order.status] || "default"}>
-                  {statusLabel(order.status)}
-                </Tag>
+              <div className="mt-3 pt-3 border-t flex justify-end">
+                <Space size="middle">
+                  <Button
+                    size="middle"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(
+                        isAdmin
+                          ? `/admin/orders/${order.orderCode || order.id}`
+                          : `/user/orders/${order.orderCode || order.id}`
+                      );
+                    }}
+                  >
+                    Chi tiết
+                  </Button>
+                  {canCancelOrder(order) && (
+                    <Button
+                      size="middle"
+                      danger
+                      loading={cancelMutation.isPending}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await cancelMutation.mutateAsync(
+                            order.orderCode || String(order.id)
+                          );
+                        } catch {
+                          // handled in onError
+                        }
+                      }}
+                    >
+                      Hủy
+                    </Button>
+                  )}
+                  {canReview && (
+                    <Button
+                      size="middle"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!nextUnreviewedProduct?.productId) return;
 
-                {order.paymentMethod && (
-                  <Typography.Text type="secondary" className="text-xs">
-                    {order.paymentMethod === "COD"
-                      ? "COD"
-                      : "Thanh toán online"}
-                  </Typography.Text>
-                )}
+                        const ok = await ensureCanReview(
+                          nextUnreviewedProduct.productId
+                        );
+                        if (!ok) return;
+
+                        setReviewingOrder(order);
+                        setReviewingProductId(nextUnreviewedProduct.productId);
+                        setReviewModalOpen(true);
+                      }}
+                    >
+                      Đánh giá
+                    </Button>
+                  )}
+                </Space>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     );
-  }, [ordersData, navigate, isAdmin]);
+  }, [
+    ordersData,
+    navigate,
+    isAdmin,
+    cancelMutation,
+    ensureCanReview,
+    reviewStatus,
+  ]);
 
   const tabs = [
     { key: "ALL", label: "Tất cả", value: undefined },
@@ -345,6 +570,25 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
           />
         </div>
       )}
+
+      {/* Review Modal from Orders page */}
+      <ReviewModal
+        open={reviewModalOpen}
+        loading={createReviewMutation.isPending}
+        items={reviewableItems}
+        reviewingProductId={reviewingProductId}
+        onChangeProduct={async (id) => {
+          const ok = await ensureCanReview(id);
+          if (!ok) return;
+          setReviewingProductId(id);
+        }}
+        onSubmit={handleSubmitReview}
+        onCancel={() => {
+          setReviewModalOpen(false);
+          setReviewingOrder(null);
+          setReviewingProductId(null);
+        }}
+      />
     </div>
   );
 };
