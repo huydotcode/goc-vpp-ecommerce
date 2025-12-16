@@ -1,21 +1,31 @@
 import {
+  AppstoreOutlined,
   CloseOutlined,
   LogoutOutlined,
   SearchOutlined,
   ShoppingOutlined,
   UserOutlined,
-  AppstoreOutlined,
 } from "@ant-design/icons";
 import type { InputRef, MenuProps } from "antd";
-import { Avatar, Button, Dropdown, Input, Layout, Typography, List, Empty, Spin } from "antd";
+import {
+  Avatar,
+  Button,
+  Dropdown,
+  Empty,
+  Input,
+  Layout,
+  List,
+  Spin,
+  Typography,
+} from "antd";
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useProductVectorSuggestions } from "../../../hooks";
+import type { Product } from "../../../types/product.types";
 import CategoryMenu from "./CategoryMenu";
 import UserCart from "./UserCart";
-import type { Product } from "../../../types/product.types";
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -70,11 +80,6 @@ const UserHeader: React.FC = () => {
     setShowResults(false);
   };
 
-  const handleViewAllProducts = () => {
-    navigate("/products");
-    setIsMobileSearchOpen(false);
-  };
-
   const handleViewAllResults = () => {
     if (searchValue.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchValue.trim())}`);
@@ -86,7 +91,10 @@ const UserHeader: React.FC = () => {
   // Click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
         setShowResults(false);
       }
     };
@@ -154,15 +162,15 @@ const UserHeader: React.FC = () => {
   const authenticatedMenuItems: MenuProps["items"] = [
     ...(user?.role && ["ADMIN", "EMPLOYEE"].includes(user.role)
       ? [
-        {
-          key: "admin",
-          label: "Trang quản trị",
-          icon: <AppstoreOutlined />,
-          onClick: () => {
-            navigate("/admin");
+          {
+            key: "admin",
+            label: "Trang quản trị",
+            icon: <AppstoreOutlined />,
+            onClick: () => {
+              navigate("/admin");
+            },
           },
-        },
-      ]
+        ]
       : []),
     {
       key: "profile",
@@ -228,7 +236,11 @@ const UserHeader: React.FC = () => {
           />
         }
         title={
-          <Text strong className="text-sm" style={{ display: "block", marginBottom: "4px" }}>
+          <Text
+            strong
+            className="text-sm"
+            style={{ display: "block", marginBottom: "4px" }}
+          >
             {product.name}
           </Text>
         }
@@ -237,7 +249,10 @@ const UserHeader: React.FC = () => {
             <Text type="secondary" className="text-xs">
               {product.brand || "N/A"}
             </Text>
-            <Text strong style={{ color: "var(--color-primary)", fontSize: "14px" }}>
+            <Text
+              strong
+              style={{ color: "var(--color-primary)", fontSize: "14px" }}
+            >
               {product.price?.toLocaleString("vi-VN")}đ
             </Text>
           </div>
@@ -354,26 +369,6 @@ const UserHeader: React.FC = () => {
 
         {/* Right Section */}
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          {/* View All Products Button - Desktop */}
-          <div className="hidden lg:block">
-            <Button
-              type="text"
-              icon={<AppstoreOutlined style={{ fontSize: "18px" }} />}
-              onClick={handleViewAllProducts}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "40px",
-                padding: "0 12px",
-                borderRadius: "8px",
-              }}
-              className="hover:bg-gray-100"
-            >
-              Tất cả SP
-            </Button>
-          </div>
-
           {/* Mobile Search Icon Button */}
           <div className="md:hidden">
             <Button
@@ -442,7 +437,7 @@ const UserHeader: React.FC = () => {
                   textOverflow: "ellipsis",
                 }}
               >
-                {isLoggedIn ? (user?.username || user?.email) : "Tài khoản"}
+                {isLoggedIn ? user?.username || user?.email : "Tài khoản"}
               </span>
             </div>
           </Dropdown>
@@ -503,7 +498,9 @@ const UserHeader: React.FC = () => {
               </div>
 
               {searchValue && (
-                <div style={{ maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}>
+                <div
+                  style={{ maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}
+                >
                   {isLoading ? (
                     <div className="py-12 text-center">
                       <Spin tip="Đang tìm kiếm..." />
