@@ -1,6 +1,7 @@
 package com.example.learnspring1.domain.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,10 @@ public class PromotionRequestDTO {
     private BigDecimal discountAmount;
 
     private Boolean isActive;
+
+    private Instant startDate;
+
+    private Instant endDate;
 
     @Builder.Default
     @Valid

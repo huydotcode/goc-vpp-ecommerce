@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import React, { useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
+import PromotionCountdown from "@/components/promotion/PromotionCountdown";
 
 const { Text } = Typography;
 
@@ -66,7 +67,30 @@ const PromotionsSection: React.FC = () => {
 
   const promotionsWithProducts = useMemo(() => {
     if (!promotions) return [];
-    return promotions.map((promo) => ({
+
+    // Filter out expired promotions (don't show to customers)
+    const now = new Date().getTime();
+    const validPromotions = promotions.filter((promo) => {
+      // If endDate exists and it's in the past, don't show
+      if (promo.endDate && new Date(promo.endDate).getTime() < now) {
+        return false;
+      }
+      return true;
+    });
+
+    // Sort: upcoming first, then active
+    const sorted = validPromotions.sort((a, b) => {
+      const aStart = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const bStart = b.startDate ? new Date(b.startDate).getTime() : 0;
+      const aUpcoming = aStart > now;
+      const bUpcoming = bStart > now;
+
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      return 0;
+    });
+
+    return sorted.map((promo) => ({
       promo,
       products: collectProductsFromPromotion(promo),
     }));
@@ -155,6 +179,16 @@ const PromotionsSection: React.FC = () => {
                 </div>
               )}
 
+              {/* Countdown timer */}
+              <div className="mb-3">
+                <PromotionCountdown
+                  startDate={promo.startDate}
+                  endDate={promo.endDate}
+                  showStatus={true}
+                  showCountdown={true}
+                />
+              </div>
+
               {/* Danh sách sản phẩm trong chương trình */}
               {products.length > 0 ? (
                 <Row gutter={[16, 16]} className="mt-2">
@@ -165,8 +199,8 @@ const PromotionsSection: React.FC = () => {
                       const originalPrice = product.price ?? null;
                       const discountAmount =
                         !product.isGift &&
-                        promo.discountType === "DISCOUNT_AMOUNT" &&
-                        promo.discountAmount
+                          promo.discountType === "DISCOUNT_AMOUNT" &&
+                          promo.discountAmount
                           ? promo.discountAmount
                           : 0;
 

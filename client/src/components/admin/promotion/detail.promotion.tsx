@@ -1,6 +1,7 @@
 import React from "react";
 import { Descriptions, Drawer, Tag, Image } from "antd";
 import type { PromotionDTO } from "../../../services/promotion.service";
+import PromotionCountdown from "@/components/promotion/PromotionCountdown";
 
 interface PromotionDetailProps {
   isOpenDetailModal: boolean;
@@ -45,15 +46,23 @@ const PromotionDetail: React.FC<PromotionDetailProps> = ({
           <Descriptions.Item label="Số tiền giảm">
             {dataDetailModal.discountAmount
               ? new Intl.NumberFormat("vi-VN", {
-                  style: "currency",
-                  currency: "VND",
-                }).format(dataDetailModal.discountAmount)
+                style: "currency",
+                currency: "VND",
+              }).format(dataDetailModal.discountAmount)
               : "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Trạng thái">
             <Tag color={dataDetailModal.isActive ? "green" : "red"}>
               {dataDetailModal.isActive ? "Active" : "Inactive"}
             </Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="Thời gian" span={2}>
+            <PromotionCountdown
+              startDate={dataDetailModal.startDate}
+              endDate={dataDetailModal.endDate}
+              showStatus={true}
+              showCountdown={true}
+            />
           </Descriptions.Item>
           {dataDetailModal.description && (
             <Descriptions.Item label="Mô tả" span={2}>

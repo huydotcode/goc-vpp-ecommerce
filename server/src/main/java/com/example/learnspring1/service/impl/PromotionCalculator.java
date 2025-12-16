@@ -4,6 +4,7 @@ import com.example.learnspring1.domain.*;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +71,15 @@ public class PromotionCalculator {
     }
 
     private boolean isPromotionApplicable(Promotion promotion, BigDecimal cartTotal, List<CartItem> cartItems) {
+        // Check time validity first
+        Instant now = Instant.now();
+        if (promotion.getStartDate() != null && now.isBefore(promotion.getStartDate())) {
+            return false; // Promotion hasn't started yet
+        }
+        if (promotion.getEndDate() != null && now.isAfter(promotion.getEndDate())) {
+            return false; // Promotion has expired
+        }
+
         // Empty conditions means valid for all? Or invalid? Assuming valid if active.
         if (promotion.getConditions() == null || promotion.getConditions().isEmpty()) {
             return true;

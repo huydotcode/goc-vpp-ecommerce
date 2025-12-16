@@ -10,10 +10,12 @@ import {
   Upload,
   Progress,
   Card,
+  DatePicker,
 } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd";
 import React, { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import type {
   PromotionDTO,
   UpdatePromotionRequest,
@@ -100,6 +102,10 @@ const PromotionUpdate: React.FC<PromotionUpdateProps> = ({
         discountAmount: dataDetailModal.discountAmount,
         isActive: dataDetailModal.isActive,
         thumbnailUrl: dataDetailModal.thumbnailUrl,
+        dateRange: (dataDetailModal.startDate || dataDetailModal.endDate)
+          ? [dataDetailModal.startDate ? dayjs(dataDetailModal.startDate) : null,
+          dataDetailModal.endDate ? dayjs(dataDetailModal.endDate) : null]
+          : null,
       });
 
       // Set Thumbnail
@@ -338,7 +344,7 @@ const PromotionUpdate: React.FC<PromotionUpdateProps> = ({
     });
   };
 
-  const onFinish = async (values: UpdatePromotionRequest) => {
+  const onFinish = async (values: any) => {
     if (!dataDetailModal) return;
 
     try {
@@ -386,6 +392,8 @@ const PromotionUpdate: React.FC<PromotionUpdateProps> = ({
         discountAmount: values.discountAmount
           ? Number(values.discountAmount)
           : undefined,
+        startDate: values.dateRange && values.dateRange[0] ? dayjs(values.dateRange[0]).toISOString() : undefined,
+        endDate: values.dateRange && values.dateRange[1] ? dayjs(values.dateRange[1]).toISOString() : undefined,
         conditions: validConditionGroups,
         giftItems: values.discountType === "GIFT"
           ? giftItems.filter(
@@ -757,6 +765,19 @@ const PromotionUpdate: React.FC<PromotionUpdateProps> = ({
                 </p>
               </div>
             )}
+          </Form.Item>
+
+          <Form.Item
+            label="Thời gian khuyến mãi"
+            name="dateRange"
+            tooltip="Chọn thời gian bắt đầu và kết thúc (để trống = không giới hạn thời gian)"
+          >
+            <DatePicker.RangePicker
+              showTime
+              format="DD/MM/YYYY HH:mm"
+              placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
+              style={{ width: "100%" }}
+            />
           </Form.Item>
 
           <Form.Item

@@ -1,6 +1,7 @@
 package com.example.learnspring1.service.impl;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,6 +55,8 @@ public class PromotionServiceImpl implements PromotionService {
                 .description(safeRequest.getDescription())
                 .discountType(safeRequest.getDiscountType())
                 .discountAmount(resolveDiscountAmount(safeRequest))
+                .startDate(safeRequest.getStartDate())
+                .endDate(safeRequest.getEndDate())
                 .build();
 
         buildConditions(promotion, safeRequest.getConditions());
@@ -111,6 +114,8 @@ public class PromotionServiceImpl implements PromotionService {
         existing.setDiscountType(safeRequest.getDiscountType());
         existing.setDiscountAmount(resolveDiscountAmount(safeRequest));
         existing.setIsActive(safeRequest.getIsActive());
+        existing.setStartDate(safeRequest.getStartDate());
+        existing.setEndDate(safeRequest.getEndDate());
         
         existing.getConditions().clear();
         existing.getGiftItems().clear();
@@ -124,7 +129,8 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     @Transactional(readOnly = true)
     public java.util.List<Promotion> getActivePromotions() {
-        List<Promotion> actives = promotionRepository.findByIsActiveTrue();
+        Instant now = Instant.now();
+        List<Promotion> actives = promotionRepository.findActiveAndValidPromotions(now);
         if (actives == null || actives.isEmpty()) {
             return Collections.emptyList();
         }

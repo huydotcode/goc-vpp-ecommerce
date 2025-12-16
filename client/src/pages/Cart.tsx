@@ -28,7 +28,11 @@ import {
   Tag,
   Typography,
 } from "antd";
+<<<<<<< HEAD
+import React, { useEffect, useState } from "react";
+=======
 import React, { useEffect, useMemo, useState } from "react";
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCart } from "../hooks";
@@ -69,9 +73,13 @@ const CartPage: React.FC = () => {
   const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>(
     []
   );
+<<<<<<< HEAD
+  const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(null);
+=======
   const [previewPromo, setPreviewPromo] = useState<CartPromotionPreview | null>(
     null
   );
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
 
   // Fetch Promotions
   useEffect(() => {
@@ -241,10 +249,90 @@ const CartPage: React.FC = () => {
     }
 
     navigate("/checkout", {
-      state: { selectedCartItemIds: Array.from(selectedItemIds) },
+      state: {
+        selectedCartItemIds: Array.from(selectedItemIds),
+        selectedPromotionId: selectedPromotionId, // Pass selected promotion
+      },
     });
   };
 
+<<<<<<< HEAD
+  // Calculate selected items with memoization to prevent unnecessary re-renders
+  const selectedItems = React.useMemo(
+    () => cart?.items.filter((item) => selectedItemIds.has(item.id)) ?? [],
+    [cart?.items, selectedItemIds]
+  );
+
+  // Filter applicable promotions based on selected cart items
+  const applicablePromotions = React.useMemo(() => {
+    return activePromotions.filter((promo) => {
+      // Only discount promotions can be selected
+      if (promo.discountType !== PromotionDiscountType.DISCOUNT_AMOUNT) return false;
+      if ((promo.discountAmount ?? 0) <= 0) return false;
+
+      // Check if promotion conditions are satisfied
+      if (!promo.conditions || promo.conditions.length === 0) {
+        return true; // No conditions = applies to all
+      }
+
+      // Check if ALL condition groups are satisfied
+      return promo.conditions.some((condGroup) => {
+        if (condGroup.operator === "ALL") {
+          // ALL: Every condition detail must be satisfied
+          return condGroup.details.every((detail) => {
+            const cartItem = selectedItems.find(
+              (item) => item.productId === detail.productId
+            );
+            // Check if item exists AND has enough quantity
+            return cartItem && cartItem.quantity >= detail.requiredQuantity;
+          });
+        } else {
+          // ANY: At least one condition detail must be satisfied
+          return condGroup.details.some((detail) => {
+            const cartItem = selectedItems.find(
+              (item) => item.productId === detail.productId
+            );
+            // Check if item exists AND has enough quantity
+            return cartItem && cartItem.quantity >= detail.requiredQuantity;
+          });
+        }
+      });
+    });
+  }, [activePromotions, selectedItems]);
+
+  // Identify the best promotion (highest discount)
+  const bestPromotion = React.useMemo(() => {
+    if (applicablePromotions.length === 0) return null;
+    return applicablePromotions.reduce((best, current) => {
+      const bestAmount = best.discountAmount ?? 0;
+      const currentAmount = current.discountAmount ?? 0;
+      return currentAmount > bestAmount ? current : best;
+    });
+  }, [applicablePromotions]);
+
+  // Auto-select best promotion
+  React.useEffect(() => {
+    if (bestPromotion && !selectedPromotionId) {
+      setSelectedPromotionId(bestPromotion.id);
+    }
+  }, [bestPromotion, selectedPromotionId]);
+
+  // Clear selected promotion if it's no longer applicable
+  React.useEffect(() => {
+    if (
+      selectedPromotionId &&
+      !applicablePromotions.some((p) => p.id === selectedPromotionId)
+    ) {
+      setSelectedPromotionId(null);
+    }
+  }, [selectedPromotionId, applicablePromotions]);
+
+  // Calculate total amount from selected items (using original prices)
+  const selectedTotalAmount = selectedItems.reduce(
+    (sum, item) => sum + item.subtotal,
+    0
+  );
+=======
   const selectedItems =
     cart?.items.filter((item) => selectedItemIds.has(item.id)) ?? [];
 
@@ -277,12 +365,58 @@ const CartPage: React.FC = () => {
     : cart && selectedItemIds.size === cart.items.length
       ? (cart.giftItems ?? [])
       : [];
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
 
   const selectedTotalItems = selectedItems.reduce(
     (sum, item) => sum + item.quantity,
     0
   );
 
+<<<<<<< HEAD
+  // Calculate order-level promotion discount (applied once, not per item)
+  const selectedItemsDiscount = React.useMemo(() => {
+    if (!selectedPromotionId) return 0;
+
+    const selectedPromo = applicablePromotions.find(
+      (p) => p.id === selectedPromotionId
+    );
+
+    if (!selectedPromo) return 0;
+
+    // Check if promotion conditions are satisfied
+    if (!selectedPromo.conditions || selectedPromo.conditions.length === 0) {
+      // No conditions = applies to order
+      return selectedPromo.discountAmount ?? 0;
+    }
+
+    // Check if selected items meet the promotion conditions (including quantity)
+    const conditionsMet = selectedPromo.conditions.some((condGroup) => {
+      if (condGroup.operator === "ALL") {
+        // ALL: Every condition detail must be satisfied (product + quantity)
+        return condGroup.details.every((detail) => {
+          const cartItem = selectedItems.find(
+            (item) => item.productId === detail.productId
+          );
+          // Check if item exists AND has enough quantity
+          return cartItem && cartItem.quantity >= detail.requiredQuantity;
+        });
+      } else {
+        // ANY: At least one condition detail must be satisfied (product + quantity)
+        return condGroup.details.some((detail) => {
+          const cartItem = selectedItems.find(
+            (item) => item.productId === detail.productId
+          );
+          // Check if item exists AND has enough quantity
+          return cartItem && cartItem.quantity >= detail.requiredQuantity;
+        });
+      }
+    });
+
+    return conditionsMet ? (selectedPromo.discountAmount ?? 0) : 0;
+  }, [selectedPromotionId, applicablePromotions, selectedItems]);
+
+=======
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
   if (isLoading) {
     return (
       <div style={{ padding: 24, minHeight: "60vh" }}>
@@ -605,6 +739,83 @@ const CartPage: React.FC = () => {
             marginTop: isMobile ? 16 : 0,
           }}
         >
+          {/* Promotion Selector */}
+          {applicablePromotions.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ display: "block", marginBottom: 12, fontSize: 15 }}>
+                Chọn khuyến mãi
+              </Text>
+              <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                {applicablePromotions.map((promo) => {
+                  const isBest = bestPromotion?.id === promo.id;
+                  const isSelected = selectedPromotionId === promo.id;
+                  return (
+                    <Card
+                      key={promo.id}
+                      size="small"
+                      hoverable
+                      onClick={() => setSelectedPromotionId(promo.id)}
+                      style={{
+                        cursor: "pointer",
+                        borderColor: isSelected ? "#1890ff" : "#d9d9d9",
+                        borderWidth: isSelected ? 2 : 1,
+                        backgroundColor: isSelected ? "#e6f7ff" : "white",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <Radio checked={isSelected} style={{ marginTop: 2 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <Text strong>{promo.name}</Text>
+                            {isBest && (
+                              <Tag color="gold" style={{ margin: 0 }}>
+                                Tốt nhất
+                              </Tag>
+                            )}
+                          </div>
+                          <Text type="secondary" style={{ fontSize: 13, display: "block", marginBottom: 4 }}>
+                            Giảm {formatCurrency(promo.discountAmount ?? 0)}
+                          </Text>
+                          {/* Display Conditions */}
+                          {promo.conditions && promo.conditions.length > 0 && (
+                            <div style={{ fontSize: 12, color: "#595959", marginTop: 4 }}>
+                              <Text style={{ fontSize: 12, fontWeight: 500 }}>Điều kiện:</Text>
+                              {promo.conditions.map((condGroup, idx) => (
+                                <div key={idx} style={{ marginLeft: 8, marginTop: 2 }}>
+                                  {condGroup.operator === "ALL" ? "Tất cả: " : "Một trong: "}
+                                  {condGroup.details.map((detail, detailIdx) => (
+                                    <span key={detailIdx}>
+                                      {detail.productName || `SP #${detail.productId}`} x{detail.requiredQuantity}
+                                      {detailIdx < condGroup.details.length - 1 && ", "}
+                                    </span>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {(promo.startDate || promo.endDate) && (
+                            <div style={{ fontSize: 12, color: "#8c8c8c", marginTop: 4 }}>
+                              {promo.startDate && promo.endDate ? (
+                                <>
+                                  {new Date(promo.startDate).toLocaleDateString("vi-VN")} -{" "}
+                                  {new Date(promo.endDate).toLocaleDateString("vi-VN")}
+                                </>
+                              ) : promo.startDate ? (
+                                <>Từ {new Date(promo.startDate).toLocaleDateString("vi-VN")}</>
+                              ) : promo.endDate ? (
+                                <>Đến {new Date(promo.endDate).toLocaleDateString("vi-VN")}</>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </Space>
+            </div>
+          )}
+
           <Card style={{ position: "sticky", top: 16 }}>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
               <Title level={4}>Tóm tắt đơn hàng</Title>
@@ -622,7 +833,13 @@ const CartPage: React.FC = () => {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text>Tạm tính:</Text>
+<<<<<<< HEAD
+                <Text strong>
+                  {formatCurrency(selectedTotalAmount)}
+                </Text>
+=======
                 <Text strong>{formatCurrency(selectedSubtotal)}</Text>
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
               </div>
 
               {displayDiscountAmount > 0 && (
@@ -637,6 +854,9 @@ const CartPage: React.FC = () => {
                 </div>
               )}
 
+<<<<<<< HEAD
+              {cart.giftItems && cart.giftItems.length > 0 && (
+=======
               {displayAppliedPromotions.length > 0 && (
                 <div style={{ marginTop: 8 }}>
                   <Text strong style={{ fontSize: 13 }}>
@@ -685,6 +905,7 @@ const CartPage: React.FC = () => {
               )}
 
               {displayGiftItems.length > 0 && (
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
                 <div style={{ marginTop: 8 }}>
                   <Text strong style={{ color: "#faad14" }}>
                     Quà tặng kèm:
@@ -728,7 +949,11 @@ const CartPage: React.FC = () => {
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
+<<<<<<< HEAD
+                  {formatCurrency(selectedTotalAmount - selectedItemsDiscount)}
+=======
                   {formatCurrency(displayFinalAmount)}
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
                 </Text>
               </div>
 
