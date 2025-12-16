@@ -564,13 +564,6 @@ const CheckoutPage: React.FC = () => {
           addressService.buildFullAddress(addressData) || values.address || "";
       }
 
-      const itemsToCheckout = selectedCartItemIds
-        ? cart!.items.filter((item) => selectedCartItemIds.includes(item.id))
-        : cart!.items;
-      const totalAmount = itemsToCheckout.reduce(
-        (sum, item) => sum + item.subtotal,
-        0
-      );
 
       const checkoutResponse = await checkoutMutation.mutateAsync({
         paymentMethod: paymentMethod,
@@ -583,9 +576,18 @@ const CheckoutPage: React.FC = () => {
       });
 
       if (paymentMethod === PaymentMethod.PAYOS) {
+        // DEBUG: Log các giá trị trước khi tạo payment
+        console.log("=== PayOS Payment Debug ===");
+        console.log("displaySubtotal:", displaySubtotal);
+        console.log("displayDiscountAmount:", displayDiscountAmount);
+        console.log("displayFinalAmount:", displayFinalAmount);
+        console.log("Math.round(displayFinalAmount):", Math.round(displayFinalAmount));
+        console.log("previewPromo:", previewPromo);
+        console.log("===========================");
+
         // Tạo payment link với PayOS
         const res = await paymentApi.createPayOSPayment({
-          amount: Math.round(totalAmount),
+          amount: Math.round(displayFinalAmount), // Sử dụng số tiền sau giảm giá
           description:
             `Thanh toan don hang ${checkoutResponse.orderCode}`.substring(
               0,

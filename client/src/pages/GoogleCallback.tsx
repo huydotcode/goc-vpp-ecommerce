@@ -34,21 +34,26 @@ const GoogleCallback: React.FC = () => {
 
     // Case 1: Direct redirect from server with accessToken
     if (accessToken) {
+      console.log("=== Google Callback: Direct Token ===");
+      console.log("Access Token:", accessToken.substring(0, 20) + "...");
       hasProcessed.current = true;
       // Clean token trước khi lưu
       const cleanToken = accessToken.trim().replace(/^["']|["']$/g, "");
       localStorage.setItem("accessToken", cleanToken);
+      console.log("Token saved to localStorage");
       toast.success("Đăng nhập Google thành công!");
       // Load user info and navigate based on role
       loadUserInfo()
         .then((userInfo) => {
+          console.log("User info loaded:", userInfo);
           if (userInfo?.role === "ADMIN" || userInfo?.role === "EMPLOYEE") {
             navigate("/admin", { replace: true });
           } else {
             navigate("/", { replace: true });
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("Failed to load user info:", err);
           navigate("/", { replace: true });
         })
         .finally(() => {
