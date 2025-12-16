@@ -209,6 +209,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     { key: "CONFIRMED", label: "Đã xác nhận", value: "CONFIRMED" },
     { key: "SHIPPING", label: "Đang giao", value: "SHIPPING" },
     { key: "COMPLETED", label: "Hoàn thành", value: "COMPLETED" },
+    { key: "REFUNDED", label: "Đã hoàn tiền", value: "REFUNDED" },
     { key: "CANCELLED", label: "Đã hủy", value: "CANCELLED" },
     { key: "FAILED", label: "Thất bại", value: "FAILED" },
   ];
