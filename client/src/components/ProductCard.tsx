@@ -420,7 +420,7 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
                     <GiftOutlined /> +Quà
                   </>
                 ) : (
-                  <>{formatPrice(baseProduct.promotionDiscountAmount ?? 0)}</>
+                  <>Giảm giá</>
                 )}
               </Tag>
             )}
@@ -429,22 +429,13 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
 
         {!isGift && originalPrice !== null && originalPrice !== undefined && (
           <>
-            {/* Giá + % giảm */}
+            {/* Giá: chỉ hiển thị giá gốc, không hiển thị giá sau giảm */}
             <div className="mt-1 flex items-end justify-between gap-2 text-[12px] md:text-[13px]">
               <div className="flex flex-col">
-                <span className="text-[15px] font-semibold text-red-600 md:text-[16px]">
-                  {formatPrice(finalPrice ?? originalPrice)}
+                <span className="text-[15px] font-semibold text-gray-900 md:text-[16px]">
+                  {formatPrice(originalPrice ?? finalPrice ?? 0)}
                 </span>
-                {finalPrice !== null &&
-                  finalPrice !== undefined &&
-                  originalPrice > (finalPrice ?? originalPrice) && (
-                    <span className="text-xs text-gray-500 line-through">
-                      {formatPrice(originalPrice)}
-                    </span>
-                  )}
               </div>
-
-              {/* Removed discount percentage badge */}
             </div>
 
             {/* Nút luôn hiện trên mobile, ẩn trên desktop */}
