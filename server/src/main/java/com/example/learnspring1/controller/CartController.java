@@ -2,6 +2,8 @@ package com.example.learnspring1.controller;
 
 import com.example.learnspring1.domain.User;
 import com.example.learnspring1.domain.dto.CartItemRequestDTO;
+import com.example.learnspring1.domain.dto.CartPromotionPreviewDTO;
+import com.example.learnspring1.domain.dto.CartPromotionPreviewRequestDTO;
 import com.example.learnspring1.domain.dto.CartResponseDTO;
 import com.example.learnspring1.service.CartService;
 import com.example.learnspring1.service.UserService;
@@ -84,5 +86,14 @@ public class CartController {
         User currentUser = getCurrentUser();
         cartService.clearCart(currentUser);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Xem trước khuyến mãi cho các sản phẩm được chọn trong giỏ hàng", description = "Tính toán khuyến mãi, giảm giá và quà tặng cho danh sách cart item được chọn.")
+    @PostMapping("/promotion-preview")
+    public ResponseEntity<CartPromotionPreviewDTO> previewPromotions(
+            @Valid @RequestBody CartPromotionPreviewRequestDTO request) {
+        User currentUser = getCurrentUser();
+        CartPromotionPreviewDTO preview = cartService.previewPromotions(currentUser, request.getCartItemIds());
+        return ResponseEntity.ok(preview);
     }
 }

@@ -1,6 +1,7 @@
 package com.example.learnspring1.service;
 
 import com.example.learnspring1.domain.dto.CartItemRequestDTO;
+import com.example.learnspring1.domain.dto.CartPromotionPreviewDTO;
 import com.example.learnspring1.domain.dto.CartResponseDTO;
 import com.example.learnspring1.domain.User;
 
@@ -25,4 +26,7 @@ public interface CartService {
 
     // Xóa giỏ hàng sau khi checkout thành công
     void deleteCartAfterCheckout(User user);
+
+    // Xem trước khuyến mãi cho một danh sách cart item cụ thể
+    CartPromotionPreviewDTO previewPromotions(User user, java.util.List<Long> cartItemIds);
 }

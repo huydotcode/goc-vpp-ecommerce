@@ -3,6 +3,7 @@ import { cartService } from "@/services/cart.service";
 import type {
   AddCartItemRequest,
   CartItem,
+  CartPromotionPreview,
   CartResponse,
 } from "@/types/cart.types";
 import { handleApiError } from "@/utils/error";
@@ -15,7 +16,7 @@ import {
   upsertGuestItem,
 } from "@/utils/guestCart";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React from "react";
+import React, { useCallback } from "react";
 import { toast } from "sonner";
 
 const cartKeys = {
@@ -209,6 +210,26 @@ export const useCart = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
+  const previewPromotionsFn = useCallback(
+    async (cartItemIds: number[]): Promise<CartPromotionPreview> => {
+      if (isAuthenticated) {
+        return cartService.previewPromotions(cartItemIds);
+      }
+      const items = getGuestItems().filter((it) =>
+        cartItemIds.includes(it.id)
+      );
+      const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0);
+      return {
+        subtotal,
+        discountAmount: 0,
+        finalAmount: subtotal,
+        appliedPromotions: [],
+        giftItems: [],
+      };
+    },
+    [isAuthenticated]
+  );
+
   return {
     cart: cartQuery.data,
     isLoading: cartQuery.isLoading,
@@ -222,5 +243,6 @@ export const useCart = () => {
     updating: updateItemMutation.isPending,
     removing: removeItemMutation.isPending,
     clearing: clearCartMutation.isPending,
+    previewPromotions: previewPromotionsFn,
   };
 };

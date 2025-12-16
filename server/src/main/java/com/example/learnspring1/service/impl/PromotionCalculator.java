@@ -1,23 +1,23 @@
 package com.example.learnspring1.service.impl;
 
 import com.example.learnspring1.domain.*;
-import com.example.learnspring1.domain.dto.CartResponseDTO;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
 public class PromotionCalculator {
 
-    public CalculationResult calculate(BigDecimal cartTotal, List<CartItem> cartItems, List<Promotion> activePromotions) {
+    public CalculationResult calculate(BigDecimal cartTotal, List<CartItem> cartItems,
+            List<Promotion> activePromotions) {
         CalculationResult result = new CalculationResult();
         result.setOriginalTotal(cartTotal);
-        
+
         List<Promotion> applicablePromotions = new ArrayList<>();
 
         // 1. Filter applicable promotions
@@ -44,26 +44,20 @@ public class PromotionCalculator {
             }
         }
 
-        // 4. Apply BEST Discount Promotion (Exclusive)
-        Promotion bestDiscount = null;
-        BigDecimal maxDiscountAmount = BigDecimal.ZERO;
+        // 4. Apply Discount Promotions
+        // Logic: Nếu các promotion có sản phẩm khác nhau (không overlap), áp dụng tất
+        // cả
+        // Nếu overlap, chỉ chọn 1 cái tốt nhất
+        List<Promotion> appliedDiscountPromotions = selectDiscountPromotions(discountPromotions, cartItems);
 
-        for (Promotion p : discountPromotions) {
-            BigDecimal discountAmount = BigDecimal.ZERO;
-            if (p.getDiscountType() == PromotionDiscountType.DISCOUNT_AMOUNT) {
-                discountAmount = p.getDiscountAmount();
-            }
-
-            if (discountAmount.compareTo(maxDiscountAmount) > 0) {
-                maxDiscountAmount = discountAmount;
-                bestDiscount = p;
+        BigDecimal totalDiscountAmount = BigDecimal.ZERO;
+        for (Promotion p : appliedDiscountPromotions) {
+            result.getAppliedPromotions().add(p);
+            if (p.getDiscountAmount() != null) {
+                totalDiscountAmount = totalDiscountAmount.add(p.getDiscountAmount());
             }
         }
-
-        if (bestDiscount != null) {
-            result.getAppliedPromotions().add(bestDiscount);
-            result.setDiscountAmount(maxDiscountAmount);
-        }
+        result.setDiscountAmount(totalDiscountAmount);
 
         // 5. Final Calculation
         BigDecimal finalTotal = cartTotal.subtract(result.getDiscountAmount());
@@ -80,30 +74,33 @@ public class PromotionCalculator {
         if (promotion.getConditions() == null || promotion.getConditions().isEmpty()) {
             return true;
         }
-        
-        // Check all conditions (AND relationship between groups if any, or internal logic)
+
+        // Check all conditions (AND relationship between groups if any, or internal
+        // logic)
         // Entity structure: Promotion -> Conditions (List) -> Details (List)
-        // Let's assume strict AND for all conditions for now based on typical requirements
-        
+        // Let's assume strict AND for all conditions for now based on typical
+        // requirements
+
         for (PromotionCondition condition : promotion.getConditions()) {
-             if (!checkCondition(condition, cartTotal, cartItems)) {
-                 return false;
-             }
+            if (!checkCondition(condition, cartTotal, cartItems)) {
+                return false;
+            }
         }
-        
+
         return true;
     }
 
     private boolean checkCondition(PromotionCondition condition, BigDecimal cartTotal, List<CartItem> cartItems) {
         // Logic depends on Condition Operator (AND/OR) inside a condition group?
-        // Reading Entity: PromotionCondition has 'operator' (ALL, ANY) and list of 'details'
+        // Reading Entity: PromotionCondition has 'operator' (ALL, ANY) and list of
+        // 'details'
         // PromotionConditionDetail has 'product' and 'requiredQuantity'
-        
+
         // Operator ALL: User must buy ALL products in the list with required quantity
         // Operator ANY: User must buy ANY product in the list with required quantity
-        
+
         if (condition.getDetails() == null || condition.getDetails().isEmpty()) {
-            return true; 
+            return true;
         }
 
         if (condition.getOperator() == PromotionConditionOperator.ALL) {
@@ -114,12 +111,120 @@ public class PromotionCalculator {
             }
             return true;
         } else { // ANY
-             for (PromotionConditionDetail detail : condition.getDetails()) {
+            for (PromotionConditionDetail detail : condition.getDetails()) {
                 if (cartContainsProduct(cartItems, detail.getProduct().getId(), detail.getRequiredQuantity())) {
                     return true;
                 }
             }
             return false;
+        }
+    }
+
+    /**
+     * Chọn các discount promotions để áp dụng
+     * Logic: Nếu các promotion có sản phẩm khác nhau (không overlap), áp dụng tất
+     * cả
+     * Nếu overlap, chỉ chọn 1 cái tốt nhất
+     */
+    private List<Promotion> selectDiscountPromotions(List<Promotion> discountPromotions, List<CartItem> cartItems) {
+        if (discountPromotions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Nếu chỉ có 1 promotion, áp dụng luôn
+        if (discountPromotions.size() == 1) {
+            return discountPromotions;
+        }
+
+        // Lấy danh sách sản phẩm yêu cầu của mỗi promotion
+        List<PromotionWithProducts> promotionsWithProducts = new ArrayList<>();
+        for (Promotion p : discountPromotions) {
+            Set<Long> productIds = getRequiredProductIds(p);
+            promotionsWithProducts.add(new PromotionWithProducts(p, productIds));
+        }
+
+        // Kiểm tra xem các promotion có overlap sản phẩm không
+        List<Promotion> applied = new ArrayList<>();
+        List<Set<Long>> appliedProductSets = new ArrayList<>();
+
+        // Sắp xếp theo discountAmount giảm dần để ưu tiên promotion tốt hơn
+        promotionsWithProducts.sort((a, b) -> {
+            BigDecimal discountA = a.promotion.getDiscountAmount() != null ? a.promotion.getDiscountAmount()
+                    : BigDecimal.ZERO;
+            BigDecimal discountB = b.promotion.getDiscountAmount() != null ? b.promotion.getDiscountAmount()
+                    : BigDecimal.ZERO;
+            return discountB.compareTo(discountA);
+        });
+
+        for (PromotionWithProducts pwp : promotionsWithProducts) {
+            // Kiểm tra xem có overlap với các promotion đã áp dụng không
+            boolean hasOverlap = false;
+            for (Set<Long> appliedSet : appliedProductSets) {
+                if (hasProductOverlap(pwp.productIds, appliedSet)) {
+                    hasOverlap = true;
+                    break;
+                }
+            }
+
+            // Nếu không overlap, có thể áp dụng cùng lúc
+            if (!hasOverlap) {
+                applied.add(pwp.promotion);
+                appliedProductSets.add(pwp.productIds);
+            }
+        }
+
+        return applied;
+    }
+
+    /**
+     * Lấy danh sách product IDs yêu cầu của promotion
+     */
+    private Set<Long> getRequiredProductIds(Promotion promotion) {
+        Set<Long> productIds = new HashSet<>();
+        if (promotion.getConditions() == null || promotion.getConditions().isEmpty()) {
+            // Nếu không có điều kiện, promotion áp dụng cho tất cả sản phẩm
+            // Trả về empty set để đánh dấu là "áp dụng cho tất cả"
+            return productIds;
+        }
+
+        for (PromotionCondition condition : promotion.getConditions()) {
+            if (condition.getDetails() != null) {
+                for (PromotionConditionDetail detail : condition.getDetails()) {
+                    if (detail.getProduct() != null) {
+                        productIds.add(detail.getProduct().getId());
+                    }
+                }
+            }
+        }
+        return productIds;
+    }
+
+    /**
+     * Kiểm tra xem 2 set product IDs có overlap không
+     */
+    private boolean hasProductOverlap(Set<Long> set1, Set<Long> set2) {
+        // Nếu một trong hai set rỗng (promotion không có điều kiện sản phẩm cụ thể),
+        // thì coi như overlap vì nó áp dụng cho tất cả
+        if (set1.isEmpty() || set2.isEmpty()) {
+            return true;
+        }
+
+        // Kiểm tra xem có sản phẩm chung không
+        for (Long productId : set1) {
+            if (set2.contains(productId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static class PromotionWithProducts {
+        Promotion promotion;
+        Set<Long> productIds;
+
+        PromotionWithProducts(Promotion promotion, Set<Long> productIds) {
+            this.promotion = promotion;
+            this.productIds = productIds;
         }
     }
 

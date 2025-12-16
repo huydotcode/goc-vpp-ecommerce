@@ -38,6 +38,14 @@ export interface GiftItem {
   quantity: number;
 }
 
+export interface CartPromotionPreview {
+  subtotal: number;
+  discountAmount: number;
+  finalAmount: number;
+  appliedPromotions: PromotionSummary[];
+  giftItems: GiftItem[];
+}
+
 export interface AddCartItemRequest {
   productId: number;
   variantId?: number | null;
