@@ -70,6 +70,27 @@ export const orderApi = {
     throw new Error("Không đọc được danh sách đơn hàng");
   },
 
+  getMyOrdersPaged: async (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortDir?: "ASC" | "DESC";
+  }) => {
+    const { page = 0, size = 10, status, search, sortBy, sortDir } = params;
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("size", String(size));
+    if (status) query.set("status", status);
+    if (search) query.set("search", search);
+    if (sortBy) query.set("sortBy", sortBy);
+    if (sortDir) query.set("sortDir", sortDir);
+
+    const res = await apiClient.get(`${API_ENDPOINTS.ORDERS}/page?${query.toString()}`);
+    return res.data ?? res;
+  },
+
   getStatistics: async (): Promise<OrderStatistics> => {
     const res = (await apiClient.get(API_ENDPOINTS.ORDERS_STATISTICS)) as
       | OrderStatistics

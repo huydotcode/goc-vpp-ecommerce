@@ -1,9 +1,21 @@
 import { orderService } from "@/services/order.service";
 import { handleApiError } from "@/utils/error";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Empty, Image, Spin, Tabs, Tag, Typography } from "antd";
+import {
+  Card,
+  Empty,
+  Image,
+  Input,
+  Pagination,
+  Select,
+  Spin,
+  Tabs,
+  Tag,
+  Typography,
+  Space,
+} from "antd";
 import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import type { Order, OrderItem } from "@/types/order.types";
 
@@ -59,19 +71,63 @@ interface OrdersPageProps {
 
 const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = React.useState<string | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data, isLoading } = useQuery({
-    queryKey: [isAdmin ? "adminOrders" : "userOrders", statusFilter],
+  const statusFilter = searchParams.get("status") || undefined;
+  const searchText = searchParams.get("q") || "";
+  const sortKey =
+    (searchParams.get("sort") as
+      | "newest"
+      | "oldest"
+      | "amountDesc"
+      | "amountAsc"
+      | null) || "newest";
+  const currentPage = Number(searchParams.get("page") || "1");
+  const pageSize = 8;
+
+  const updateParams = (params: Record<string, string | undefined>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === "" || value === null) {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    });
+    setSearchParams(next);
+  };
+
+  const { data, isLoading } = useQuery<
+    Order[] | { content: Order[]; totalElements: number; number: number }
+  >({
+    queryKey: [
+      isAdmin ? "adminOrders" : "userOrders",
+      statusFilter,
+      searchText,
+      sortKey,
+      currentPage,
+      pageSize,
+    ],
     queryFn: async () => {
       try {
         if (isAdmin) {
-          // Admin always fetches all orders, backend might support status filter later
-          // For now, client-side filtering is applied below, but consistent with user page pattern
+          // Admin flow hiện chưa có API paging/search; tạm dùng danh sách full.
           return await orderService.getAllOrders();
         } else {
-          return await orderService.getMyOrders({
+          const sortBy =
+            sortKey === "amountDesc" || sortKey === "amountAsc"
+              ? "finalAmount"
+              : "createdAt";
+          const sortDir =
+            sortKey === "oldest" || sortKey === "amountAsc" ? "ASC" : "DESC";
+
+          return await orderService.getMyOrdersPaged({
+            page: currentPage - 1,
+            size: pageSize,
             status: statusFilter,
+            search: searchText.trim() || undefined,
+            sortBy,
+            sortDir,
           });
         }
       } catch (error) {
@@ -81,15 +137,28 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     },
   });
 
-  const renderCards = useMemo(() => {
-    let orders: Order[] = (data as Order[]) || [];
-
-    // Client-side filtering if API doesn't support it for Admin or if generic getMyOrders handling needs it
-    if (statusFilter && statusFilter !== "ALL") {
-      orders = orders.filter((o) => o.status === statusFilter);
+  const isAdminMode = isAdmin;
+  const ordersData = useMemo(() => {
+    if (isAdminMode) {
+      const list = (data as Order[]) || [];
+      return {
+        content: list,
+        totalElements: list.length,
+        number: 0,
+      };
     }
+    return (
+      (data as { content: Order[]; totalElements: number; number: number }) || {
+        content: [],
+        totalElements: 0,
+        number: 0,
+      }
+    );
+  }, [data, isAdminMode]);
 
-    if (!orders || orders.length === 0) {
+  const renderCards = useMemo(() => {
+    const items = ordersData?.content || [];
+    if (!items || items.length === 0) {
       return (
         <div className="py-10">
           <Empty
@@ -102,7 +171,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     }
     return (
       <div className="flex flex-col gap-3 sm:gap-4">
-        {orders.map((order) => (
+        {items.map((order) => (
           <Card
             key={order.id}
             hoverable
@@ -201,17 +270,18 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
         ))}
       </div>
     );
-  }, [data, navigate, isAdmin, statusFilter]);
+  }, [ordersData, navigate, isAdmin]);
 
   const tabs = [
     { key: "ALL", label: "Tất cả", value: undefined },
     { key: "PENDING", label: "Đang xử lý", value: "PENDING" },
+    { key: "PAID", label: "Đã thanh toán", value: "PAID" },
     { key: "CONFIRMED", label: "Đã xác nhận", value: "CONFIRMED" },
     { key: "SHIPPING", label: "Đang giao", value: "SHIPPING" },
+    { key: "DELIVERED", label: "Đã giao", value: "DELIVERED" },
     { key: "COMPLETED", label: "Hoàn thành", value: "COMPLETED" },
     { key: "REFUNDED", label: "Đã hoàn tiền", value: "REFUNDED" },
     { key: "CANCELLED", label: "Đã hủy", value: "CANCELLED" },
-    { key: "FAILED", label: "Thất bại", value: "FAILED" },
   ];
 
   return (
@@ -220,12 +290,37 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
         <Typography.Title level={3} style={{ margin: 0 }}>
           {isAdmin ? "Quản lý đơn hàng (Admin)" : "Đơn hàng của tôi"}
         </Typography.Title>
+        <Space wrap size="middle">
+          <Input.Search
+            placeholder="Tìm kiếm theo mã đơn hàng..."
+            allowClear
+            value={searchText}
+            onChange={(e) => {
+              updateParams({ q: e.target.value, page: "1" });
+            }}
+            onSearch={(value) => {
+              updateParams({ q: value, page: "1" });
+            }}
+            style={{ minWidth: 240 }}
+          />
+          <Select
+            value={sortKey}
+            style={{ width: 200 }}
+            onChange={(v) => updateParams({ sort: v, page: "1" })}
+            options={[
+              { label: "Mới nhất", value: "newest" },
+              { label: "Cũ nhất", value: "oldest" },
+              { label: "Tổng tiền cao → thấp", value: "amountDesc" },
+              { label: "Tổng tiền thấp → cao", value: "amountAsc" },
+            ]}
+          />
+        </Space>
         <Tabs
           items={tabs.map((t) => ({ key: t.key, label: t.label }))}
           activeKey={tabs.find((t) => t.value === statusFilter)?.key || "ALL"}
           onChange={(key) => {
             const tab = tabs.find((t) => t.key === key);
-            setStatusFilter(tab?.value);
+            updateParams({ status: tab?.value, page: "1" });
           }}
         />
       </div>
@@ -236,6 +331,19 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
         </div>
       ) : (
         renderCards
+      )}
+
+      {!isLoading && (ordersData?.totalElements || 0) > pageSize && (
+        <div className="flex justify-end pt-2">
+          <Pagination
+            current={isAdmin ? currentPage : (ordersData?.number ?? 0) + 1}
+            pageSize={pageSize}
+            total={ordersData?.totalElements || 0}
+            onChange={(page) => updateParams({ page: String(page) })}
+            showSizeChanger={false}
+            showTotal={(total) => `Tổng ${total} đơn hàng`}
+          />
+        </div>
       )}
     </div>
   );

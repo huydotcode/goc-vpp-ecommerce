@@ -327,6 +327,28 @@ public class OrderController {
                 orderService.getOrdersWithItemsByUserId(currentUser.getId()).stream().map(this::toSummaryDTO).toList());
     }
 
+    @GetMapping("/page")
+    public ResponseEntity<Page<OrderSummaryDTO>> getMyOrdersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        User currentUser = getCurrentUser();
+        Sort.Direction direction = sortDir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        String sortField = switch (sortBy) {
+            case "finalAmount", "totalAmount" -> "finalAmount";
+            default -> "createdAt";
+        };
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        Page<Order> orders = orderService.getOrdersWithItemsByUserIdPaged(currentUser.getId(), status, search, pageable);
+        Page<OrderSummaryDTO> dtoPage = orders.map(this::toSummaryDTO);
+        return ResponseEntity.ok(dtoPage);
+    }
+
     @GetMapping("/all")
     public ResponseEntity<?> getAllOrders() {
         // In a real app, verify ADMIN role here
