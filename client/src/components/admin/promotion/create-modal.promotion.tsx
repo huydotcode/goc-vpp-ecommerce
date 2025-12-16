@@ -11,6 +11,7 @@ import {
   Upload,
   Progress,
   Card,
+  DatePicker,
 } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd";
@@ -282,7 +283,7 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
     });
   };
 
-  const onFinish = async (values: CreatePromotionRequest) => {
+  const onFinish = async (values: any) => {
     try {
       // Validate conditions
       const validConditionGroups = conditionGroups.filter(
@@ -334,6 +335,8 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
           values.discountType === "DISCOUNT_AMOUNT" && values.discountAmount
             ? Number(values.discountAmount)
             : undefined,
+        startDate: values.dateRange && values.dateRange[0] ? values.dateRange[0].toISOString() : undefined,
+        endDate: values.dateRange && values.dateRange[1] ? values.dateRange[1].toISOString() : undefined,
         conditions: validConditionGroups,
         giftItems:
           values.discountType === "GIFT"
@@ -712,6 +715,19 @@ const PromotionCreate: React.FC<PromotionCreateProps> = ({
                 </p>
               </div>
             )}
+          </Form.Item>
+
+          <Form.Item
+            label="Thời gian khuyến mãi"
+            name="dateRange"
+            tooltip="Chọn thời gian bắt đầu và kết thúc (để trống = không giới hạn thời gian)"
+          >
+            <DatePicker.RangePicker
+              showTime
+              format="DD/MM/YYYY HH:mm"
+              placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
+              style={{ width: "100%" }}
+            />
           </Form.Item>
 
           <Form.Item label="Trạng thái" name="isActive" initialValue={true}>

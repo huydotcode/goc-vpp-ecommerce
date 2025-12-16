@@ -1,6 +1,7 @@
 package com.example.learnspring1.domain.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import com.example.learnspring1.domain.Promotion;
@@ -19,6 +20,8 @@ public class PromotionResponseDTO {
     private PromotionDiscountType discountType;
     private BigDecimal discountAmount;
     private Boolean isActive;
+    private Instant startDate;
+    private Instant endDate;
     private List<ConditionDTO> conditions;
     private List<GiftItemDTO> giftItems;
 
@@ -33,6 +36,8 @@ public class PromotionResponseDTO {
             PromotionDiscountType discountType,
             BigDecimal discountAmount,
             Boolean isActive,
+            Instant startDate,
+            Instant endDate,
             List<ConditionDTO> conditions,
             List<GiftItemDTO> giftItems) {
         this.id = id;
@@ -43,6 +48,8 @@ public class PromotionResponseDTO {
         this.discountType = discountType;
         this.discountAmount = discountAmount;
         this.isActive = isActive;
+        this.startDate = startDate;
+        this.endDate = endDate;
         this.conditions = conditions;
         this.giftItems = giftItems;
     }
@@ -69,6 +76,8 @@ public class PromotionResponseDTO {
                 promotion.getDiscountType(),
                 promotion.getDiscountAmount(),
                 promotion.getIsActive(),
+                promotion.getStartDate(),
+                promotion.getEndDate(),
                 conditionDTOs,
                 giftDTOs);
     }
@@ -103,6 +112,14 @@ public class PromotionResponseDTO {
 
     public Boolean getIsActive() {
         return isActive;
+    }
+
+    public Instant getStartDate() {
+        return startDate;
+    }
+
+    public Instant getEndDate() {
+        return endDate;
     }
 
     public List<ConditionDTO> getConditions() {

@@ -112,6 +112,8 @@ export interface PromotionRequest {
   description?: string;
   discountType: PromotionDiscountType;
   discountAmount?: number;
+  startDate?: string | null;  // ISO 8601 format
+  endDate?: string | null;    // ISO 8601 format
   conditions: PromotionConditionRequest[];
   giftItems: PromotionGiftItemRequest[];
 }
@@ -129,6 +131,8 @@ export interface PromotionResponse {
   discountType: PromotionDiscountType;
   discountAmount?: number | null;
   isActive: boolean;
+  startDate?: string | null;  // ISO 8601 format
+  endDate?: string | null;    // ISO 8601 format
   conditions: PromotionConditionResponse[];
   giftItems: PromotionGiftItemResponse[];
 }
