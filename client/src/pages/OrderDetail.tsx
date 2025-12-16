@@ -4,6 +4,7 @@ import { handleApiError } from "@/utils/error";
 import {
   ArrowLeftOutlined,
   CopyOutlined,
+  HistoryOutlined,
   LinkOutlined,
   StarOutlined,
 } from "@ant-design/icons";
@@ -32,6 +33,8 @@ import ReviewModal, {
   type ReviewableItem,
 } from "@/components/order/ReviewModal";
 import CancelOrderModal from "@/components/order/CancelOrderModal";
+import type { OrderHistoryItem } from "@/api/adminOrder.api";
+import UserOrderTimeline from "@/components/order/UserOrderTimeline";
 
 // type OrderItemSummary = {
 //   productName?: string;
@@ -163,6 +166,23 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
       }
     },
     enabled: !!orderCode,
+  });
+
+  // Lịch sử đơn hàng (timeline) cho user
+  const { data: historyData, isLoading: historyLoading } = useQuery<
+    OrderHistoryItem[]
+  >({
+    queryKey: ["userOrderHistory", orderCode],
+    queryFn: async () => {
+      if (!orderCode) return [];
+      try {
+        return await orderApi.getOrderHistory(orderCode);
+      } catch (error) {
+        handleApiError(error);
+        throw error;
+      }
+    },
+    enabled: !!orderCode && !isAdmin,
   });
 
   const cancelOrderMutation = useMutation({
@@ -616,6 +636,24 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
           <Empty description="Không có sản phẩm" />
         )}
       </Card>
+
+      {/* Order History Timeline (User) */}
+      {!isAdmin && (
+        <Card
+          title={
+            <span>
+              <HistoryOutlined className="mr-2" />
+              Lịch sử đơn hàng
+            </span>
+          }
+          className="shadow-sm"
+        >
+          <UserOrderTimeline
+            history={historyData || []}
+            loading={historyLoading}
+          />
+        </Card>
+      )}
 
       {/* Cancel Order Section */}
       {canCancelOrder(data) && (

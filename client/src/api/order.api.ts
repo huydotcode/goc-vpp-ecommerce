@@ -7,6 +7,7 @@ import type {
   OrderStatistics,
   OrderStatisticsByRange,
 } from "../types/order.types";
+import type { OrderHistoryItem } from "./adminOrder.api";
 
 interface ApiResponseWrapper<T> {
   status: string;
@@ -87,7 +88,9 @@ export const orderApi = {
     if (sortBy) query.set("sortBy", sortBy);
     if (sortDir) query.set("sortDir", sortDir);
 
-    const res = await apiClient.get(`${API_ENDPOINTS.ORDERS}/page?${query.toString()}`);
+    const res = await apiClient.get(
+      `${API_ENDPOINTS.ORDERS}/page?${query.toString()}`
+    );
     return res.data ?? res;
   },
 
@@ -184,5 +187,20 @@ export const orderApi = {
     }
 
     throw new Error("Không thể hủy đơn hàng");
+  },
+
+  getOrderHistory: async (orderCode: string): Promise<OrderHistoryItem[]> => {
+    const res = (await apiClient.get(
+      `${API_ENDPOINTS.ORDERS}/${orderCode}/history`
+    )) as OrderHistoryItem[] | ApiResponseWrapper<OrderHistoryItem[]>;
+
+    if (Array.isArray(res)) {
+      return res;
+    }
+    if (res && typeof res === "object" && "data" in res && res.data) {
+      return (res as ApiResponseWrapper<OrderHistoryItem[]>).data;
+    }
+
+    throw new Error("Không đọc được lịch sử đơn hàng");
   },
 };
