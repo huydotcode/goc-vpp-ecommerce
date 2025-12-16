@@ -56,7 +56,29 @@ const CategoryMenu: React.FC = () => {
 
   // Category menu items (nested structure)
   const categoryMenuItems: MenuProps["items"] = categories
-    ? categories.map((category) => categoryToMenuItem(category))
+    ? [
+        {
+          key: "all-products",
+          label: (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                navigate("/products");
+                setDrawerOpen(false); // Close drawer on mobile
+              }}
+            >
+              <span>Tất cả sản phẩm</span>
+            </div>
+          ),
+        },
+        ...categories.map((category) => categoryToMenuItem(category)),
+      ]
     : [];
 
   // Don't render if no categories
