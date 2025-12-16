@@ -1,8 +1,8 @@
 import AddressSelector from "@/components/checkout/AddressSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import type {
-  UpdateProfileRequest,
   ChangePasswordRequest,
+  UpdateProfileRequest,
 } from "@/services/user.service";
 import { userService } from "@/services/user.service";
 import { userAddressService } from "@/services/userAddress.service";
@@ -15,8 +15,12 @@ import {
   HomeOutlined,
   PhoneOutlined,
   PlusOutlined,
+  UploadOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
+import type { UploadFile } from "antd";
 import {
+  Avatar,
   Button,
   Card,
   DatePicker,
@@ -29,6 +33,7 @@ import {
   Spin,
   Tag,
   Typography,
+  Upload,
 } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import React, { useEffect, useState } from "react";
@@ -55,6 +60,9 @@ const UserProfilePage: React.FC = () => {
   const [editingAddress, setEditingAddress] = useState<UserAddress | null>(
     null
   );
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -67,6 +75,17 @@ const UserProfilePage: React.FC = () => {
         gender: user.gender || undefined,
         dateOfBirth: user.dateOfBirth ? dayjs(user.dateOfBirth) : null,
       });
+      setAvatarUrl(user.avatarUrl || "");
+      if (user.avatarUrl) {
+        setFileList([
+          {
+            uid: "-1",
+            name: "avatar.png",
+            status: "done",
+            url: user.avatarUrl,
+          },
+        ]);
+      }
     }
   }, [user, form]);
 
@@ -86,6 +105,45 @@ const UserProfilePage: React.FC = () => {
     }
   };
 
+  const handleUploadAvatar = async (file: File) => {
+    setUploading(true);
+    try {
+      const response = await userService.uploadAvatar(file, user?.id);
+      if (response?.secureUrl) {
+        setAvatarUrl(response.secureUrl);
+        toast.success("Upload avatar thành công");
+      } else {
+        throw new Error("Không nhận được URL từ server");
+      }
+    } catch (error) {
+      handleApiError(error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const uploadProps = {
+    beforeUpload: (file: File) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        toast.error("Chỉ chấp nhận file ảnh");
+        return false;
+      }
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        toast.error("Kích thước file phải nhỏ hơn 5MB");
+        return false;
+      }
+      handleUploadAvatar(file);
+      return false;
+    },
+    fileList,
+    onChange: ({ fileList: newFileList }: { fileList: UploadFile[] }) => {
+      setFileList(newFileList);
+    },
+    maxCount: 1,
+  };
+
   const handleSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
     setLoading(true);
@@ -102,6 +160,7 @@ const UserProfilePage: React.FC = () => {
         phone: values.phone,
         gender: values.gender,
         dateOfBirth: dob,
+        avatarUrl: avatarUrl || user.avatarUrl || undefined,
       });
       if (emailChanged) {
         toast.success(
@@ -221,6 +280,23 @@ const UserProfilePage: React.FC = () => {
           }}
           onFinish={handleSubmit}
         >
+          <Form.Item label="Avatar">
+            <Avatar
+              size={80}
+              src={avatarUrl || user.avatarUrl}
+              icon={<UserOutlined />}
+            />
+            <Upload {...uploadProps}>
+              <Button icon={<UploadOutlined />} loading={uploading}>
+                Thay đổi avatar
+              </Button>
+            </Upload>
+
+            <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+              Định dạng: JPG, PNG, WEBP. Tối đa 5MB
+            </Text>
+          </Form.Item>
+
           <Form.Item
             label="Tên đăng nhập"
             name="username"
