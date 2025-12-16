@@ -2,6 +2,7 @@ package com.example.learnspring1.service.impl;
 
 import com.example.learnspring1.domain.*;
 import com.example.learnspring1.domain.dto.CartItemRequestDTO;
+import com.example.learnspring1.domain.dto.CartPromotionPreviewDTO;
 import com.example.learnspring1.domain.dto.CartResponseDTO;
 import com.example.learnspring1.repository.CartItemRepository;
 import com.example.learnspring1.repository.CartRepository;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -261,6 +261,82 @@ public class CartServiceImpl implements CartService {
         }
     }
 
+    @Override
+    public CartPromotionPreviewDTO previewPromotions(User user, java.util.List<Long> cartItemIds) {
+        // Fetch cart với items và products để tránh lazy loading issues
+        Cart cart = cartRepository.findByUserWithItems(user)
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            CartPromotionPreviewDTO empty = new CartPromotionPreviewDTO();
+            empty.setSubtotal(BigDecimal.ZERO);
+            empty.setDiscountAmount(BigDecimal.ZERO);
+            empty.setFinalAmount(BigDecimal.ZERO);
+            empty.setAppliedPromotions(new java.util.ArrayList<>());
+            empty.setGiftItems(new java.util.ArrayList<>());
+            return empty;
+        }
+
+        // Lọc các item theo danh sách id được chọn
+        java.util.List<CartItem> selectedItems = cart.getItems().stream()
+                .filter(it -> cartItemIds.contains(it.getId()))
+                .collect(Collectors.toList());
+
+        if (selectedItems.isEmpty()) {
+            CartPromotionPreviewDTO empty = new CartPromotionPreviewDTO();
+            empty.setSubtotal(BigDecimal.ZERO);
+            empty.setDiscountAmount(BigDecimal.ZERO);
+            empty.setFinalAmount(BigDecimal.ZERO);
+            empty.setAppliedPromotions(new java.util.ArrayList<>());
+            empty.setGiftItems(new java.util.ArrayList<>());
+            return empty;
+        }
+
+        // Tính subtotal của các item được chọn
+        BigDecimal subtotal = selectedItems.stream()
+                .map(it -> it.getUnitPrice().multiply(BigDecimal.valueOf(it.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Tính khuyến mãi dựa trên subset items
+        java.util.List<Promotion> activePromotions = promotionService.getActivePromotions();
+        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(subtotal, selectedItems,
+                activePromotions);
+
+        CartPromotionPreviewDTO dto = new CartPromotionPreviewDTO();
+        dto.setSubtotal(subtotal);
+        dto.setDiscountAmount(promoResult.getDiscountAmount());
+        dto.setFinalAmount(promoResult.getFinalTotal());
+
+        // Map promotions
+        java.util.List<CartResponseDTO.PromotionSummaryDTO> appliedPromoDTOs = promoResult.getAppliedPromotions()
+                .stream()
+                .map(p -> {
+                    CartResponseDTO.PromotionSummaryDTO pDto = new CartResponseDTO.PromotionSummaryDTO();
+                    pDto.setId(p.getId());
+                    pDto.setName(p.getName());
+                    pDto.setDescription(p.getDescription());
+                    pDto.setDiscountType(p.getDiscountType().name());
+                    pDto.setValue(p.getDiscountAmount());
+                    return pDto;
+                }).collect(Collectors.toList());
+
+        // Map gift items
+        java.util.List<CartResponseDTO.GiftItemDTO> giftItemDTOs = promoResult.getGiftItems().stream()
+                .map(g -> {
+                    CartResponseDTO.GiftItemDTO gDto = new CartResponseDTO.GiftItemDTO();
+                    gDto.setProductId(g.getProduct().getId());
+                    gDto.setProductName(g.getProduct().getName());
+                    gDto.setProductImageUrl(g.getProduct().getThumbnailUrl());
+                    gDto.setQuantity(g.getQuantity());
+                    return gDto;
+                }).collect(Collectors.toList());
+
+        dto.setAppliedPromotions(appliedPromoDTOs);
+        dto.setGiftItems(giftItemDTOs);
+
+        return dto;
+    }
+
     private CartResponseDTO mapToDTO(Cart cart) {
         CartResponseDTO dto = new CartResponseDTO();
         dto.setCartId(cart.getId());
@@ -311,7 +387,8 @@ public class CartServiceImpl implements CartService {
 
         // --- Calculate Promotions ---
         List<Promotion> activePromotions = promotionService.getActivePromotions();
-        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, cart.getItems(), activePromotions);
+        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, cart.getItems(),
+                activePromotions);
 
         // Map promotions to DTO
         List<CartResponseDTO.PromotionSummaryDTO> appliedPromoDTOs = promoResult.getAppliedPromotions().stream()

@@ -13,6 +13,11 @@ import java.util.Optional;
 public interface CartRepository extends JpaRepository<Cart, Long> {
     Optional<Cart> findByUser(User user);
 
+    // Fetch Cart với items và products để tránh lazy loading issues
+    @EntityGraph(attributePaths = { "items", "items.product" })
+    @Query("SELECT c FROM Cart c WHERE c.user = :user")
+    Optional<Cart> findByUserWithItems(@Param("user") User user);
+
     Optional<Cart> findByUserId(Long userId);
 
     void deleteByUser(User user);

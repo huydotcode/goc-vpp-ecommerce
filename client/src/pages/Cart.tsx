@@ -1,9 +1,12 @@
 import { variantApi } from "@/api/variant.api";
-import { cartService } from "@/services/cart.service";
 import { promotionService } from "@/services/promotion.service";
-import type { CartItem } from "@/types/cart.types";
+import type {
+  CartItem,
+  CartPromotionPreview,
+  GiftItem,
+  PromotionSummary,
+} from "@/types/cart.types";
 import type { PromotionResponse } from "@/types/promotion.types";
-import { PromotionDiscountType } from "@/types/promotion.types";
 import type { ProductVariant } from "@/types/variant.types";
 import {
   DeleteOutlined,
@@ -25,7 +28,11 @@ import {
   Tag,
   Typography,
 } from "antd";
+<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
+=======
+import React, { useEffect, useMemo, useState } from "react";
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCart } from "../hooks";
@@ -49,7 +56,7 @@ const CartPage: React.FC = () => {
     removeItem,
     updating,
     removing,
-    refetch,
+    previewPromotions,
   } = useCart();
 
   const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(
@@ -66,7 +73,13 @@ const CartPage: React.FC = () => {
   const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>(
     []
   );
+<<<<<<< HEAD
   const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(null);
+=======
+  const [previewPromo, setPreviewPromo] = useState<CartPromotionPreview | null>(
+    null
+  );
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
 
   // Fetch Promotions
   useEffect(() => {
@@ -88,6 +101,56 @@ const CartPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart]);
+
+  // Convert selectedItemIds Set thành array ổn định để dùng trong dependencies
+  const selectedItemIdsArray = useMemo(
+    () => Array.from(selectedItemIds).sort((a, b) => a - b),
+    [selectedItemIds]
+  );
+
+  // Cập nhật preview khuyến mãi theo các item được chọn
+  useEffect(() => {
+    const updatePreview = async () => {
+      if (!cart || selectedItemIdsArray.length === 0) {
+        setPreviewPromo(null);
+        return;
+      }
+
+      // Kiểm tra xem có phải chọn toàn bộ items không (so sánh IDs, không chỉ length)
+      const allCartItemIds = cart.items
+        .map((item) => item.id)
+        .sort((a, b) => a - b);
+      const isSelectingAll =
+        selectedItemIdsArray.length === allCartItemIds.length &&
+        selectedItemIdsArray.every((id, index) => id === allCartItemIds[index]);
+
+      // Nếu chọn toàn bộ và đã có thông tin trên cart, tạo preview từ cart data
+      if (isSelectingAll && cart.discountAmount !== undefined) {
+        const subtotal = cart.items.reduce(
+          (sum, item) => sum + item.subtotal,
+          0
+        );
+        setPreviewPromo({
+          subtotal,
+          discountAmount: cart.discountAmount ?? 0,
+          finalAmount: cart.finalAmount ?? subtotal,
+          appliedPromotions: cart.appliedPromotions ?? [],
+          giftItems: cart.giftItems ?? [],
+        });
+        return;
+      }
+
+      try {
+        const preview = await previewPromotions(selectedItemIdsArray);
+        setPreviewPromo(preview);
+      } catch (error) {
+        console.error("Failed to preview promotions", error);
+        setPreviewPromo(null);
+      }
+    };
+
+    void updatePreview();
+  }, [cart, selectedItemIdsArray, previewPromotions]);
 
   const handleQuantityChange = async (cartItemId: number, quantity: number) => {
     if (quantity <= 0) {
@@ -163,18 +226,8 @@ const CartPage: React.FC = () => {
     }
     try {
       setUpdatingVariant(true);
-      await cartService.updateItemVariant({
-        cartItemId: editingCartItem.id,
-        variantId: selectedVariantId,
-      });
-      toast.success("Đã cập nhật phân loại");
-      setVariantModalOpen(false);
-      refetch();
-    } catch (error) {
-      const errorMessage =
-        (error as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error || "Không thể cập nhật phân loại";
-      toast.error(errorMessage);
+      // TODO: nếu cần, có thể nối lại với service update variant trong tương lai
+      toast.error("Chức năng đổi phân loại tạm thời chưa được hỗ trợ");
     } finally {
       setUpdatingVariant(false);
     }
@@ -203,6 +256,7 @@ const CartPage: React.FC = () => {
     });
   };
 
+<<<<<<< HEAD
   // Calculate selected items with memoization to prevent unnecessary re-renders
   const selectedItems = React.useMemo(
     () => cart?.items.filter((item) => selectedItemIds.has(item.id)) ?? [],
@@ -278,12 +332,47 @@ const CartPage: React.FC = () => {
     (sum, item) => sum + item.subtotal,
     0
   );
+=======
+  const selectedItems =
+    cart?.items.filter((item) => selectedItemIds.has(item.id)) ?? [];
+
+  // Tổng tạm tính (ưu tiên dùng subtotal từ preview nếu có)
+  const selectedSubtotal = previewPromo
+    ? previewPromo.subtotal
+    : selectedItems.reduce((sum, item) => sum + item.subtotal, 0);
+
+  // Lấy thông tin khuyến mãi từ preview hoặc cart
+  const displayDiscountAmount = previewPromo
+    ? previewPromo.discountAmount
+    : cart && selectedItemIds.size === cart.items.length
+      ? (cart.discountAmount ?? 0)
+      : 0;
+
+  const displayFinalAmount = previewPromo
+    ? previewPromo.finalAmount
+    : cart && selectedItemIds.size === cart.items.length && cart.finalAmount
+      ? cart.finalAmount
+      : selectedSubtotal;
+
+  const displayAppliedPromotions: PromotionSummary[] = previewPromo
+    ? previewPromo.appliedPromotions
+    : cart && selectedItemIds.size === cart.items.length
+      ? (cart.appliedPromotions ?? [])
+      : [];
+
+  const displayGiftItems: GiftItem[] = previewPromo
+    ? previewPromo.giftItems
+    : cart && selectedItemIds.size === cart.items.length
+      ? (cart.giftItems ?? [])
+      : [];
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
 
   const selectedTotalItems = selectedItems.reduce(
     (sum, item) => sum + item.quantity,
     0
   );
 
+<<<<<<< HEAD
   // Calculate order-level promotion discount (applied once, not per item)
   const selectedItemsDiscount = React.useMemo(() => {
     if (!selectedPromotionId) return 0;
@@ -326,6 +415,8 @@ const CartPage: React.FC = () => {
     return conditionsMet ? (selectedPromo.discountAmount ?? 0) : 0;
   }, [selectedPromotionId, applicablePromotions, selectedItems]);
 
+=======
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
   if (isLoading) {
     return (
       <div style={{ padding: 24, minHeight: "60vh" }}>
@@ -742,32 +833,84 @@ const CartPage: React.FC = () => {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text>Tạm tính:</Text>
+<<<<<<< HEAD
                 <Text strong>
                   {formatCurrency(selectedTotalAmount)}
                 </Text>
+=======
+                <Text strong>{formatCurrency(selectedSubtotal)}</Text>
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
               </div>
 
-              {selectedItemsDiscount > 0 && (
+              {displayDiscountAmount > 0 && (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    color: "#52c41a",
                   }}
                 >
-                  <Text type="success">Giảm giá:</Text>
-                  <Text strong type="success">
-                    -{formatCurrency(selectedItemsDiscount)}
-                  </Text>
+                  <Text>Giảm giá đơn hàng:</Text>
+                  <Text strong>-{formatCurrency(displayDiscountAmount)}</Text>
                 </div>
               )}
 
+<<<<<<< HEAD
               {cart.giftItems && cart.giftItems.length > 0 && (
+=======
+              {displayAppliedPromotions.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <Text strong style={{ fontSize: 13 }}>
+                    Khuyến mãi đang áp dụng:
+                  </Text>
+                  <div style={{ marginTop: 4 }}>
+                    {displayAppliedPromotions.map((promo) => (
+                      <div
+                        key={promo.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginTop: 4,
+                          padding: 8,
+                          backgroundColor: "#f0f7ff",
+                          borderRadius: 6,
+                          border: "1px solid #d6e4ff",
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <Text
+                            strong
+                            style={{ fontSize: 12, display: "block" }}
+                          >
+                            {promo.name}
+                          </Text>
+                          {promo.description && (
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: 11, display: "block" }}
+                            >
+                              {promo.description}
+                            </Text>
+                          )}
+                        </div>
+                        {promo.discountType === "DISCOUNT_AMOUNT" &&
+                          promo.value > 0 && (
+                            <Text>-{formatCurrency(promo.value)}</Text>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {displayGiftItems.length > 0 && (
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
                 <div style={{ marginTop: 8 }}>
                   <Text strong style={{ color: "#faad14" }}>
                     Quà tặng kèm:
                   </Text>
-                  {cart.giftItems.map((gift, index) => (
+                  {displayGiftItems.map((gift, index) => (
                     <div
                       key={index}
                       style={{
@@ -806,19 +949,13 @@ const CartPage: React.FC = () => {
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
+<<<<<<< HEAD
                   {formatCurrency(selectedTotalAmount - selectedItemsDiscount)}
+=======
+                  {formatCurrency(displayFinalAmount)}
+>>>>>>> a865864929d02aca3d4ea699fb17bfb3b06bc8a8
                 </Text>
               </div>
-
-              {selectedItemIds.size !== cart.items.length &&
-                cart.discountAmount && (
-                  <Text
-                    type="secondary"
-                    style={{ fontSize: 12, display: "block", marginTop: 4 }}
-                  >
-                    * Chọn tất cả sản phẩm để áp dụng mã giảm giá của đơn hàng.
-                  </Text>
-                )}
 
               <Button
                 type="primary"
