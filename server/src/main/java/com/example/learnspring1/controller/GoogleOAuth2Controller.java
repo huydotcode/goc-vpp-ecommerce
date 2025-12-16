@@ -119,15 +119,21 @@ public class GoogleOAuth2Controller {
             String picture = userInfo.get("picture").asText();
 
             // Step 3: Find or create user
-            Optional<User> existingUser = userRepository.findByUsername(email);
+            // TÌM THEO EMAIL vì có thể user đã register với username khác
+            Optional<User> existingUser = userRepository.findByEmail(email);
             User user;
 
             if (existingUser.isPresent()) {
                 user = existingUser.get();
                 // Update user info
+                user.setUsername(email); // CẬP NHẬT username = email để đồng bộ
                 user.setProvider("GOOGLE");
                 user.setProviderId(googleId);
                 user.setIsActive(true);
+                // Đảm bảo có role (trường hợp user cũ không có role)
+                if (user.getRole() == null) {
+                    user.setRole(com.example.learnspring1.domain.Role.USER);
+                }
             } else {
                 // Create new user
                 user = new User();
@@ -137,6 +143,7 @@ public class GoogleOAuth2Controller {
                 user.setProviderId(googleId);
                 user.setIsActive(true);
                 user.setPassword(""); // Empty string for OAuth2 users (password not needed)
+                user.setRole(com.example.learnspring1.domain.Role.USER); // Set role cho user mới
             }
 
             userRepository.save(user);
@@ -282,8 +289,9 @@ public class GoogleOAuth2Controller {
         try {
             String googleId = "google_" + System.currentTimeMillis();
 
-            // Find or create user
-            Optional<User> existingUser = userRepository.findByUsername(email);
+            // Find or create user  
+            // TÌM THEO EMAIL vì có thể user đã register với username khác
+            Optional<User> existingUser = userRepository.findByEmail(email);
             User user;
 
             if (existingUser.isPresent()) {
@@ -291,6 +299,10 @@ public class GoogleOAuth2Controller {
                 user.setProvider("GOOGLE");
                 user.setProviderId(googleId);
                 user.setIsActive(true);
+                // Đảm bảo có role
+                if (user.getRole() == null) {
+                    user.setRole(com.example.learnspring1.domain.Role.USER);
+                }
             } else {
                 user = new User();
                 user.setUsername(email);
@@ -298,6 +310,7 @@ public class GoogleOAuth2Controller {
                 user.setProvider("GOOGLE");
                 user.setProviderId(googleId);
                 user.setIsActive(true);
+                user.setRole(com.example.learnspring1.domain.Role.USER); // Set role cho user mới
             }
 
             userRepository.save(user);

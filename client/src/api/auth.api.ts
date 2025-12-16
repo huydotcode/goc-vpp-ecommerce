@@ -4,12 +4,6 @@ import type { User } from "@/types/user.types";
 import apiClient from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
-export interface User {
-  username: string;
-  email: string;
-  provider?: string;
-}
-
 export interface RegisterRequest {
   username: string;
   email: string;
@@ -26,7 +20,18 @@ export const authApi = {
       data
     );
     // Interceptor đã unwrap, response là ApiResponse<User>
-    return (response as unknown as ApiResponse<User>).data!;
+    const apiResponse = response as unknown as ApiResponse<User>;
+
+    // Kiểm tra status trong response body
+    // Backend trả về status: "error" khi có lỗi, "success" khi thành công
+    if (apiResponse.status === "error" || (typeof apiResponse.status === 'string' && apiResponse.status !== "success")) {
+      const errorMsg = apiResponse.message ||
+        (Array.isArray(apiResponse.errors) ? apiResponse.errors.join(', ') : apiResponse.errors) ||
+        "Đăng ký thất bại";
+      throw new Error(errorMsg);
+    }
+
+    return apiResponse.data!;
   },
 
   /**

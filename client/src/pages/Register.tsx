@@ -35,35 +35,47 @@ const RegisterPage: React.FC = () => {
   }) => {
     setLoading(true);
     try {
+      console.log("=== Register Debug ===");
+      console.log("Attempting to register with:", { username: values.username, email: values.email });
+
       // Đăng ký tài khoản mới (role USER mặc định)
-      await authApi.register({
+      const registerResponse = await authApi.register({
         username: values.username,
         email: values.email,
         password: values.password,
       });
 
+      console.log("Register successful:", registerResponse);
       toast.success("Đăng ký thành công!");
 
-      // Tự động đăng nhập sau khi đăng ký
+      // Tự động đăng nhập sau khi đăng ký THÀNH CÔNG
       // Backend yêu cầu email để đăng nhập, không phải username
       try {
+        console.log("Attempting auto-login with email:", values.email);
         await login({
           username: values.email, // Dùng email thay vì username
           password: values.password,
         });
+        console.log("Auto-login successful");
         toast.success("Đăng nhập thành công!");
         // Navigate về trang chủ
         navigate("/");
-      } catch {
+      } catch (loginError) {
+        console.error("Auto-login failed:", loginError);
         // Nếu đăng nhập tự động thất bại, chuyển đến trang login
         toast.info("Vui lòng đăng nhập để tiếp tục");
         navigate("/login");
       }
     } catch (error: unknown) {
+      console.error("=== Register Failed ===");
+      console.error("Error:", error);
       const errorMessage = getErrorMessage(error);
+      console.error("Error message:", errorMessage);
       toast.error(errorMessage || "Đăng ký thất bại");
+      // KHÔNG navigate đi đâu cả, để user sửa thông tin và thử lại
     } finally {
       setLoading(false);
+      console.log("=== Register Process Ended ===");
     }
   };
 
