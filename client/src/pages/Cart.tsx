@@ -630,44 +630,57 @@ const CartPage: React.FC = () => {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    color: "#52c41a",
                   }}
                 >
-                  <Text type="success">Giảm giá đơn hàng:</Text>
-                  <Text strong type="success">
-                    -{formatCurrency(displayDiscountAmount)}
-                  </Text>
+                  <Text>Giảm giá đơn hàng:</Text>
+                  <Text strong>-{formatCurrency(displayDiscountAmount)}</Text>
                 </div>
               )}
 
               {displayAppliedPromotions.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  <Text strong style={{ fontSize: 13, color: "#1890ff" }}>
+                  <Text strong style={{ fontSize: 13 }}>
                     Khuyến mãi đang áp dụng:
                   </Text>
-                  {displayAppliedPromotions.map((promo, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        marginTop: 4,
-                        padding: 8,
-                        backgroundColor: "#f0f7ff",
-                        borderRadius: 4,
-                      }}
-                    >
-                      <Text strong style={{ fontSize: 12, display: "block" }}>
-                        {promo.name}
-                      </Text>
-                      {promo.description && (
-                        <Text
-                          type="secondary"
-                          style={{ fontSize: 11, display: "block" }}
-                        >
-                          {promo.description}
-                        </Text>
-                      )}
-                    </div>
-                  ))}
+                  <div style={{ marginTop: 4 }}>
+                    {displayAppliedPromotions.map((promo) => (
+                      <div
+                        key={promo.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginTop: 4,
+                          padding: 8,
+                          backgroundColor: "#f0f7ff",
+                          borderRadius: 6,
+                          border: "1px solid #d6e4ff",
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <Text
+                            strong
+                            style={{ fontSize: 12, display: "block" }}
+                          >
+                            {promo.name}
+                          </Text>
+                          {promo.description && (
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: 11, display: "block" }}
+                            >
+                              {promo.description}
+                            </Text>
+                          )}
+                        </div>
+                        {promo.discountType === "DISCOUNT_AMOUNT" &&
+                          promo.value > 0 && (
+                            <Text>-{formatCurrency(promo.value)}</Text>
+                          )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
