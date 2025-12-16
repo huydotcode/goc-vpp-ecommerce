@@ -73,11 +73,7 @@ const formatCurrency = (value: number) =>
     currency: "VND",
   }).format(value);
 
-interface OrdersPageProps {
-  isAdmin?: boolean;
-}
-
-const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
+const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -115,39 +111,29 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     setSearchParams(next);
   };
 
-  const { data, isLoading } = useQuery<
-    Order[] | { content: Order[]; totalElements: number; number: number }
-  >({
-    queryKey: [
-      isAdmin ? "adminOrders" : "userOrders",
-      statusFilter,
-      searchText,
-      sortKey,
-      currentPage,
-      pageSize,
-    ],
+  const { data, isLoading } = useQuery<{
+    content: Order[];
+    totalElements: number;
+    number: number;
+  }>({
+    queryKey: ["userOrders", statusFilter, searchText, sortKey, currentPage],
     queryFn: async () => {
       try {
-        if (isAdmin) {
-          // Admin flow hiện chưa có API paging/search; tạm dùng danh sách full.
-          return await orderService.getAllOrders();
-        } else {
-          const sortBy =
-            sortKey === "amountDesc" || sortKey === "amountAsc"
-              ? "finalAmount"
-              : "createdAt";
-          const sortDir =
-            sortKey === "oldest" || sortKey === "amountAsc" ? "ASC" : "DESC";
+        const sortBy =
+          sortKey === "amountDesc" || sortKey === "amountAsc"
+            ? "finalAmount"
+            : "createdAt";
+        const sortDir =
+          sortKey === "oldest" || sortKey === "amountAsc" ? "ASC" : "DESC";
 
-          return await orderService.getMyOrdersPaged({
-            page: currentPage - 1,
-            size: pageSize,
-            status: statusFilter,
-            search: searchText.trim() || undefined,
-            sortBy,
-            sortDir,
-          });
-        }
+        return await orderService.getMyOrdersPaged({
+          page: currentPage - 1,
+          size: pageSize,
+          status: statusFilter,
+          search: searchText.trim() || undefined,
+          sortBy,
+          sortDir,
+        });
       } catch (error) {
         handleApiError(error);
         throw error;
@@ -164,7 +150,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
       setCancelModalOpen(false);
       setCancellingOrderCode(null);
       queryClient.invalidateQueries({
-        queryKey: [isAdmin ? "adminOrders" : "userOrders"],
+        queryKey: ["userOrders"],
       });
     },
     onError: handleApiError,
@@ -221,24 +207,14 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
 
   const [reviewStatus, setReviewStatus] = useState<Record<number, boolean>>({});
 
-  const isAdminMode = isAdmin;
-  const ordersData = useMemo(() => {
-    if (isAdminMode) {
-      const list = (data as Order[]) || [];
-      return {
-        content: list,
-        totalElements: list.length,
-        number: 0,
-      };
-    }
-    return (
-      (data as { content: Order[]; totalElements: number; number: number }) || {
-        content: [],
-        totalElements: 0,
-        number: 0,
-      }
-    );
-  }, [data, isAdminMode]);
+  const ordersData = useMemo(
+    () => ({
+      content: data?.content ?? [],
+      totalElements: data?.totalElements ?? 0,
+      number: data?.number ?? 0,
+    }),
+    [data]
+  );
 
   const ensureCanReview = useCallback(
     async (productId: number): Promise<boolean> => {
@@ -268,8 +244,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
 
   // Prefetch review status for products in currently loaded orders
   useEffect(() => {
-    if (isAdminMode) return;
-    const items = ordersData?.content || [];
+    const items = ordersData.content || [];
 
     const missingProductIds: number[] = [];
     for (const order of items) {
@@ -306,18 +281,14 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     };
 
     void fetchStatuses();
-  }, [ordersData, isAdminMode, reviewStatus]);
+  }, [ordersData, reviewStatus]);
 
   const renderCards = useMemo(() => {
-    const items = ordersData?.content || [];
+    const items = ordersData.content || [];
     if (!items || items.length === 0) {
       return (
         <div className="py-10">
-          <Empty
-            description={
-              isAdmin ? "Không có đơn hàng nào." : "Bạn chưa có đơn hàng nào."
-            }
-          />
+          <Empty description={"Bạn chưa có đơn hàng nào."} />
         </div>
       );
     }
@@ -333,7 +304,6 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
           );
           const hasUnreviewedProduct = !!nextUnreviewedProduct;
           const canReview =
-            !isAdmin &&
             ["DELIVERED", "COMPLETED"].includes(order.status) &&
             hasUnreviewedProduct;
           return (
@@ -341,11 +311,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
               key={order.id}
               hoverable
               onClick={() =>
-                navigate(
-                  isAdmin
-                    ? `/admin/orders/${order.orderCode || order.id}`
-                    : `/user/orders/${order.orderCode || order.id}`
-                )
+                navigate(`/user/orders/${order.orderCode || order.id}`)
               }
               className="transition-shadow"
               style={{ border: "1px solid #e5e7eb" }}
@@ -380,9 +346,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                      {isAdmin &&
-                        order.customerName &&
-                        ` • ${order.customerName}`}
+                      {order.customerName && ` • ${order.customerName}`}
                     </div>
                     {order.items && order.items.length > 0 && (
                       <div className="text-sm text-gray-600 space-y-1">
@@ -440,11 +404,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                     size="middle"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(
-                        isAdmin
-                          ? `/admin/orders/${order.orderCode || order.id}`
-                          : `/user/orders/${order.orderCode || order.id}`
-                      );
+                      navigate(`/user/orders/${order.orderCode || order.id}`);
                     }}
                   >
                     Chi tiết
@@ -455,7 +415,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
                       danger
                       onClick={(e) => {
                         e.stopPropagation();
-                        setCancellingOrderCode(order.orderCode || String(order.id));
+                        setCancellingOrderCode(
+                          order.orderCode || String(order.id)
+                        );
                         setCancelModalOpen(true);
                       }}
                     >
@@ -489,14 +451,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
         })}
       </div>
     );
-  }, [
-    ordersData,
-    navigate,
-    isAdmin,
-    cancelMutation,
-    ensureCanReview,
-    reviewStatus,
-  ]);
+  }, [ordersData, navigate, ensureCanReview, reviewStatus]);
 
   const tabs = [
     { key: "ALL", label: "Tất cả", value: undefined },
@@ -514,7 +469,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
     <div className="space-y-4 p-4">
       <div className="flex flex-col flex-wrap gap-3">
         <Typography.Title level={3} style={{ margin: 0 }}>
-          {isAdmin ? "Quản lý đơn hàng (Admin)" : "Đơn hàng của tôi"}
+          Đơn hàng của tôi
         </Typography.Title>
         <Space wrap size="middle">
           <Input.Search
@@ -562,9 +517,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ isAdmin = false }) => {
       {!isLoading && (ordersData?.totalElements || 0) > pageSize && (
         <div className="flex justify-end pt-2">
           <Pagination
-            current={isAdmin ? currentPage : (ordersData?.number ?? 0) + 1}
+            current={ordersData.number + 1}
             pageSize={pageSize}
-            total={ordersData?.totalElements || 0}
+            total={ordersData.totalElements}
             onChange={(page) => updateParams({ page: String(page) })}
             showSizeChanger={false}
             showTotal={(total) => `Tổng ${total} đơn hàng`}
