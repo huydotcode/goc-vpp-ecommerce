@@ -78,9 +78,6 @@ const UserAccountLayout: React.FC = () => {
           <Text type="secondary" className="block mb-2 text-sm">
             {user?.email}
           </Text>
-          {user?.role && (
-            <Tag color={getRoleColor(user.role)}>{getRoleLabel(user.role)}</Tag>
-          )}
         </div>
       </div>
 
