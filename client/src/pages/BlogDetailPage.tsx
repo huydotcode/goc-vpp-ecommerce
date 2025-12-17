@@ -12,11 +12,9 @@ import {
   Col,
   FloatButton,
   Card,
-  theme
 } from "antd";
 import {
   CalendarOutlined,
-  HomeOutlined,
   ArrowLeftOutlined,
   UserOutlined,
   MenuOutlined
@@ -30,14 +28,13 @@ const { Title, Paragraph } = Typography;
 interface TocItem {
   key: string;
   href: string;
-  title: React.ReactNode; // Đổi thành ReactNode để chỉnh bold/normal
+  title: React.ReactNode;
   children?: TocItem[];
 }
 
 const BlogDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { token } = theme.useToken();
 
   const post: BlogPost | undefined = blogData.find((p) => p.slug === slug);
 
