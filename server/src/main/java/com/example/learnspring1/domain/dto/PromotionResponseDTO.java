@@ -206,7 +206,7 @@ public class PromotionResponseDTO {
                     detail.getId(),
                     detail.getProduct() != null ? detail.getProduct().getId() : null,
                     detail.getProduct() != null ? detail.getProduct().getName() : null,
-                    detail.getProduct() != null ? detail.getProduct().getPrice() : null,
+                    detail.getProduct() != null ? detail.getProduct().getDiscountPrice() : null,
                     detail.getProduct() != null ? detail.getProduct().getThumbnailUrl() : null,
                     detail.getRequiredQuantity());
         }
