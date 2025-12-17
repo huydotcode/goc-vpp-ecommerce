@@ -38,6 +38,7 @@ export interface Product {
   variants?: ProductVariant[];
   isActive: boolean;
   isFeatured: boolean;
+  soldCount?: number | null;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   createdBy?: string | null;
