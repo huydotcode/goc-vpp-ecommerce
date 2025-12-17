@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import com.example.learnspring1.domain.Product;
 import com.example.learnspring1.domain.dto.PaginatedResponseDTO;
+import com.example.learnspring1.domain.dto.ProductResponseDTO;
 import com.example.learnspring1.domain.dto.MetadataDTO;
 import com.example.learnspring1.service.ProductService;
 import com.example.learnspring1.service.UserProductHistoryService;
@@ -135,12 +136,12 @@ public class ProductController {
         if (currentUser.isEmpty()) {
             return productService.getBestSellers(PageRequest.of(0, limit)).getContent();
         }
-        
+
         List<Long> viewedProductIds = userProductHistoryService.getUserHistory(currentUser.get(), 20);
         if (viewedProductIds.isEmpty()) {
             return productService.getBestSellers(PageRequest.of(0, limit)).getContent();
         }
-        
+
         return productService.suggestProductsByUserHistory(viewedProductIds, categoryId, limit);
     }
 
@@ -169,8 +170,8 @@ public class ProductController {
 
     @Operation(summary = "Lấy product theo id")
     @GetMapping("/{id}")
-    public Product getById(@PathVariable("id") Long id) {
-        return productService.getProductByIdWithImages(id)
+    public ProductResponseDTO getById(@PathVariable("id") Long id) {
+        return productService.getProductByIdWithImagesAndSoldCount(id)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Product not found with id " + id));
     }
 

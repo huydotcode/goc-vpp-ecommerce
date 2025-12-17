@@ -5,6 +5,7 @@ import com.example.learnspring1.domain.Order;
 import com.example.learnspring1.domain.Product;
 import com.example.learnspring1.domain.ProductVariant;
 import com.example.learnspring1.domain.VariantType;
+import com.example.learnspring1.domain.dto.ProductResponseDTO;
 import com.example.learnspring1.repository.CategoryRepository;
 import com.example.learnspring1.repository.OrderItemRepository;
 import com.example.learnspring1.repository.ProductRepository;
@@ -62,11 +63,12 @@ public class ProductServiceImpl implements ProductService {
             return;
         }
 
-        // Xử lý giá: ưu tiên discountPrice, nếu không có thì dùng price, nếu không có thì 0
-        BigDecimal variantPrice = product.getDiscountPrice() != null 
-                ? product.getDiscountPrice() 
+        // Xử lý giá: ưu tiên discountPrice, nếu không có thì dùng price, nếu không có
+        // thì 0
+        BigDecimal variantPrice = product.getDiscountPrice() != null
+                ? product.getDiscountPrice()
                 : (product.getPrice() != null ? product.getPrice() : BigDecimal.ZERO);
-        
+
         ProductVariant defaultVariant = ProductVariant.builder()
                 .product(product)
                 .variantType(VariantType.OTHER)
@@ -96,9 +98,10 @@ public class ProductServiceImpl implements ProductService {
                 .filter(v -> Boolean.TRUE.equals(v.getIsDefault()))
                 .findFirst()
                 .ifPresent(v -> {
-                    // Xử lý giá: ưu tiên discountPrice, nếu không có thì dùng price, nếu không có thì giữ nguyên giá variant
-                    BigDecimal newPrice = product.getDiscountPrice() != null 
-                            ? product.getDiscountPrice() 
+                    // Xử lý giá: ưu tiên discountPrice, nếu không có thì dùng price, nếu không có
+                    // thì giữ nguyên giá variant
+                    BigDecimal newPrice = product.getDiscountPrice() != null
+                            ? product.getDiscountPrice()
                             : (product.getPrice() != null ? product.getPrice() : v.getPrice());
                     v.setPrice(newPrice);
                     if (product.getThumbnailUrl() != null) {
@@ -209,8 +212,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Optional<Product> getProductByIdWithImages(Long id) {
-        return productRepository.findByIdWithImages(id);
+    public Optional<ProductResponseDTO> getProductByIdWithImagesAndSoldCount(Long id) {
+        return productRepository.findByIdWithImagesAndSold(id);
     }
 
     @Override
@@ -278,11 +281,11 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Product not found with id " + id));
-        
+
         // Soft delete product
         product.softDelete();
         productRepository.save(product);
-        
+
         // Soft delete tất cả variants của product này (chưa bị xóa)
         List<ProductVariant> variants = productVariantRepository.findByProductId(id);
         for (ProductVariant variant : variants) {
@@ -368,30 +371,29 @@ public class ProductServiceImpl implements ProductService {
         if (query == null || query.isBlank()) {
             return query;
         }
-        
+
         String lowerQuery = query.toLowerCase().trim();
-        
+
         // Map synonyms: từ khóa -> các từ đồng nghĩa
         Map<String, String> synonyms = Map.of(
-            "cặp", "cặp balo túi sách cặp học sinh ba lô",
-            "balo", "balo cặp túi sách ba lô",
-            "túi", "túi balo cặp túi sách",
-            "bút", "bút viết bút bi bút mực",
-            "sổ", "sổ tay vở sổ ghi chép",
-            "chuột", "chuột máy tính mouse",
-            "bàn phím", "bàn phím keyboard",
-            "màu", "màu vẽ màu sáp màu nước",
-            "cọ", "cọ vẽ brush",
-            "giấy", "giấy vẽ giấy màu"
-        );
-        
+                "cặp", "cặp balo túi sách cặp học sinh ba lô",
+                "balo", "balo cặp túi sách ba lô",
+                "túi", "túi balo cặp túi sách",
+                "bút", "bút viết bút bi bút mực",
+                "sổ", "sổ tay vở sổ ghi chép",
+                "chuột", "chuột máy tính mouse",
+                "bàn phím", "bàn phím keyboard",
+                "màu", "màu vẽ màu sáp màu nước",
+                "cọ", "cọ vẽ brush",
+                "giấy", "giấy vẽ giấy màu");
+
         // Tìm synonyms và thêm vào query
         for (Map.Entry<String, String> entry : synonyms.entrySet()) {
             if (lowerQuery.contains(entry.getKey())) {
                 return query + " " + entry.getValue();
             }
         }
-        
+
         return query;
     }
 
@@ -412,9 +414,8 @@ public class ProductServiceImpl implements ProductService {
 
         // Filter and rerank by distance threshold (auto-filters low quality matches)
         List<String> idStrings = chromaResp.getFilteredAndRankedIds(
-            aiVectorService.getDistanceThreshold()
-        );
-        
+                aiVectorService.getDistanceThreshold());
+
         List<Long> ids = idStrings.stream()
                 .map(id -> {
                     try {
@@ -444,7 +445,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<Product> suggestProductsByUserHistory(List<Long> viewedProductIds, Long categoryId, int limit) {
         int size = Math.max(1, Math.min(limit, 20));
-        
+
         if (viewedProductIds == null || viewedProductIds.isEmpty()) {
             return getBestSellers(PageRequest.of(0, size)).getContent();
         }
@@ -460,29 +461,29 @@ public class ProductServiceImpl implements ProductService {
             } catch (Exception e) {
                 return getBestSellers(PageRequest.of(0, size)).getContent();
             }
-            
+
             if (embeddings == null || embeddings.isEmpty()) {
                 return getBestSellers(PageRequest.of(0, size)).getContent();
             }
-            
+
             List<List<Double>> validEmbeddings = embeddings.stream()
                     .filter(e -> e != null && !e.isEmpty())
                     .collect(Collectors.toList());
-            
+
             if (validEmbeddings.isEmpty()) {
                 return getBestSellers(PageRequest.of(0, size)).getContent();
             }
 
             List<Double> averageEmbedding = aiVectorService.averageVectors(validEmbeddings);
             var chromaResp = aiVectorService.queryChroma(averageEmbedding, categoryId, size * 5);
-            
+
             if (chromaResp == null || chromaResp.ids == null || chromaResp.ids.isEmpty()) {
                 return getBestSellers(PageRequest.of(0, size)).getContent();
             }
 
             List<String> idStrings = chromaResp.ids.get(0);
-            List<Double> distances = chromaResp.distances != null && !chromaResp.distances.isEmpty() 
-                    ? chromaResp.distances.get(0) 
+            List<Double> distances = chromaResp.distances != null && !chromaResp.distances.isEmpty()
+                    ? chromaResp.distances.get(0)
                     : Collections.emptyList();
 
             List<Long> ids = new ArrayList<>();
@@ -500,7 +501,7 @@ public class ProductServiceImpl implements ProductService {
                     // Skip invalid IDs
                 }
             }
-            
+
             if (!distances.isEmpty() && ids.size() > 1) {
                 Map<Long, Double> distanceMap = new java.util.HashMap<>();
                 for (int i = 0; i < idStrings.size(); i++) {
@@ -509,7 +510,8 @@ public class ProductServiceImpl implements ProductService {
                         if (ids.contains(pid) && i < distances.size()) {
                             distanceMap.put(pid, distances.get(i));
                         }
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException ignored) {
+                    }
                 }
                 ids.sort(Comparator.comparingDouble(pid -> distanceMap.getOrDefault(pid, 999.0)));
             }

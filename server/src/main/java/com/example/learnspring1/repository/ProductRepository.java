@@ -1,8 +1,11 @@
 package com.example.learnspring1.repository;
 
 import com.example.learnspring1.domain.Product;
+import com.example.learnspring1.domain.dto.ProductResponseDTO;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -69,6 +72,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
                      "(p.deletedBy IS NULL)")
        Page<Product> findProductsByIdOnly(@Param("id") String id, Pageable pageable);
 
-       @Query("SELECT p FROM Product p LEFT JOIN FETCH p.images WHERE p.id = :id")
-       Optional<Product> findByIdWithImages(@Param("id") Long id);
+       @EntityGraph(attributePaths = "images")
+       @Query("""
+                         select p as product,
+                                coalesce(sum(case when o.status in ('DELIVERED','COMPLETED') then oi.quantity else 0 end), 0) as soldCount
+                         from Product p
+                         left join OrderItem oi on oi.product = p
+                         left join oi.order o
+                         where p.id = :id
+                         group by p
+                     """)
+       Optional<ProductResponseDTO> findByIdWithImagesAndSold(@Param("id") Long id);
 }
