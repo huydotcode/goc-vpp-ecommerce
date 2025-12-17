@@ -28,7 +28,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCart } from "../hooks";
@@ -72,6 +72,7 @@ const CartPage: React.FC = () => {
   const [previewPromo, setPreviewPromo] = useState<CartPromotionPreview | null>(
     null
   );
+  const hasInitializedSelection = useRef(false);
 
   // Calculate applicable promotions based on selected items with quantity validation
   const applicablePromotions = useMemo(() => {
@@ -135,10 +136,13 @@ const CartPage: React.FC = () => {
     fetchPromotions();
   }, []);
 
-  // Tự động chọn tất cả khi cart load
+  // Tự động chọn tất cả khi cart load (chỉ một lần, không override lựa chọn user)
   useEffect(() => {
-    if (cart && cart.items.length > 0 && selectedItemIds.size === 0) {
+    if (!cart || cart.items.length === 0) return;
+    if (hasInitializedSelection.current) return;
+    if (selectedItemIds.size === 0) {
       setSelectedItemIds(new Set(cart.items.map((item) => item.id)));
+      hasInitializedSelection.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart]);
@@ -220,6 +224,7 @@ const CartPage: React.FC = () => {
   };
 
   const handleSelectItem = (itemId: number) => {
+    hasInitializedSelection.current = true;
     setSelectedItemIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -233,6 +238,7 @@ const CartPage: React.FC = () => {
 
   const handleSelectAll = () => {
     if (!cart) return;
+    hasInitializedSelection.current = true;
     if (selectedItemIds.size === cart.items.length) {
       setSelectedItemIds(new Set());
     } else {
