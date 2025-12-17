@@ -116,12 +116,12 @@ const Login: React.FC = () => {
           <Form.Item
             label={
               <span style={{ fontWeight: 500, color: "var(--color-gray-900)" }}>
-                Tên đăng nhập
+                Email của bạn
               </span>
             }
             name="username"
             rules={[
-              { required: true, message: "Vui lòng nhập tên đăng nhập!" },
+              { required: true, message: "Vui lòng nhập email của bạn!" },
             ]}
             style={{ marginBottom: "20px" }}
           >
@@ -129,7 +129,7 @@ const Login: React.FC = () => {
               prefix={
                 <UserOutlined style={{ color: "var(--color-gray-400)" }} />
               }
-              placeholder="Nhập tên đăng nhập của bạn"
+              placeholder="Nhập email của bạn"
             />
           </Form.Item>
 
