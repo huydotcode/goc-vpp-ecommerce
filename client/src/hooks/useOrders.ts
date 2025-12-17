@@ -12,7 +12,6 @@ export const useCheckout = () => {
     mutationFn: (data: CheckoutRequest) => orderApi.checkout(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success("Đặt hàng thành công!");
     },
     onError: (error) => {
       handleApiError(error);
