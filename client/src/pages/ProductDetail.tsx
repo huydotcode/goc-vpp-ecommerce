@@ -49,43 +49,39 @@ const { Title, Text, Paragraph } = Typography;
 
 // --- Custom Arrows cho Slider ---
 const CustomArrow = (props: any) => {
-  const { className, style, onClick, direction } = props;
+  const { className, style, onClick, direction, top } = props;
   const [isHovered, setIsHovered] = useState(false);
 
-  // Kiểm tra nếu đang disable (đầu/cuối danh sách)
   const isDisabled = className?.includes("slick-disabled");
 
   return (
     <div
       style={{
         ...style,
-        // 1. Định vị thủ công để không bị rớt xuống dòng (Fix lỗi trên dưới)
         position: "absolute",
-        top: "50%",
+        top: top || "230px",
         transform: "translateY(-50%)",
-        zIndex: 10,
+        zIndex: 20,
 
-        // 2. Style cho nút tròn đỏ
-        display: "flex", // Luôn hiện nút (Fix lỗi mất nút)
+        display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: isHovered && !isDisabled ? "#a81b20" : "#C92127",
+        background: isHovered && !isDisabled ? "#a81b20" : "rgba(255, 66, 72, 0.8)",
         color: "#fff",
         borderRadius: "50%",
         width: "44px",
         height: "44px",
-        boxShadow: "0 4px 10px rgba(201, 33, 39, 0.4)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
         border: "2px solid #fff",
 
-        // 3. Xử lý trạng thái Disable (Mờ đi thay vì ẩn)
-        opacity: isDisabled ? 0.5 : 1,
+        opacity: isDisabled ? 0 : 1,
         cursor: isDisabled ? "not-allowed" : "pointer",
+        transition: "all 0.3s ease",
 
-        // 4. Căn chỉnh vị trí trái/phải
         right: direction === "next" ? "-22px" : "auto",
         left: direction === "prev" ? "-22px" : "auto",
       }}
-      onClick={!isDisabled ? onClick : undefined} // Chặn click nếu disable
+      onClick={!isDisabled ? onClick : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -152,7 +148,9 @@ const ProductDetailPage: React.FC = () => {
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: false,
-    arrows: false,
+    arrows: true,
+    nextArrow: <CustomArrow direction="next" />,
+    prevArrow: <CustomArrow direction="prev" />,
   };
 
   const relatedSliderSettings = {
