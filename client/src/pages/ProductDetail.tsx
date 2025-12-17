@@ -11,24 +11,22 @@ import {
   Card,
   Spin,
   message,
-  Tabs,
   Tag,
   Breadcrumb,
   List,
   Avatar,
-  Table,
   Modal,
   Form,
   Input,
-  Progress,
+  Descriptions, // Import thêm Descriptions để hiển thị thông số đẹp hơn
 } from "antd";
 import {
   ShoppingCartOutlined,
-  CheckCircleOutlined,
-  CarOutlined,
-  HomeOutlined,
   UserOutlined,
   EditOutlined,
+  HomeOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import Slider from "react-slick";
 
@@ -36,39 +34,65 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
 import { productService } from "@/services/product.service";
-import { cartService } from "@/services/cart.service";
-import { reviewService } from "@/services/review.service"; // Import service review
+import { reviewService } from "@/services/review.service";
 import type { Product } from "@/types/product.types";
-import type { Review, ReviewStats } from "@/types/review.types"; // Import types review
+import type { Review, ReviewStats } from "@/types/review.types";
 import type { PromotionResponse } from "@/types/promotion.types";
 import { promotionService } from "@/services/promotion.service";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import BestSellers from "@/components/home/BestSellers";
 import PromotionsSection from "@/components/home/PromotionsSection";
 
-
 const { Title, Text, Paragraph } = Typography;
 
-// --- Custom Arrows for Slider ---
-const NextArrow = (props: any) => {
-  const { className, style, onClick } = props;
-  return (
-    <div
-      className={className}
-      style={{ ...style, display: "block", right: "-10px", zIndex: 1 }}
-      onClick={onClick}
-    />
-  );
-};
+// --- Custom Arrows cho Slider ---
+const CustomArrow = (props: any) => {
+  const { className, style, onClick, direction } = props;
+  const [isHovered, setIsHovered] = useState(false);
 
-const PrevArrow = (props: any) => {
-  const { className, style, onClick } = props;
+  // Kiểm tra nếu đang disable (đầu/cuối danh sách)
+  const isDisabled = className?.includes("slick-disabled");
+
   return (
     <div
-      className={className}
-      style={{ ...style, display: "block", left: "-10px", zIndex: 1 }}
-      onClick={onClick}
-    />
+      style={{
+        ...style,
+        // 1. Định vị thủ công để không bị rớt xuống dòng (Fix lỗi trên dưới)
+        position: "absolute",
+        top: "50%",
+        transform: "translateY(-50%)",
+        zIndex: 10,
+
+        // 2. Style cho nút tròn đỏ
+        display: "flex", // Luôn hiện nút (Fix lỗi mất nút)
+        justifyContent: "center",
+        alignItems: "center",
+        background: isHovered && !isDisabled ? "#a81b20" : "#C92127",
+        color: "#fff",
+        borderRadius: "50%",
+        width: "44px",
+        height: "44px",
+        boxShadow: "0 4px 10px rgba(201, 33, 39, 0.4)",
+        border: "2px solid #fff",
+
+        // 3. Xử lý trạng thái Disable (Mờ đi thay vì ẩn)
+        opacity: isDisabled ? 0.5 : 1,
+        cursor: isDisabled ? "not-allowed" : "pointer",
+
+        // 4. Căn chỉnh vị trí trái/phải
+        right: direction === "next" ? "-22px" : "auto",
+        left: direction === "prev" ? "-22px" : "auto",
+      }}
+      onClick={!isDisabled ? onClick : undefined} // Chặn click nếu disable
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {direction === "next" ? (
+        <RightOutlined style={{ fontSize: "20px", fontWeight: "bold" }} />
+      ) : (
+        <LeftOutlined style={{ fontSize: "20px", fontWeight: "bold" }} />
+      )}
+    </div>
   );
 };
 
@@ -88,7 +112,9 @@ const ProductDetailPage: React.FC = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [totalReviews, setTotalReviews] = useState(0);
   const [reviewPage, setReviewPage] = useState(1);
-  const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>([]);
+  const [activePromotions, setActivePromotions] = useState<PromotionResponse[]>(
+    []
+  );
 
   // --- Review Modal States ---
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -109,6 +135,7 @@ const ProductDetailPage: React.FC = () => {
               height: "100%",
               objectFit: "cover",
               border: "1px solid #ddd",
+              display: "block",
             }}
           />
         </a>
@@ -121,6 +148,7 @@ const ProductDetailPage: React.FC = () => {
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: false,
+    arrows: false,
   };
 
   const relatedSliderSettings = {
@@ -129,8 +157,8 @@ const ProductDetailPage: React.FC = () => {
     speed: 500,
     slidesToShow: 5,
     slidesToScroll: 1,
-    nextArrow: <NextArrow />,
-    prevArrow: <PrevArrow />,
+    nextArrow: <CustomArrow direction="next" />,
+    prevArrow: <CustomArrow direction="prev" />,
     responsive: [
       { breakpoint: 1024, settings: { slidesToShow: 3 } },
       { breakpoint: 600, settings: { slidesToShow: 2 } },
@@ -145,21 +173,15 @@ const ProductDetailPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. Fetch Product Detail
         const data = await productService.getProductById(Number(id));
         setProduct(data);
         productService.trackProductView(Number(id)).catch(console.error);
 
-        // 2. Fetch Review Stats & List (Parallel)
         fetchReviewsAndStats(Number(id));
 
-        // 3. Fetch Active Promotions
         const promos = await promotionService.getActivePromotions();
-        console.log("ProductDetail: Fetched promotions:", promos);
-        console.log("ProductDetail: Current Product ID:", id);
         setActivePromotions(promos);
 
-        // 4. Fetch Similar Products
         if (data.categories && data.categories.length > 0) {
           const mainCategoryId = data.categories[0].id;
           const suggestions = await productService.getSuggestions({
@@ -190,13 +212,12 @@ const ProductDetailPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // --- Helper: Fetch Review Data ---
   const fetchReviewsAndStats = async (productId: number) => {
     try {
       setReviewLoading(true);
       const [stats, reviewData] = await Promise.all([
         reviewService.getStats(productId),
-        reviewService.getReviewsByProduct(productId, 1, 5)
+        reviewService.getReviewsByProduct(productId, 1, 5),
       ]);
 
       if (stats) setReviewStats(stats);
@@ -234,7 +255,7 @@ const ProductDetailPage: React.FC = () => {
         productId: Number(id),
         rating: values.rating,
         content: values.content,
-        userFullName: values.userFullName || "Khách hàng"
+        userFullName: values.userFullName || "Khách hàng",
       });
 
       message.success("Cảm ơn bạn đã đánh giá!");
@@ -242,7 +263,6 @@ const ProductDetailPage: React.FC = () => {
       form.resetFields();
 
       fetchReviewsAndStats(Number(id));
-
     } catch (error) {
       console.error(error);
       message.error("Gửi đánh giá thất bại. Vui lòng thử lại!");
@@ -251,7 +271,6 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
-  // --- Helper: Get Images ---
   const getProductImages = () => {
     if (!product) return [];
     const list = [];
@@ -268,8 +287,6 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const handleAddToCart = async () => {
-    // message.info("Tính năng đang tạm khóa bảo trì.");
-    // Code cũ của bạn
     const token = localStorage.getItem("accessToken");
     if (!token) {
       message.warning("Vui lòng đăng nhập để mua hàng!");
@@ -277,7 +294,6 @@ const ProductDetailPage: React.FC = () => {
       return;
     }
     if (!product) return;
-    // ... logic cart service ...
     message.success("Đã thêm vào giỏ hàng (Demo)");
   };
 
@@ -293,42 +309,28 @@ const ProductDetailPage: React.FC = () => {
     }).format(value);
   };
 
-  // --- Detail Table Data ---
-  const detailColumns = [
-    {
-      title: "Thuộc tính",
-      dataIndex: "label",
-      key: "label",
-      width: "30%",
-      render: (text: string) => <Text type="secondary">{text}</Text>,
-    },
-    {
-      title: "Thông tin",
-      dataIndex: "value",
-      key: "value",
-      render: (text: string) => <Text strong>{text}</Text>,
-    },
-  ];
-
-  const getDetailData = () => {
+  // --- Prepare Detail Data for Descriptions ---
+  const getDetailItems = () => {
     if (!product) return [];
     const items = [
-      { key: "sku", label: "Mã sản phẩm (SKU)", value: product.sku },
-      { key: "brand", label: "Thương hiệu", value: product.brand },
+      { key: "sku", label: "Mã sản phẩm", children: product.sku },
+      { key: "brand", label: "Thương hiệu", children: product.brand },
       {
         key: "cats",
         label: "Danh mục",
-        value: product.categories?.map((c) => c.name).join(", "),
+        children: product.categories?.map((c) => c.name).join(", "),
       },
-      { key: "weight", label: "Trọng lượng", value: product.weight },
-      { key: "dims", label: "Kích thước (DxRxC)", value: product.dimensions },
-      { key: "color", label: "Màu sắc", value: product.color },
-      { key: "size", label: "Kích cỡ", value: product.size },
+      { key: "weight", label: "Trọng lượng", children: product.weight },
+      { key: "dims", label: "Kích thước", children: product.dimensions },
+      { key: "color", label: "Màu sắc", children: product.color },
+      { key: "size", label: "Kích cỡ", children: product.size },
     ];
-    return items.filter((item) => item.value && item.value.trim() !== "");
+    // Filter out empty values
+    return items.filter(
+      (item) => item.children && item.children.trim() !== ""
+    );
   };
 
-  // --- Loading State ---
   if (loading) {
     return (
       <div
@@ -355,9 +357,28 @@ const ProductDetailPage: React.FC = () => {
   const discountPercent =
     product.price && product.discountPrice
       ? Math.round(
-        ((product.price - product.discountPrice) / product.price) * 100
-      )
+          ((product.price - product.discountPrice) / product.price) * 100
+        )
       : 0;
+
+  // --- Styles for Section Containers ---
+  const sectionStyle: React.CSSProperties = {
+    maxWidth: 1200,
+    margin: "20px auto",
+    background: "#fff",
+    padding: 24,
+    borderRadius: 8,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+  };
+
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: 20,
+    fontWeight: 600,
+    marginBottom: 20,
+    borderBottom: "1px solid #f0f0f0",
+    paddingBottom: 10,
+    textTransform: "uppercase",
+  };
 
   return (
     <div style={{ background: "#F0F2F5", paddingBottom: 40 }}>
@@ -372,6 +393,7 @@ const ProductDetailPage: React.FC = () => {
         />
       </div>
 
+      {/* --- Main Product Info --- */}
       <div
         style={{
           maxWidth: 1200,
@@ -425,7 +447,6 @@ const ProductDetailPage: React.FC = () => {
                 marginBottom: 16,
               }}
             >
-              {/* Star Rating Real Data */}
               <Rate
                 disabled
                 allowHalf
@@ -436,8 +457,10 @@ const ProductDetailPage: React.FC = () => {
                 (Xem {reviewStats?.totalReviews || 0} đánh giá)
               </Text>
               <Text type="secondary" style={{ fontSize: 13 }}>
-                {" "}
-                | Đã bán: {product.totalStockQuantity ? (1000 - product.totalStockQuantity) : "100+"}
+                | Đã bán:{" "}
+                {product.totalStockQuantity
+                  ? 1000 - product.totalStockQuantity
+                  : "100+"}
               </Text>
             </div>
 
@@ -462,87 +485,55 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <CarOutlined style={{ color: "#1890ff" }} />
-                <Text>Giao hàng miễn phí cho đơn từ 250k</Text>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <CheckCircleOutlined style={{ color: "#52c41a" }} />
-                <Text>Đổi trả trong 30 ngày nếu lỗi nhà sản xuất</Text>
-              </div>
-            </div>
-
             {/* --- Promotion Section --- */}
-            {activePromotions.filter(p => {
-              // Check if any condition includes this product
-              if (!p.conditions || p.conditions.length === 0) return true;
-
-              return p.conditions.some(c =>
-                c.details.some(d => d.productId === product.id)
-              );
-            }).length > 0 && (
-                <div style={{ marginBottom: 24, padding: "12px 16px", background: "#fff0f6", border: "1px dashed #ffadd2", borderRadius: 4 }}>
-                  <Title level={5} style={{ color: "#c41d7f", marginTop: 0, fontSize: 16 }}>
-                    🎁 Khuyến mãi hấp dẫn
-                  </Title>
-                  <List
-                    dataSource={activePromotions.filter(p =>
-                      !p.conditions || p.conditions.length === 0 ||
-                      p.conditions.some(c => c.details.some(d => d.productId === product.id))
-                    )}
-                    renderItem={promo => (
-                      <List.Item style={{ padding: "8px 0", borderBottom: "1px dashed #ffadd266" }}>
-                        <div>
-                          <Tag color="magenta" style={{ fontWeight: 600 }}>
-                            {promo.discountType === "DISCOUNT_AMOUNT" ? "GIẢM GIÁ" : "QUÀ TẶNG"}
-                          </Tag>
-                          <Text strong style={{ color: "#c41d7f" }}>{promo.name}</Text>
-                          <div style={{ marginTop: 4, marginLeft: 4, fontSize: 13, color: "#666" }}>
-                            {promo.description}
-                          </div>
-                          {promo.conditions && promo.conditions.length > 0 && (
-                            <div style={{ marginTop: 8, padding: "8px", background: "#fafafa", borderRadius: 4, border: "1px dashed #d9d9d9" }}>
-                              <Text strong style={{ fontSize: 12 }}>Điều kiện áp dụng:</Text>
-                              {promo.conditions.map((cond, index) => (
-                                <div key={cond.id || index} style={{ marginTop: 4, fontSize: 12 }}>
-                                  <Text type="secondary" italic>
-                                    {cond.operator === "ALL" ? `• Mua tất cả các sản phẩm sau:` : `• Mua một trong các sản phẩm sau:`}
-                                  </Text>
-                                  <ul style={{ paddingLeft: 20, margin: "4px 0 0 0" }}>
-                                    {cond.details.map(d => (
-                                      <li key={d.id}>
-                                        {d.productName || `Sản phẩm #${d.productId}`} <Text type="secondary">(x{d.requiredQuantity})</Text>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {promo.discountType === "DISCOUNT_AMOUNT" && promo.discountAmount && (
-                            <div style={{ marginTop: 4, marginLeft: 4 }}>
-                              Giảm trực tiếp: <Text type="danger">{formatCurrency(promo.discountAmount)}</Text>
-                            </div>
-                          )}
-                          {promo.discountType === "GIFT" && promo.giftItems && promo.giftItems.length > 0 && (
-                            <div style={{ marginTop: 4 }}>
-                              <div style={{ fontSize: 13, fontWeight: 500 }}>Tặng kèm:</div>
-                              {promo.giftItems.map(gift => (
-                                <div key={gift.id} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, background: "#fff", padding: 4, borderRadius: 4 }}>
-                                  {gift.productThumbnailUrl && <Avatar src={gift.productThumbnailUrl} shape="square" size="small" />}
-                                  <Text>{gift.productName} (x{gift.quantity})</Text>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </List.Item>
-                    )}
-                    split={false}
-                  />
-                </div>
-              )}
+            {activePromotions.length > 0 && (
+              <div
+                style={{
+                  marginBottom: 24,
+                  padding: "12px 16px",
+                  background: "#fff0f6",
+                  border: "1px dashed #ffadd2",
+                  borderRadius: 4,
+                }}
+              >
+                <Title
+                  level={5}
+                  style={{ color: "#c41d7f", marginTop: 0, fontSize: 16 }}
+                >
+                  🎁 Khuyến mãi hấp dẫn
+                </Title>
+                <List
+                  dataSource={activePromotions.filter(
+                    (p) =>
+                      !p.conditions ||
+                      p.conditions.length === 0 ||
+                      p.conditions.some((c) =>
+                        c.details.some((d) => d.productId === product.id)
+                      )
+                  )}
+                  renderItem={(promo) => (
+                    <List.Item
+                      style={{
+                        padding: "8px 0",
+                        borderBottom: "1px dashed #ffadd266",
+                      }}
+                    >
+                      <div>
+                        <Tag color="magenta" style={{ fontWeight: 600 }}>
+                          {promo.discountType === "DISCOUNT_AMOUNT"
+                            ? "GIẢM GIÁ"
+                            : "QUÀ TẶNG"}
+                        </Tag>
+                        <Text strong style={{ color: "#c41d7f" }}>
+                          {promo.name}
+                        </Text>
+                      </div>
+                    </List.Item>
+                  )}
+                  split={false}
+                />
+              </div>
+            )}
 
             <Divider dashed />
 
@@ -592,255 +583,191 @@ const ProductDetailPage: React.FC = () => {
         </Row>
       </div>
 
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "20px auto",
-          background: "#fff",
-          padding: 24,
-          borderRadius: 8,
-        }}
-      >
-        <Tabs
-          defaultActiveKey="1"
-          items={[
-            {
-              key: "1",
-              label: (
-                <span style={{ fontSize: 16, fontWeight: 500 }}>
-                  Thông tin chi tiết
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: 10, maxWidth: 800 }}>
-                  <Table
-                    columns={detailColumns}
-                    dataSource={getDetailData()}
-                    pagination={false}
-                    showHeader={false}
-                    size="small"
-                    bordered
-                  />
-                </div>
-              ),
-            },
-            {
-              key: "2",
-              label: (
-                <span style={{ fontSize: 16, fontWeight: 500 }}>
-                  Mô tả sản phẩm
-                </span>
-              ),
-              children: (
-                <div style={{ marginTop: 16 }}>
-                  <Title level={5}>{product.name}</Title>
-                  {product.description ? (
-                    <div
-                      dangerouslySetInnerHTML={{ __html: product.description }}
-                    />
-                  ) : (
-                    <Paragraph>Đang cập nhật nội dung...</Paragraph>
-                  )}
+      {/* =========================================================
+          SECTION: THÔNG TIN CHI TIẾT
+          ========================================================= */}
+      <div style={sectionStyle}>
+        <Title level={4} style={sectionTitleStyle}>
+          Thông tin chi tiết
+        </Title>
+        <Descriptions bordered column={1} size="middle" labelStyle={{ width: '25%', fontWeight: 'bold' }}>
+          {getDetailItems().map((item) => (
+            <Descriptions.Item key={item.key} label={item.label}>
+              {item.children}
+            </Descriptions.Item>
+          ))}
+        </Descriptions>
+      </div>
 
-                  {product.specifications && (
-                    <div style={{ marginTop: 20 }}>
-                      <Title level={5}>Thông số kỹ thuật</Title>
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: product.specifications,
-                        }}
-                      />
-                    </div>
-                  )}
+      {/* =========================================================
+          SECTION: MÔ TẢ SẢN PHẨM
+          ========================================================= */}
+      <div style={sectionStyle}>
+        <Title level={4} style={sectionTitleStyle}>
+          Mô tả sản phẩm
+        </Title>
+        <div style={{ fontSize: 16, lineHeight: 1.8, color: '#333' }}>
+          {product.description ? (
+            <div dangerouslySetInnerHTML={{ __html: product.description }} />
+          ) : (
+            <Paragraph>Đang cập nhật nội dung...</Paragraph>
+          )}
+
+          {product.specifications && (
+            <div style={{ marginTop: 20 }}>
+              <Title level={5}>Thông số kỹ thuật chi tiết</Title>
+              <div dangerouslySetInnerHTML={{ __html: product.specifications }} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* =========================================================
+          SECTION: ĐÁNH GIÁ KHÁCH HÀNG
+          ========================================================= */}
+      <div style={sectionStyle}>
+        <Title level={4} style={sectionTitleStyle}>
+          Đánh giá khách hàng
+        </Title>
+
+        {/* Review Summary Header */}
+        <Row
+          align="middle"
+          justify="space-between"
+          style={{
+            background: "#fffbfb",
+            border: "1px solid #f0f0f0",
+            padding: 24,
+            borderRadius: 8,
+            marginBottom: 24,
+          }}
+        >
+          <Col>
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    fontSize: 48,
+                    fontWeight: "bold",
+                    color: "#faad14",
+                    lineHeight: 1,
+                  }}
+                >
+                  {reviewStats?.averageRating || 0}
+                  <span style={{ fontSize: 20, color: '#999', fontWeight: 'normal' }}>/5</span>
                 </div>
-              ),
-            },
-            {
-              key: "3",
-              label: `Đánh giá khách hàng (${reviewStats?.totalReviews || 0})`,
-              children: (
-                <div style={{ marginTop: 16 }}>
-                  {/* --- Header Review: Average Rating & Write Button --- */}
-                  <Row
-                    align="middle"
-                    justify="space-between"
+                <Rate
+                  disabled
+                  allowHalf
+                  value={reviewStats?.averageRating || 0}
+                  style={{ fontSize: 16 }}
+                />
+              </div>
+              <div style={{ height: 60, width: 1, background: '#e8e8e8' }}></div>
+              <div style={{ color: "#666", fontSize: 16 }}>
+                <strong>{reviewStats?.totalReviews || 0}</strong> nhận xét
+              </div>
+            </div>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => setIsReviewModalOpen(true)}
+              size="large"
+            >
+              Viết đánh giá
+            </Button>
+          </Col>
+        </Row>
+
+        {/* Review List */}
+        <List
+          itemLayout="vertical"
+          loading={reviewLoading}
+          dataSource={reviews}
+          locale={{
+            emptyText: "Chưa có đánh giá nào. Hãy là người đầu tiên!",
+          }}
+          pagination={{
+            onChange: handlePageChange,
+            pageSize: 5,
+            total: totalReviews,
+            current: reviewPage,
+            hideOnSinglePage: true,
+          }}
+          renderItem={(item) => (
+            <List.Item
+              key={item.id}
+              style={{ borderBottom: "1px solid #f0f0f0", padding: "20px 0" }}
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar
+                    icon={<UserOutlined />}
+                    size="large"
+                    style={{ backgroundColor: "#fde3cf", color: "#f56a00" }}
+                  >
+                    {item.userFullName
+                      ? item.userFullName.charAt(0).toUpperCase()
+                      : "U"}
+                  </Avatar>
+                }
+                title={
+                  <div
                     style={{
-                      background: "#fffbfb",
-                      border: "1px solid #f9f9f9",
-                      padding: 24,
-                      borderRadius: 8,
-                      marginBottom: 24,
+                      display: "flex",
+                      justifyContent: "space-between",
                     }}
                   >
-                    <Col>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 32, fontWeight: "bold", color: "#faad14", lineHeight: 1 }}>
-                            {reviewStats?.averageRating || 0}/5
-                          </div>
-                          <Rate disabled allowHalf value={reviewStats?.averageRating || 0} />
-                        </div>
-                        <Divider type="vertical" style={{ height: 40 }} />
-                        <div style={{ color: '#666' }}>
-                          <div>{reviewStats?.totalReviews || 0} nhận xét</div>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col>
-                      <Button
-                        type="primary"
-                        icon={<EditOutlined />}
-                        onClick={() => setIsReviewModalOpen(true)}
-                        size="large"
-                      >
-                        Viết đánh giá
-                      </Button>
-                    </Col>
-                  </Row>
-
-                  {/* --- Review List --- */}
-                  <List
-                    itemLayout="vertical"
-                    loading={reviewLoading}
-                    dataSource={reviews}
-                    locale={{ emptyText: "Chưa có đánh giá nào. Hãy là người đầu tiên!" }}
-                    pagination={{
-                      onChange: handlePageChange,
-                      pageSize: 5,
-                      total: totalReviews,
-                      current: reviewPage,
-                      hideOnSinglePage: true,
-                    }}
-                    renderItem={(item) => (
-                      <List.Item
-                        key={item.id}
-                        style={{ borderBottom: '1px solid #f0f0f0', padding: '16px 0' }}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              icon={<UserOutlined />}
-                              style={{ backgroundColor: "#fde3cf", color: '#f56a00' }}
-                            >
-                              {item.userFullName ? item.userFullName.charAt(0).toUpperCase() : "U"}
-                            </Avatar>
-                          }
-                          title={
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <div>
-                                <Text strong style={{ marginRight: 10 }}>
-                                  {item.userFullName || "Khách hàng ẩn danh"}
-                                </Text>
-                                <span style={{ fontSize: 12, color: '#999' }}>
-                                  {new Date(item.createdAt).toLocaleDateString("vi-VN", {
-                                    year: 'numeric', month: 'long', day: 'numeric'
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-                          }
-                          description={
-                            <div style={{ marginTop: 5 }}>
-                              <Rate disabled value={item.rating} style={{ fontSize: 12, marginRight: 10 }} />
-                              <Paragraph style={{ marginTop: 8, fontSize: 15, color: '#333' }}>
-                                {item.content}
-                              </Paragraph>
-                            </div>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
-
-                  {/* --- Modal Write Review --- */}
-                  <Modal
-                    title="Viết đánh giá sản phẩm"
-                    open={isReviewModalOpen}
-                    onCancel={() => setIsReviewModalOpen(false)}
-                    footer={null}
-                    destroyOnClose
-                  >
-                    <Form
-                      form={form}
-                      onFinish={handleSubmitReview}
-                      layout="vertical"
-                    >
-                      <Form.Item
-                        name="rating"
-                        label="Mức độ hài lòng"
-                        rules={[
-                          { required: true, message: "Vui lòng chọn số sao" },
-                        ]}
-                        initialValue={5}
-                      >
-                        <Rate style={{ fontSize: 24 }} />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="content"
-                        label="Nội dung đánh giá"
-                        rules={[
-                          { required: true, message: "Vui lòng nhập nội dung" },
-                          { min: 10, message: "Nội dung đánh giá ít nhất 10 ký tự" }
-                        ]}
-                      >
-                        <Input.TextArea
-                          rows={4}
-                          placeholder="Hãy chia sẻ cảm nhận của bạn về sản phẩm này..."
-                        />
-                      </Form.Item>
-
-                      {/* Optional: Input Name */}
-                      <Form.Item name="userFullName" label="Tên hiển thị (Tùy chọn)">
-                        <Input placeholder="Bạn muốn hiển thị tên gì?" />
-                      </Form.Item>
-
-                      <Form.Item>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                          <Button onClick={() => setIsReviewModalOpen(false)}>Hủy</Button>
-                          <Button
-                            type="primary"
-                            htmlType="submit"
-                            loading={submitLoading}
-                          >
-                            Gửi đánh giá
-                          </Button>
-                        </div>
-                      </Form.Item>
-                    </Form>
-                  </Modal>
-                </div>
-              ),
-            },
-          ]}
+                    <div>
+                      <Text strong style={{ fontSize: 16 }}>
+                        {item.userFullName || "Khách hàng ẩn danh"}
+                      </Text>
+                      <br />
+                      <span style={{ fontSize: 12, color: "#999" }}>
+                        {new Date(item.createdAt).toLocaleDateString("vi-VN", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                }
+                description={
+                  <div style={{ marginTop: 8 }}>
+                    <Rate
+                      disabled
+                      value={item.rating}
+                      style={{ fontSize: 14, marginBottom: 8 }}
+                    />
+                    <Paragraph style={{ fontSize: 15, color: "#333" }}>
+                      {item.content}
+                    </Paragraph>
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
         />
       </div>
 
-      {
-        similarProducts.length > 0 && (
-          <div
-            style={{
-              maxWidth: 1200,
-              margin: "20px auto",
-              background: "#fff",
-              padding: "20px 30px",
-              borderRadius: 8,
-            }}
-          >
-            <Title
-              level={4}
-              style={{ marginBottom: 20, textTransform: "uppercase" }}
-            >
-              Sản phẩm gợi ý
-            </Title>
+      {/* =========================================================
+          SECTION: SẢN PHẨM GỢI Ý
+          ========================================================= */}
+      {similarProducts.length > 0 && (
+        <div style={sectionStyle}>
+          <Title level={4} style={sectionTitleStyle}>
+            Sản phẩm gợi ý
+          </Title>
 
+          <div style={{ padding: '0 10px' }}> {/* Wrap slider để mũi tên không bị cắt */}
             <Slider {...relatedSliderSettings}>
               {similarProducts.map((p) => {
                 const pDiscount =
                   p.price && p.discountPrice
-                    ? Math.round(
-                      ((p.price - p.discountPrice) / p.price) * 100
-                    )
+                    ? Math.round(((p.price - p.discountPrice) / p.price) * 100)
                     : 0;
 
                 return (
@@ -848,19 +775,19 @@ const ProductDetailPage: React.FC = () => {
                     <Card
                       hoverable
                       bordered={false}
-                      style={{ height: "100%", boxShadow: "none" }}
-                      bodyStyle={{ padding: "10px 0" }}
+                      style={{ height: "100%", boxShadow: "none", border: "1px solid #f0f0f0" }}
+                      bodyStyle={{ padding: "12px" }}
                       cover={
-                        <div style={{ position: "relative", padding: 10 }}>
+                        <div style={{ position: "relative", padding: 12 }}>
                           {pDiscount > 0 && (
                             <div
                               style={{
                                 position: "absolute",
-                                top: 10,
-                                right: 10,
+                                top: 12,
+                                right: 12,
                                 background: "#C92127",
                                 color: "#fff",
-                                padding: "2px 6px",
+                                padding: "2px 8px",
                                 borderRadius: 4,
                                 fontSize: 12,
                                 fontWeight: "bold",
@@ -877,7 +804,7 @@ const ProductDetailPage: React.FC = () => {
                               "https://via.placeholder.com/200x280"
                             }
                             style={{
-                              height: 220,
+                              height: 180,
                               width: "100%",
                               objectFit: "contain",
                               margin: "0 auto",
@@ -887,73 +814,95 @@ const ProductDetailPage: React.FC = () => {
                       }
                       onClick={() => {
                         navigate(`/products/${p.id}`);
+                        window.scrollTo(0, 0);
                       }}
                     >
-                      <div style={{ padding: "0 8px" }}>
-                        <div
-                          style={{
-                            height: 44,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            marginBottom: 8,
-                            fontSize: 14,
-                          }}
-                        >
-                          {p.name}
-                        </div>
+                      <div style={{ height: 44, overflow: 'hidden' }}>
+                         <Text strong style={{ fontSize: 14, lineHeight: '22px' }} ellipsis={{ tooltip: p.name, rows: 2 }}>
+                           {p.name}
+                         </Text>
+                      </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <Text strong style={{ color: "#C92127", fontSize: 16 }}>
-                            {formatCurrency(p.price)}
-                          </Text>
-                        </div>
+                      <div style={{ marginTop: 8 }}>
+                        <Text strong style={{ color: "#C92127", fontSize: 16 }}>
+                          {formatCurrency(p.price)}
+                        </Text>
                       </div>
                     </Card>
                   </div>
                 );
               })}
             </Slider>
+          </div>
+        </div>
+      )}
 
-            <div style={{ textAlign: "center", marginTop: 30 }}>
+      {/* --- Review Modal --- */}
+      <Modal
+        title="Viết đánh giá sản phẩm"
+        open={isReviewModalOpen}
+        onCancel={() => setIsReviewModalOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={form} onFinish={handleSubmitReview} layout="vertical">
+          <Form.Item
+            name="rating"
+            label="Mức độ hài lòng"
+            rules={[{ required: true, message: "Vui lòng chọn số sao" }]}
+            initialValue={5}
+          >
+            <Rate style={{ fontSize: 24 }} />
+          </Form.Item>
+
+          <Form.Item
+            name="content"
+            label="Nội dung đánh giá"
+            rules={[
+              { required: true, message: "Vui lòng nhập nội dung" },
+              { min: 10, message: "Nội dung đánh giá ít nhất 10 ký tự" },
+            ]}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Hãy chia sẻ cảm nhận của bạn về sản phẩm này..."
+            />
+          </Form.Item>
+
+          <Form.Item name="userFullName" label="Tên hiển thị (Tùy chọn)">
+            <Input placeholder="Bạn muốn hiển thị tên gì?" />
+          </Form.Item>
+
+          <Form.Item>
+            <div
+              style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}
+            >
+              <Button onClick={() => setIsReviewModalOpen(false)}>Hủy</Button>
               <Button
-                size="large"
-                style={{
-                  width: 200,
-                  color: "#C92127",
-                  borderColor: "#C92127",
-                  fontWeight: 600,
-                }}
-                onClick={() => navigate("/")}
+                type="primary"
+                htmlType="submit"
+                loading={submitLoading}
               >
-                Xem thêm
+                Gửi đánh giá
               </Button>
             </div>
-          </div>
-        )
-      }
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Additional Recommendation Sections from Home */}
-      <div style={{ marginTop: 60 }}>
+      <div style={{ marginTop: 40 }}>
         <PromotionsSection />
       </div>
 
-      <div style={{ marginTop: 60 }}>
+      <div style={{ marginTop: 40 }}>
         <FeaturedProducts activePromotions={activePromotions} />
       </div>
 
-      <div style={{ marginTop: 60 }}>
+      <div style={{ marginTop: 40 }}>
         <BestSellers activePromotions={activePromotions} />
       </div>
-    </div >
+    </div>
   );
 };
 
