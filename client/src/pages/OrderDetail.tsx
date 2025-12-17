@@ -547,8 +547,11 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
                 data.items.map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex gap-3 items-start"
+                    className="flex gap-3 items-start cursor-pointer hover:bg-gray-50 p-2 rounded-md"
                     style={{ opacity: item.isGift ? 0.8 : 1 }}
+                    onClick={() => {
+                      navigate(`/products/${item.productId}`);
+                    }}
                   >
                     <div className="w-16 h-16 bg-gray-100 border border-gray-200 rounded overflow-hidden relative">
                       {item.imageUrl ? (
