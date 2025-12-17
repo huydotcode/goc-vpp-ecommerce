@@ -67,7 +67,6 @@ public class OrderService {
         this.orderAuditLogService = orderAuditLogService;
     }
 
-
     @Transactional
     public Order createOrder(
             String orderCode,
@@ -313,20 +312,21 @@ public class OrderService {
 
         // Calculate Promotions
         List<Promotion> activePromotions = promotionService.getActivePromotions();
-        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, itemsToCheckout, activePromotions);
+        PromotionCalculator.CalculationResult promoResult = promotionCalculator.calculate(totalAmount, itemsToCheckout,
+                activePromotions);
 
         String appliedPromotionsJson = null;
         try {
             if (!promoResult.getAppliedPromotions().isEmpty()) {
                 appliedPromotionsJson = objectMapper.writeValueAsString(promoResult.getAppliedPromotions().stream()
-                    .map(p -> {
-                        Map<String, Object> map = new HashMap<>();
-                        map.put("id", p.getId());
-                        map.put("name", p.getName());
-                        map.put("value", p.getDiscountAmount() != null ? p.getDiscountAmount() : BigDecimal.ZERO);
-                        return map;
-                    })
-                    .collect(Collectors.toList()));
+                        .map(p -> {
+                            Map<String, Object> map = new HashMap<>();
+                            map.put("id", p.getId());
+                            map.put("name", p.getName());
+                            map.put("value", p.getDiscountAmount() != null ? p.getDiscountAmount() : BigDecimal.ZERO);
+                            return map;
+                        })
+                        .collect(Collectors.toList()));
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace(); // Log error but don't fail order
@@ -352,6 +352,9 @@ public class OrderService {
 
         order = orderRepository.save(order);
 
+        // Log order creation to audit log
+        orderAuditLogService.logOrderCreated(order, null);
+
         // Tạo OrderItems từ các items được chọn
         for (CartItem cartItem : itemsToCheckout) {
             OrderItem orderItem = OrderItem.builder()
@@ -369,15 +372,18 @@ public class OrderService {
 
         // Add Gift Items
         for (PromotionGiftItem gift : promoResult.getGiftItems()) {
-             // Create mock variant/product info for gift if needed, or link to actual product
-             // Should check if gift item needs to reduce stock? Assuming gifts also reduce stock logic is needed but out of scope for strict 'add item',
-             // but let's assume we link to product.
-             // For simplicity, we just add OrderItem with price 0.
+            // Create mock variant/product info for gift if needed, or link to actual
+            // product
+            // Should check if gift item needs to reduce stock? Assuming gifts also reduce
+            // stock logic is needed but out of scope for strict 'add item',
+            // but let's assume we link to product.
+            // For simplicity, we just add OrderItem with price 0.
 
-             OrderItem giftItem = OrderItem.builder()
+            OrderItem giftItem = OrderItem.builder()
                     .order(order)
                     .product(gift.getProduct())
-                    .variant(null) // Gifts might not have variant selected, or use default. Assuming default or null.
+                    .variant(null) // Gifts might not have variant selected, or use default. Assuming default or
+                                   // null.
                     .productName(gift.getProduct().getName() + " (GIFT)")
                     .unitPrice(BigDecimal.ZERO)
                     .quantity(gift.getQuantity())
