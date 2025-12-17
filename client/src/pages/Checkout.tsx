@@ -44,6 +44,7 @@ import { userAddressService } from "../services/userAddress.service";
 import { PaymentMethod } from "../types/order.types";
 import { formatCurrency } from "../utils/format";
 import { savePayOSUrl } from "../utils/payosStorage";
+import { SHIPPING_FEE } from "@/utils/settings";
 
 // Define FormValues interface for type safety
 interface FormValues {
@@ -187,6 +188,8 @@ const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     PaymentMethod.PAYOS
   );
+  // Hiện tại phí vận chuyển cố định 0; dễ thay đổi về sau nếu có logic tính phí
+  const shippingFee = SHIPPING_FEE;
   const [loading, setLoading] = useState(false);
   const [addressSelectorOpen, setAddressSelectorOpen] = useState(false);
 
@@ -262,6 +265,7 @@ const CheckoutPage: React.FC = () => {
   const displayFinalAmount = previewPromo
     ? previewPromo.finalAmount
     : displaySubtotal;
+  const payableAmount = displayFinalAmount + shippingFee;
 
   // Validate selected cart items
   const validSelectedIds = useMemo(() => {
@@ -576,6 +580,7 @@ const CheckoutPage: React.FC = () => {
         address: fullAddress,
         description: values.notes || undefined,
         cartItemIds: selectedCartItemIds,
+        shippingFee,
       });
 
       if (paymentMethod === PaymentMethod.PAYOS) {
@@ -584,16 +589,15 @@ const CheckoutPage: React.FC = () => {
         console.log("displaySubtotal:", displaySubtotal);
         console.log("displayDiscountAmount:", displayDiscountAmount);
         console.log("displayFinalAmount:", displayFinalAmount);
-        console.log(
-          "Math.round(displayFinalAmount):",
-          Math.round(displayFinalAmount)
-        );
+        console.log("shippingFee:", shippingFee);
+        console.log("payableAmount:", payableAmount);
+        console.log("Math.round(payableAmount):", Math.round(payableAmount));
         console.log("previewPromo:", previewPromo);
         console.log("===========================");
 
         // Tạo payment link với PayOS
         const res = await paymentApi.createPayOSPayment({
-          amount: Math.round(displayFinalAmount), // Sử dụng số tiền sau giảm giá
+          amount: Math.round(payableAmount), // Sử dụng số tiền sau giảm giá + phí ship
           description:
             `Thanh toan don hang ${checkoutResponse.orderCode}`.substring(
               0,
@@ -727,6 +731,11 @@ const CheckoutPage: React.FC = () => {
                 </div>
               )}
 
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <Text>Phí vận chuyển:</Text>
+                <Text strong>{formatCurrency(shippingFee)}</Text>
+              </div>
+
               {/* Khuyến mãi & quà tặng áp dụng cho các sản phẩm đang checkout */}
               {previewPromo && previewPromo.appliedPromotions.length > 0 && (
                 <div style={{ marginTop: 8 }}>
@@ -804,7 +813,7 @@ const CheckoutPage: React.FC = () => {
                   Tổng cộng:
                 </Text>
                 <Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>
-                  {formatCurrency(displayFinalAmount)}
+                  {formatCurrency(payableAmount)}
                 </Text>
               </div>
               {selectedCartItemIds &&

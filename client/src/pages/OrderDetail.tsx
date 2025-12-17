@@ -168,6 +168,34 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
     enabled: !!orderCode,
   });
 
+  const parsedPromotions: PromotionSummary[] = useMemo(() => {
+    if (!data?.appliedPromotions) return [];
+    try {
+      const parsed = JSON.parse(data.appliedPromotions) as PromotionSummary[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [data?.appliedPromotions]);
+
+  const shippingFee = useMemo(
+    () => Number(data?.shippingFee ?? 0),
+    [data?.shippingFee]
+  );
+
+  const discountAmount = useMemo(
+    () => Number(data?.discountAmount ?? 0),
+    [data?.discountAmount]
+  );
+
+  const finalAmount = useMemo(() => {
+    if (data?.finalAmount !== undefined && data?.finalAmount !== null) {
+      return Number(data.finalAmount);
+    }
+    const total = Number(data?.totalAmount ?? 0);
+    return total - discountAmount + shippingFee;
+  }, [data?.finalAmount, data?.totalAmount, discountAmount, shippingFee]);
+
   // Lịch sử đơn hàng (timeline) cho user
   const { data: historyData, isLoading: historyLoading } = useQuery<
     OrderHistoryItem[]
@@ -604,19 +632,24 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
                 <span>{formatCurrency(data.totalAmount)}</span>
               </div>
 
-              {data.discountAmount && data.discountAmount > 0 && (
+              {discountAmount > 0 && (
                 <div className="flex justify-between text-base text-green-600">
                   <span>Giảm giá</span>
-                  <span>-{formatCurrency(data.discountAmount)}</span>
+                  <span>-{formatCurrency(discountAmount)}</span>
                 </div>
               )}
 
-              {data.appliedPromotions && (
+              {shippingFee > 0 && (
+                <div className="flex justify-between text-base">
+                  <span>Phí vận chuyển</span>
+                  <span>{formatCurrency(shippingFee)}</span>
+                </div>
+              )}
+
+              {parsedPromotions.length > 0 && (
                 <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded">
                   <div>Mã giảm giá đã áp dụng:</div>
-                  {(
-                    JSON.parse(data.appliedPromotions) as PromotionSummary[]
-                  ).map((p, i) => (
+                  {parsedPromotions.map((p, i) => (
                     <div key={i} className="ml-2">
                       • {p.name}: -{formatCurrency(p.value)}
                     </div>
@@ -627,7 +660,7 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
               <div className="flex justify-between text-lg font-bold pt-2 border-t mt-2">
                 <span>Thành tiền</span>
                 <span className="text-red-500">
-                  {formatCurrency(data.finalAmount || data.totalAmount)}
+                  {formatCurrency(finalAmount)}
                 </span>
               </div>
             </div>

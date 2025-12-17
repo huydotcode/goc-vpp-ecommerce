@@ -39,6 +39,10 @@ public class Order {
     @Column(name = "final_amount", precision = 19, scale = 4)
     private BigDecimal finalAmount;
 
+    @Builder.Default
+    @Column(name = "shipping_fee", precision = 19, scale = 4)
+    private BigDecimal shippingFee = BigDecimal.ZERO;
+
     @Column(name = "applied_promotions", columnDefinition = "TEXT")
     private String appliedPromotions; // JSON string storing list of applied promotions
 

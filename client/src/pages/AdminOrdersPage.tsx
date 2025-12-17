@@ -610,7 +610,9 @@ const AdminOrdersPage: React.FC = () => {
                       </Text>
                       <div>
                         <Text strong className="text-base text-red-600">
-                          {formatCurrency(order.totalAmount)}
+                          {formatCurrency(
+                            order.finalAmount ?? order.totalAmount
+                          )}
                         </Text>
                       </div>
                     </div>

@@ -95,6 +95,9 @@ public class OrderService {
                 .orderCode(orderCode)
                 .user(user)
                 .totalAmount(totalAmount)
+                .discountAmount(BigDecimal.ZERO)
+                .finalAmount(totalAmount)
+                .shippingFee(BigDecimal.ZERO)
                 .paymentMethod(paymentMethod)
                 .paymentLinkId(paymentLinkId)
                 .status(initialStatus)
@@ -332,13 +335,17 @@ public class OrderService {
             e.printStackTrace(); // Log error but don't fail order
         }
 
+        BigDecimal shippingFee = request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO;
+        BigDecimal finalAmount = promoResult.getFinalTotal().add(shippingFee);
+
         // Tạo Order
         Order order = Order.builder()
                 .orderCode(orderCode)
                 .user(user)
                 .totalAmount(totalAmount)
                 .discountAmount(promoResult.getDiscountAmount())
-                .finalAmount(promoResult.getFinalTotal())
+                .finalAmount(finalAmount)
+                .shippingFee(shippingFee)
                 .appliedPromotions(appliedPromotionsJson)
                 .paymentMethod(request.getPaymentMethod())
                 .paymentLinkId(null) // Sẽ được set sau khi tạo payment link

@@ -40,6 +40,7 @@ type OrderDetail = {
   totalAmount: number;
   discountAmount?: number;
   finalAmount?: number;
+  shippingFee?: number;
   status: string;
   paymentMethod?: string;
   customerName?: string;
@@ -51,6 +52,7 @@ type OrderDetail = {
   userId?: number;
   userFirstName?: string;
   userLastName?: string;
+  appliedPromotions?: string;
 };
 //
 
@@ -179,6 +181,37 @@ const AdminOrderDetailPage: React.FC = () => {
     return Math.min(idx, statusSteps.length - 1);
   }, [data, statusSteps]);
 
+  const parsedPromotions = useMemo(() => {
+    if (!data?.appliedPromotions) return [];
+    try {
+      const parsed = JSON.parse(data.appliedPromotions) as {
+        name: string;
+        value: number;
+      }[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [data?.appliedPromotions]);
+
+  const shippingFee = useMemo(
+    () => Number(data?.shippingFee ?? 0),
+    [data?.shippingFee]
+  );
+
+  const discountAmount = useMemo(
+    () => Number(data?.discountAmount ?? 0),
+    [data?.discountAmount]
+  );
+
+  const finalAmount = useMemo(() => {
+    if (data?.finalAmount !== undefined && data?.finalAmount !== null) {
+      return Number(data.finalAmount);
+    }
+    const total = Number(data?.totalAmount ?? 0);
+    return total - discountAmount + shippingFee;
+  }, [data?.finalAmount, data?.totalAmount, discountAmount, shippingFee]);
+
   if (isLoading) {
     return (
       <div className="py-10 flex justify-center">
@@ -194,8 +227,6 @@ const AdminOrderDetailPage: React.FC = () => {
       </div>
     );
   }
-
-
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-4 flex flex-col gap-4">
@@ -372,17 +403,44 @@ const AdminOrderDetailPage: React.FC = () => {
               ))}
             </div>
             <Divider />
-            {data.discountAmount && data.discountAmount > 0 && (
-              <div className="flex justify-between text-sm text-green-600 mb-2">
-                <span>Giảm giá:</span>
-                <span>-{formatCurrency(data.discountAmount)}</span>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tổng tiền hàng</span>
+                <span className="font-medium">
+                  {formatCurrency(data.totalAmount)}
+                </span>
               </div>
-            )}
-            <div className="flex justify-between text-base font-semibold">
-              <span>Tổng tiền</span>
-              <span className="text-red-600">
-                {formatCurrency(data.finalAmount || data.totalAmount)}
-              </span>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Phí vận chuyển</span>
+                <span className="font-medium">
+                  {formatCurrency(shippingFee)}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Giảm giá</span>
+                <span>-{formatCurrency(discountAmount)}</span>
+              </div>
+
+              {parsedPromotions.length > 0 && (
+                <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                  <div className="font-medium mb-1">Mã giảm giá đã áp dụng</div>
+                  {parsedPromotions.map((p, i) => (
+                    <div key={i} className="ml-2 flex justify-between">
+                      <span>• {p.name}</span>
+                      <span>-{formatCurrency(p.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-between text-base font-semibold border-t pt-2">
+                <span>Thành tiền</span>
+                <span className="text-red-600">
+                  {formatCurrency(finalAmount)}
+                </span>
+              </div>
             </div>
           </>
         ) : (
@@ -441,7 +499,5 @@ const AdminOrderDetailPage: React.FC = () => {
     </div>
   );
 };
-
-
 
 export default AdminOrderDetailPage;

@@ -26,6 +26,7 @@ export interface CheckoutRequest {
   address: string;
   description?: string;
   cartItemIds?: number[]; // Optional: nếu không có thì checkout tất cả items trong cart
+  shippingFee?: number; // Optional: phí vận chuyển (mặc định 0 nếu không gửi)
 }
 
 export interface CheckoutResponse {
@@ -33,6 +34,8 @@ export interface CheckoutResponse {
   status: string;
   paymentMethod: string;
   totalAmount: number;
+  shippingFee?: number;
+  finalAmount?: number;
   message: string;
 }
 
@@ -56,6 +59,7 @@ export interface Order {
   totalAmount: number;
   discountAmount?: number;
   finalAmount?: number;
+  shippingFee?: number;
   appliedPromotions?: string; // JSON string
   status: OrderStatus;
   paymentMethod: PaymentMethod;
@@ -105,6 +109,7 @@ export interface OrderDetail {
   orderCode: string;
   createdAt: string;
   totalAmount: number;
+  shippingFee?: number;
   status: string;
   paymentMethod: string;
   customerName: string;

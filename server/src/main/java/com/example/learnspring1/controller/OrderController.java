@@ -249,6 +249,8 @@ public class OrderController {
             response.put("status", order.getStatus().name());
             response.put("paymentMethod", order.getPaymentMethod().name());
             response.put("totalAmount", order.getTotalAmount());
+            response.put("shippingFee", order.getShippingFee());
+            response.put("finalAmount", order.getFinalAmount());
             response.put("message", "Order created successfully");
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -416,6 +418,7 @@ public class OrderController {
                 .totalAmount(order.getTotalAmount())
                 .discountAmount(order.getDiscountAmount())
                 .finalAmount(order.getFinalAmount())
+                .shippingFee(order.getShippingFee())
                 .appliedPromotions(order.getAppliedPromotions())
                 .status(order.getStatus())
                 .paymentMethod(order.getPaymentMethod())
@@ -454,6 +457,7 @@ public class OrderController {
                 .totalAmount(order.getTotalAmount())
                 .discountAmount(order.getDiscountAmount())
                 .finalAmount(order.getFinalAmount())
+                .shippingFee(order.getShippingFee())
                 .appliedPromotions(order.getAppliedPromotions())
                 .status(order.getStatus())
                 .paymentMethod(order.getPaymentMethod())

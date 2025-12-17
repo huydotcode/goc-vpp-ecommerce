@@ -25,9 +25,10 @@ public class OrderDetailDTO {
     private String description;
     private BigDecimal discountAmount;
     private BigDecimal finalAmount;
+    private BigDecimal shippingFee;
     private String appliedPromotions;
     private List<OrderItemSummaryDTO> items;
-    
+
     // User info (if order is linked to a user account)
     private Long userId;
     private String userFirstName;

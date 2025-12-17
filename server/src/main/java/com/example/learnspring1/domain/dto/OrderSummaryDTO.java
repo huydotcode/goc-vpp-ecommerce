@@ -20,6 +20,7 @@ public class OrderSummaryDTO {
     private Instant createdAt;
     private BigDecimal discountAmount;
     private BigDecimal finalAmount;
+    private BigDecimal shippingFee;
     private String appliedPromotions;
     private String customerName;
     private String customerEmail;

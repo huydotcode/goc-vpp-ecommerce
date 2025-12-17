@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -27,4 +28,7 @@ public class CheckoutRequestDTO {
     private String description; // Optional notes
 
     private List<Long> cartItemIds; // Optional: nếu null hoặc empty thì checkout tất cả items trong cart
+
+    // Optional: phí vận chuyển, default 0 nếu không gửi
+    private BigDecimal shippingFee;
 }
