@@ -204,7 +204,7 @@ const OrderResult: React.FC = () => {
             {isSuccess && (
               <Button
                 icon={<ShoppingOutlined />}
-                onClick={() => navigate("/user/orders")}
+                onClick={() => navigate(`/user/orders/${orderCode}`)}
                 style={{
                   minWidth: 140,
                   borderRadius: "var(--radius-md)",
