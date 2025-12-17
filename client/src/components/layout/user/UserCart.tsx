@@ -30,7 +30,7 @@ const UserCart: React.FC = () => {
   const innerControls = useAnimationControls();
 
   // Get cart item count
-  const currentCartCount = cart?.totalItems || 0;
+  const currentCartCount = cart?.items.length || 0;
 
   // Detect cart count change and trigger animation
   useEffect(() => {
@@ -340,7 +340,7 @@ const UserCart: React.FC = () => {
               <Text strong>Giỏ hàng</Text>
               {cart && cart.items.length > 0 && (
                 <Text type="secondary" style={{ fontSize: "12px" }}>
-                  {cart.totalItems} sản phẩm
+                  {cart.items.length} sản phẩm
                 </Text>
               )}
             </div>
