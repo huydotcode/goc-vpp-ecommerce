@@ -49,29 +49,6 @@ const { RangePicker } = DatePicker;
 
 const { Title, Text } = Typography;
 
-type OrderItemSummary = {
-  productName?: string;
-  quantity?: number;
-  imageUrl?: string;
-};
-
-type OrderSummary = {
-  id: number;
-  orderCode?: string;
-  createdAt: string;
-  totalAmount: number;
-  status: string;
-  paymentMethod?: string;
-  customerName?: string;
-  customerEmail?: string;
-  customerPhone?: string;
-  items?: OrderItemSummary[];
-  // User account info
-  userId?: number;
-  userFirstName?: string;
-  userLastName?: string;
-};
-
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
   PENDING: "gold",
@@ -452,7 +429,7 @@ const AdminOrdersPage: React.FC = () => {
   }, []);
 
   const renderCards = useMemo(() => {
-    const orders: OrderSummary[] = data?.content || [];
+    const orders = data?.content || [];
 
     if (orders.length === 0) {
       return (
