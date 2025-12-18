@@ -62,18 +62,18 @@ const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
-    <StrictMode>
-      <ConfigProvider locale={viVN} theme={antdTheme}>
-        <AntdApp>
-          <Toaster
-            position="bottom-left"
-            richColors
-            closeButton
-            duration={3000}
-          />
-          <App />
-        </AntdApp>
-      </ConfigProvider>
-    </StrictMode>
+    {/* <StrictMode> */}
+    <ConfigProvider locale={viVN} theme={antdTheme}>
+      <AntdApp>
+        <Toaster
+          position="bottom-left"
+          richColors
+          closeButton
+          duration={3000}
+        />
+        <App />
+      </AntdApp>
+    </ConfigProvider>
+    {/* </StrictMode> */}
   </QueryClientProvider>
 );
