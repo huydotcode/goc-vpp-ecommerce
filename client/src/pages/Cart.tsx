@@ -1,4 +1,5 @@
 import { variantApi } from "@/api/variant.api";
+import { useAuth } from "@/contexts/AuthContext";
 import { promotionService } from "@/services/promotion.service";
 import type {
   CartItem,
@@ -28,12 +29,11 @@ import {
   Tag,
   Typography,
 } from "antd";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCart } from "../hooks";
 import { formatCurrency } from "../utils/format";
-import { useAuth } from "@/contexts/AuthContext";
 
 const { Title, Text } = Typography;
 
@@ -588,9 +588,9 @@ const CartPage: React.FC = () => {
                           justifyContent: "center",
                         }}
                       />
-                      <div
+                      <input
                         style={{
-                          minWidth: 36,
+                          width: "50px",
                           textAlign: "center",
                           padding: "0 4px",
                           fontSize: "var(--font-size-sm)",
@@ -599,9 +599,18 @@ const CartPage: React.FC = () => {
                           borderRight: "1px solid #d9d9d9",
                           lineHeight: "28px",
                         }}
-                      >
-                        {item.quantity}
-                      </div>
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value !== null) {
+                            handleQuantityChange(
+                              item.id,
+                              Number(value.replace(/[^0-9]/g, ""))
+                            );
+                          }
+                        }}
+                      />
+
                       <Button
                         type="text"
                         icon={<PlusOutlined style={{ fontSize: 12 }} />}

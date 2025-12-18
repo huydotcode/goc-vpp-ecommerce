@@ -213,13 +213,6 @@ const UserCart: React.FC = () => {
                           handleQuantityChange(item.id, value);
                         }
                       }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
                       size="small"
                       style={{ width: 70 }}
                     />
