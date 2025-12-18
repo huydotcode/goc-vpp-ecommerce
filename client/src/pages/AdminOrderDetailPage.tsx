@@ -74,7 +74,7 @@ const statusLabel = (status: string) => {
     case "DELIVERED":
       return "Đã giao";
     case "PENDING":
-      return "Chờ thanh toán";
+      return "Chờ thanh toán / xác nhận";
     case "PAID":
       return "Đã thanh toán";
     case "CONFIRMED":

@@ -62,7 +62,7 @@ const changeTypeConfig: Record<
 };
 
 const statusLabelMap: Record<string, string> = {
-  PENDING: "Chờ thanh toán",
+  PENDING: "Chờ thanh toán / xác nhận",
   PAID: "Đã thanh toán",
   CONFIRMED: "Đã xác nhận",
   SHIPPING: "Đang giao",

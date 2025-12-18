@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import CancelOrderModal from "@/components/order/CancelOrderModal";
 import { useMutation } from "@tanstack/react-query";
 import { handleApiError } from "@/utils/error";
+import { getPayOSUrl } from "@/utils/payosStorage";
 
 const statusColorMap: Record<string, string> = {
   COMPLETED: "green",
@@ -248,6 +249,11 @@ const OrdersPage: React.FC = () => {
     return (
       <div className="flex flex-col gap-3 sm:gap-4">
         {items.map((order) => {
+          const payOSUrl = getPayOSUrl(order.orderCode || String(order.id));
+          const needsPayment =
+            order.paymentMethod === "PAYOS" &&
+            ["PENDING", "CONFIRMED"].includes(order.status) &&
+            payOSUrl;
           const orderReviewableItems =
             (order.items || []).filter(
               (item) => !item.isGift && item.productId
@@ -362,6 +368,18 @@ const OrdersPage: React.FC = () => {
                   >
                     Chi tiết
                   </Button>
+                  {needsPayment && payOSUrl && (
+                    <Button
+                      size="middle"
+                      type="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(payOSUrl, "_blank");
+                      }}
+                    >
+                      Thanh toán ngay
+                    </Button>
+                  )}
                   {canCancelOrder(order) && (
                     <Button
                       size="middle"

@@ -65,7 +65,7 @@ const statusLabel = (status: string) => {
     case "COMPLETED":
       return "Hoàn thành";
     case "PENDING":
-      return "Chờ thanh toán";
+      return "Chờ thanh toán / xác nhận";
     case "PAID":
       return "Đã thanh toán";
     case "CONFIRMED":
@@ -527,9 +527,22 @@ const AdminOrdersPage: React.FC = () => {
                         {new Date(order.createdAt).toLocaleString("vi-VN")}
                       </Text>
                     </div>
-                    <Tag color={statusColorMap[order.status] || "default"}>
-                      {statusLabel(order.status)}
-                    </Tag>
+
+                    {order.status === "PENDING" ? (
+                      <Tag
+                        color={
+                          order.paymentMethod === "COD" ? "gold" : "geekblue"
+                        }
+                      >
+                        {order.paymentMethod === "COD"
+                          ? "Chờ xác nhận COD"
+                          : "Chờ thanh toán PayOS"}
+                      </Tag>
+                    ) : (
+                      <Tag color={statusColorMap[order.status] || "default"}>
+                        {statusLabel(order.status)}
+                      </Tag>
+                    )}
                   </div>
 
                   {/* Customer Info */}
@@ -637,7 +650,10 @@ const AdminOrdersPage: React.FC = () => {
 
   const tabItems = [
     { key: "ALL", label: `Tất cả (${stats?.totalOrders || 0})` },
-    { key: "PENDING", label: `Chờ thanh toán (${stats?.pendingCount || 0})` },
+    {
+      key: "PENDING",
+      label: `Chờ thanh toán / xác nhận (${stats?.pendingCount || 0})`,
+    },
     { key: "PAID", label: `Đã thanh toán (${stats?.paidCount || 0})` },
     { key: "CONFIRMED", label: `Đã xác nhận (${stats?.confirmedCount || 0})` },
     { key: "SHIPPING", label: `Đang giao (${stats?.shippingCount || 0})` },

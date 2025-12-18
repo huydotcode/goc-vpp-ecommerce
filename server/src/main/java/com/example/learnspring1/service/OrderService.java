@@ -308,7 +308,7 @@ public class OrderService {
         // Xác định status ban đầu
         Order.OrderStatus initialStatus;
         if (request.getPaymentMethod() == Order.PaymentMethod.COD) {
-            initialStatus = Order.OrderStatus.CONFIRMED;
+            initialStatus = Order.OrderStatus.PENDING;
         } else {
             initialStatus = Order.OrderStatus.PENDING;
         }
