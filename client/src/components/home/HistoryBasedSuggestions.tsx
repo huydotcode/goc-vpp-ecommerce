@@ -48,30 +48,6 @@ const HistoryBasedSuggestions: React.FC<HistoryBasedSuggestionsProps> = ({
       ? historyData
       : bestSellersData?.result || [];
 
-  // Debug logging
-  React.useEffect(() => {
-    if (inView) {
-      console.log(
-        "[HistorySuggest] Component in view, fetching suggestions..."
-      );
-    }
-  }, [inView]);
-
-  React.useEffect(() => {
-    if (historyData) {
-      console.log(
-        "[HistorySuggest] Received history products:",
-        historyData.length
-      );
-    }
-    if (bestSellersData) {
-      console.log(
-        "[HistorySuggest] Received best sellers:",
-        bestSellersData.result?.length || 0
-      );
-    }
-  }, [historyData, bestSellersData]);
-
   if (!inView && !historyData && !bestSellersData) {
     return <div ref={ref} className="mb-8 h-40" />;
   }

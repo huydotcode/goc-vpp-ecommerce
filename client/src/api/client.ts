@@ -70,7 +70,6 @@ apiClient.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
           }
         } else {
-          console.error("Invalid token format detected");
           storage.removeToken();
         }
       }
@@ -132,7 +131,6 @@ apiClient.interceptors.response.use(
         }
 
         if (!accessToken) {
-          console.error("Refresh response:", response.data);
           throw new Error("Không nhận được access token từ refresh endpoint");
         }
 

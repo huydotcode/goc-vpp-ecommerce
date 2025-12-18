@@ -23,9 +23,7 @@ const RoleBasedRedirect: React.FC = () => {
 
     if (token && !hasTriedReload) {
       setHasTriedReload(true);
-      void loadUserInfo().catch((error) => {
-        console.error("[RoleBasedRedirect] Failed to reload user info:", error);
-      });
+      void loadUserInfo().catch((error) => {});
 
       return (
         <div style={fullScreenCenterStyle}>

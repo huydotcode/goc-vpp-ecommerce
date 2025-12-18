@@ -154,11 +154,6 @@ const UserHeader: React.FC = () => {
     };
   }, [isMobileSearchOpen]);
 
-  useEffect(() => {
-    console.log("UserHeader Debug - User:", user);
-    console.log("UserHeader Debug - Role:", user?.role);
-  }, [user]);
-
   const authenticatedMenuItems: MenuProps["items"] = [
     ...(user?.role && ["ADMIN", "EMPLOYEE"].includes(user.role)
       ? [

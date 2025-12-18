@@ -66,7 +66,8 @@ const CustomArrow = (props: any) => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: isHovered && !isDisabled ? "#a81b20" : "rgba(255, 66, 72, 0.8)",
+        background:
+          isHovered && !isDisabled ? "#a81b20" : "rgba(255, 66, 72, 0.8)",
         color: "#fff",
         borderRadius: "50%",
         width: "44px",
@@ -322,7 +323,6 @@ const ProductDetailPage: React.FC = () => {
         unitPrice,
       });
     } catch (error) {
-      console.error("Failed to add to cart", error);
       toast.error("Thêm vào giỏ thất bại, vui lòng thử lại");
     }
   };

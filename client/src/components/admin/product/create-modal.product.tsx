@@ -68,7 +68,6 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
           setCategories(response.result);
         }
       } catch (error) {
-        console.error("Error fetching categories:", error);
       } finally {
         setLoadingCategories(false);
       }
@@ -99,7 +98,10 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
     // Kiểm tra xem file đã tồn tại chưa (so sánh theo name và size)
     setSelectedFiles((prev) => {
       const exists = prev.some(
-        (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
+        (f) =>
+          f.name === file.name &&
+          f.size === file.size &&
+          f.lastModified === file.lastModified
       );
       if (exists) {
         return prev;
@@ -119,7 +121,9 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         setFileList((prevList) => {
           // Kiểm tra duplicate trong fileList
           const fileExists = prevList.some(
-            (f) => f.originFileObj === file || (f.name === file.name && f.uid?.includes(file.name))
+            (f) =>
+              f.originFileObj === file ||
+              (f.name === file.name && f.uid?.includes(file.name))
           );
           if (fileExists) {
             return prevList;
@@ -215,7 +219,8 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       }
 
       // Lấy ảnh đầu tiên làm thumbnail
-      const thumbnailUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl;
+      const thumbnailUrl =
+        uploadedUrls.length > 0 ? uploadedUrls[0] : values.thumbnailUrl;
 
       // Tự động tạo default variant nếu không có variants
       const defaultVariant = {
@@ -243,7 +248,8 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       setCreatedProductId(createdProduct.id);
       api.success({
         message: "Thành công",
-        description: "Tạo mới sản phẩm thành công. Bạn có thể quản lý variants ngay bây giờ.",
+        description:
+          "Tạo mới sản phẩm thành công. Bạn có thể quản lý variants ngay bây giờ.",
         placement: "topRight",
         duration: 5,
       });
@@ -288,7 +294,6 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
         }}
         width="60%"
       >
-
         <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
           <Form.Item
             label="Tên"
@@ -379,7 +384,9 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
               {
                 validator: () => {
                   if (fileList.length === 0) {
-                    return Promise.reject(new Error("Vui lòng upload ít nhất 1 ảnh"));
+                    return Promise.reject(
+                      new Error("Vui lòng upload ít nhất 1 ảnh")
+                    );
                   }
                   return Promise.resolve();
                 },
@@ -450,7 +457,9 @@ const ProductCreate: React.FC<ProductCreateProps> = ({
       {createdProductId && (
         <VariantManager
           productId={createdProductId}
-          productName={form.getFieldValue("name") || `Product #${createdProductId}`}
+          productName={
+            form.getFieldValue("name") || `Product #${createdProductId}`
+          }
           visible={isVariantManagerVisible}
           onClose={() => {
             setIsVariantManagerVisible(false);

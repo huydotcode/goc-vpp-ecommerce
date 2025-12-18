@@ -215,7 +215,6 @@ const ProductCard: React.FC<ProductCardProps> = (props) => {
       return;
     }
     const variant = variants.find((v) => v.id === selectedVariantId);
-    console.log("variant");
     if (!variant) {
       toast.error("Không tìm thấy phân loại");
       return;
