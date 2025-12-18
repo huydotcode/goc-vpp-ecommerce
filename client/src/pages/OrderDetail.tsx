@@ -597,9 +597,11 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
                               <Button
                                 size="small"
                                 icon={<StarOutlined />}
-                                onClick={() =>
-                                  handleOpenReviewModal(item.productId)
-                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleOpenReviewModal(item.productId);
+                                }}
                               >
                                 Đánh giá sản phẩm
                               </Button>
