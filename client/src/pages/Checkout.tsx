@@ -912,6 +912,41 @@ const CheckoutPage: React.FC = () => {
                 )}
               </Form.Item>
 
+              <Form.Item label="Phương thức vận chuyển">
+                <Card style={{ border: "1px solid #f0f0f0" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 16,
+                    }}
+                  >
+                    <div>
+                      <Text strong style={{ fontSize: 14, display: "block" }}>
+                        Giao hàng tiêu chuẩn
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {(() => {
+                          const today = new Date();
+                          const deliveryDate = new Date(
+                            today.getTime() + 3 * 24 * 60 * 60 * 1000
+                          );
+                          return `Dự kiến giao hàng: ${deliveryDate.getDate()}/${
+                            deliveryDate.getMonth() + 1
+                          }/${deliveryDate.getFullYear()}`;
+                        })()}
+                      </Text>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <Text strong style={{ fontSize: 16, display: "block" }}>
+                        {formatCurrency(shippingFee)}
+                      </Text>
+                    </div>
+                  </div>
+                </Card>
+              </Form.Item>
+
               <Form.Item
                 label="Họ tên"
                 name="fullName"

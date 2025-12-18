@@ -490,8 +490,16 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
         </Card>
 
         <Card title="Phương thức vận chuyển" className="shadow-sm">
-          <div className="text-gray-900">
-            Giao hàng tiêu chuẩn (dự kiến 3 - 5 ngày)
+          <div className="text-gray-900">Giao hàng tiêu chuẩn</div>
+          <div className="text-sm text-gray-600 mt-2">
+            Dự kiến giao hàng:{" "}
+            {(() => {
+              const createdDate = new Date(data.createdAt);
+              const deliveryDate = new Date(
+                createdDate.getTime() + 3 * 24 * 60 * 60 * 1000
+              );
+              return `${deliveryDate.getDate()}/${deliveryDate.getMonth() + 1}/${deliveryDate.getFullYear()}`;
+            })()}
           </div>
         </Card>
       </div>
@@ -638,7 +646,7 @@ const OrderDetailPage: React.FC<OrderDetailPageProps> = ({
               </div>
 
               {discountAmount > 0 && (
-                <div className="flex justify-between text-base text-green-600">
+                <div className="flex justify-between text-base">
                   <span>Giảm giá</span>
                   <span>-{formatCurrency(discountAmount)}</span>
                 </div>
