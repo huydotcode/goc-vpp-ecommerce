@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { Spin } from "antd";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -31,9 +32,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           justifyContent: "center",
           alignItems: "center",
           minHeight: "100vh",
+          width: "100%",
+          backgroundColor: "#fff",
         }}
       >
-        Đang tải...
+        <Spin size="large" tip="Đang tải..." />
       </div>
     );
   }

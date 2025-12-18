@@ -69,7 +69,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const token = localStorage.getItem("accessToken");
     setIsAuthenticated(!!token);
     if (token) {
-      loadUserInfo().finally(() => setIsLoading(false));
+      // Luôn load user info nếu có token, isLoading sẽ tự động false khi hoàn thành
+      loadUserInfo()
+        .then(() => {
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsLoading(false);
+        });
     } else {
       setIsLoading(false);
     }
